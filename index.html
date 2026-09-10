@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>家總管｜房務管理系統</title>
+  <style>
+    :root{--bg:#08101d;--panel:#0f1a2b;--line:#1f2f46;--text:#f7fafc;--muted:#8fa4bd;--accent:#75e0b8;--accent2:#7fb5ff;--warn:#ffd479}
+    *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;background:radial-gradient(circle at 85% 5%,#173050 0,transparent 34%),linear-gradient(145deg,#07101c,#0a1423 55%,#07101b);color:var(--text);min-height:100vh}
+    .shell{max-width:1180px;margin:auto;padding:34px 22px 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:54px}.brand{font-weight:800;letter-spacing:.06em;font-size:20px}.tag{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:8px 12px;border-radius:999px;background:#0d1828aa}
+    .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:24px;align-items:stretch}.hero h1{font-size:clamp(42px,7vw,80px);line-height:.96;margin:0 0 22px;letter-spacing:-.055em}.hero p{max-width:650px;color:#a9bbcf;font-size:17px;line-height:1.8;margin:0}.eyebrow{color:var(--accent);font-size:13px;font-weight:800;letter-spacing:.16em;margin-bottom:16px}
+    .summary{border:1px solid var(--line);border-radius:26px;background:linear-gradient(180deg,#112038dd,#0c1727dd);padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:260px}.summary .num{font-size:70px;font-weight:850;letter-spacing:-.06em}.summary small{color:var(--muted)}.summary .foot{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:16px;color:#bac8d8}
+    .section-title{display:flex;justify-content:space-between;align-items:end;margin:56px 0 18px}.section-title h2{font-size:18px;margin:0}.section-title span{color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{position:relative;display:block;text-decoration:none;color:inherit;border:1px solid var(--line);background:#0d1828cc;border-radius:20px;padding:20px;min-height:172px;transition:.22s ease;overflow:hidden}.card:hover{transform:translateY(-3px);border-color:#395778;background:#112039}.card.live:after{content:"";position:absolute;width:130px;height:130px;border-radius:50%;right:-50px;top:-60px;background:#75e0b81e}.icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:#17263a;border:1px solid #243954;margin-bottom:24px}.card h3{margin:0 0 7px;font-size:17px}.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}.state{position:absolute;right:16px;bottom:16px;font-size:11px;color:#73879e}.live .state{color:var(--accent)}
+    .security{margin-top:34px;padding:18px 20px;border:1px dashed #35516e;border-radius:18px;color:#91a8c1;font-size:13px;line-height:1.7;background:#0b1726}.security b{color:#dfe9f3}
+    @media(max-width:780px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.summary{min-height:210px}.top{margin-bottom:40px}}@media(max-width:520px){.grid{grid-template-columns:1fr}.shell{padding:24px 16px 46px}.hero h1{font-size:48px}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top"><div class="brand">家總管 HOUSE OPS</div><div class="tag">總務 × 房務 × 交接</div></header>
+    <section class="hero">
+      <div><div class="eyebrow">HOUSE MANAGEMENT SYSTEM</div><h1>一個地方<br>管好所有房務</h1><p>先從空房開始。集中掌握房間狀態、交接資訊與現場備註，未來可逐步擴充房客、租金、水電、報修、合約與財務管理。</p></div>
+      <div class="summary"><div><small>目前空房</small><div class="num">9</div></div><div class="foot"><span>空房模組已啟用</span><span>V1.0</span></div></div>
+    </section>
+    <div class="section-title"><h2>工作模組</h2><span>預留擴充架構</span></div>
+    <section class="grid">
+      <a class="card live" href="vacancy.html"><div class="icon">⌂</div><h3>空房系統</h3><p>空房清單、搜尋、狀態、備註與交接資料</p><span class="state">立即使用 →</span></a>
+      <div class="card"><div class="icon">人</div><h3>房客管理</h3><p>住戶資料、入住退租、緊急聯絡資訊</p><span class="state">預留</span></div>
+      <div class="card"><div class="icon">$</div><h3>租金收繳</h3><p>租金週期、繳費狀態、催繳與收據紀錄</p><span class="state">預留</span></div>
+      <div class="card"><div class="icon">⚡</div><h3>水電抄表</h3><p>電錶、水錶、照片、度數與費用計算</p><span class="state">預留</span></div>
+      <div class="card"><div class="icon">↗</div><h3>報修工單</h3><p>維修案件、進度、廠商、照片與成本</p><span class="state">預留</span></div>
+      <div class="card"><div class="icon">▤</div><h3>合約管理</h3><p>租約到期、續約、文件與重要日期提醒</p><span class="state">預留</span></div>
+      <div class="card"><div class="icon">□</div><h3>總務交接</h3><p>鑰匙、磁扣、門禁、管理室與現場注意事項</p><span class="state">預留</span></div>
+      <div class="card"><div class="icon">◫</div><h3>財務報表</h3><p>收入、支出、管理費與物件收益彙整</p><span class="state">預留</span></div>
+      <div class="card"><div class="icon">⚙</div><h3>系統設定</h3><p>權限、欄位、自訂分類與資料備份</p><span class="state">預留</span></div>
+    </section>
+    <div class="security"><b>安全設計：</b>此 GitHub Pages 專案為公開網站，因此門禁密碼、鑰匙位置與精確交接內容不寫入公開原始碼。空房頁面中的私人交接資料採瀏覽器本機儲存，避免敏感資訊直接暴露在 GitHub。</div>
+  </main>
+</body>
+</html>
