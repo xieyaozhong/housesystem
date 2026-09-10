@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#09111e" />
+<title>家總管｜空房系統</title>
+<style>
+:root{--bg:#07101d;--panel:#0d1828;--panel2:#101e31;--line:#20324a;--text:#f5f8fc;--muted:#90a5bc;--accent:#78e2b9;--blue:#83b9ff;--yellow:#ffd77f;--red:#ff9d9d}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(150deg,#07101d,#091423 55%,#07101b);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;min-height:100vh}button,input,textarea,select{font:inherit}
+a{color:inherit;text-decoration:none}.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}.side{border-right:1px solid var(--line);background:#081321d9;padding:24px 16px;position:sticky;top:0;height:100vh}.logo{font-weight:850;letter-spacing:.06em;padding:0 10px 26px}.logo small{display:block;color:var(--muted);font-size:10px;letter-spacing:.18em;margin-top:5px}.nav{display:grid;gap:6px}.nav a,.nav div{padding:11px 12px;border-radius:12px;color:#8ea3ba;font-size:13px}.nav .active{background:#15263b;color:#fff;border:1px solid #263d59}.nav .future{opacity:.62}.dot{float:right;font-size:10px;color:#5f748d}.active .dot{color:var(--accent)}.back{position:absolute;left:16px;right:16px;bottom:22px;border-top:1px solid var(--line);padding-top:16px;color:#8ea3ba;font-size:12px}
+.main{padding:28px 30px 60px;max-width:1440px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.eyebrow{font-size:11px;letter-spacing:.17em;color:var(--accent);font-weight:800}.top h1{font-size:34px;margin:5px 0 5px;letter-spacing:-.04em}.sub{color:var(--muted);font-size:13px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#101e30;color:#dce6f0;border-radius:12px;padding:10px 13px;cursor:pointer}.btn:hover{border-color:#3b5878}.btn.primary{background:var(--accent);border-color:var(--accent);color:#062419;font-weight:750}.btn.danger{color:#ffc1c1}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:26px 0}.stat{border:1px solid var(--line);background:#0d1929cc;border-radius:18px;padding:17px}.stat small{color:var(--muted)}.stat b{display:block;font-size:28px;margin-top:8px}.toolbar{display:grid;grid-template-columns:1fr 180px 180px;gap:10px;margin-bottom:15px}.field{width:100%;border:1px solid var(--line);background:#0c1828;color:#e8eef5;border-radius:12px;padding:12px 13px;outline:none}.field:focus{border-color:#4b6f96}.rooms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.room{border:1px solid var(--line);background:linear-gradient(180deg,#0f1d30,#0c1727);border-radius:18px;padding:17px;cursor:pointer;transition:.18s}.room:hover{transform:translateY(-2px);border-color:#3c5877}.room-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.room h3{margin:0;font-size:18px}.badge{font-size:10px;border-radius:999px;padding:6px 9px;background:#173b31;color:#9af0d0;border:1px solid #245646}.meta{margin-top:14px;color:#91a6bc;font-size:12px;display:grid;gap:6px}.meta span{display:flex;justify-content:space-between;gap:10px}.meta i{font-style:normal;color:#cbd6e1}.note{margin-top:14px;border-top:1px solid #1b2d43;padding-top:12px;color:#8fa4ba;font-size:12px;min-height:31px}.empty{display:none;text-align:center;border:1px dashed var(--line);border-radius:18px;padding:50px;color:var(--muted)}
+.drawer-bg{position:fixed;inset:0;background:#02070db8;backdrop-filter:blur(7px);display:none;z-index:20}.drawer{position:absolute;right:0;top:0;height:100%;width:min(520px,100%);background:#0a1524;border-left:1px solid var(--line);padding:24px;overflow:auto}.drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}.drawer h2{margin:0}.close{border:0;background:transparent;color:#93a7bc;font-size:25px;cursor:pointer}.form{display:grid;gap:13px}.group label{display:block;color:#8fa4bb;font-size:11px;margin:0 0 6px}.group textarea{min-height:90px;resize:vertical}.security{border:1px solid #314760;border-radius:14px;background:#0d1a2b;padding:13px;font-size:11px;line-height:1.65;color:#87a0b8}.security b{color:#d8e4ee}.drawer-actions{display:flex;gap:8px;margin-top:10px}.drawer-actions .btn{flex:1}
+.modal-bg{position:fixed;inset:0;background:#02070dca;display:none;place-items:center;z-index:30;padding:16px}.modal{width:min(620px,100%);max-height:90vh;overflow:auto;background:#0b1625;border:1px solid var(--line);border-radius:22px;padding:22px}.modal h2{margin:0 0 6px}.modal p{margin:0 0 18px;color:var(--muted);font-size:12px;line-height:1.6}.paste{min-height:230px}.hint{color:#70879f;font-size:10px;margin-top:6px}.toast{position:fixed;left:50%;bottom:25px;transform:translateX(-50%);background:#e7fff5;color:#0d382b;border-radius:999px;padding:10px 16px;font-size:12px;font-weight:750;display:none;z-index:50}
+@media(max-width:1080px){.rooms{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:repeat(2,1fr)}}@media(max-width:760px){.app{display:block}.side{height:auto;position:static;border-right:0;border-bottom:1px solid var(--line);padding:16px}.nav{display:flex;overflow:auto}.nav a,.nav div{white-space:nowrap}.nav .future{display:none}.back{position:static;margin-top:8px}.main{padding:22px 16px 50px}.top{display:grid}.toolbar{grid-template-columns:1fr}.rooms{grid-template-columns:1fr}.actions{width:100%}.actions .btn{flex:1}.top h1{font-size:29px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="logo">家總管<small>HOUSE OPS</small></div>
+    <nav class="nav">
+      <a class="active" href="vacancy.html">空房系統 <span class="dot">●</span></a>
+      <div class="future">房客管理 <span class="dot">預留</span></div>
+      <div class="future">租金收繳 <span class="dot">預留</span></div>
+      <div class="future">水電抄表 <span class="dot">預留</span></div>
+      <div class="future">報修工單 <span class="dot">預留</span></div>
+      <div class="future">合約管理 <span class="dot">預留</span></div>
+      <div class="future">總務交接 <span class="dot">預留</span></div>
+      <div class="future">財務報表 <span class="dot">預留</span></div>
+    </nav>
+    <a class="back" href="index.html">← 回系統首頁</a>
+  </aside>
+
+  <main class="main">
+    <header class="top">
+      <div><div class="eyebrow">VACANCY CONTROL</div><h1>空房管理</h1><div class="sub">快速掌握目前空房，點房間可補交接、門禁、電錶與現場資訊</div></div>
+      <div class="actions"><button class="btn" onclick="openImport()">匯入交接資料</button><button class="btn primary" onclick="newRoom()">＋ 新增房間</button></div>
+    </header>
+
+    <section class="stats">
+      <div class="stat"><small>目前空房</small><b id="vacantCount">9</b></div>
+      <div class="stat"><small>全部房間</small><b id="allCount">9</b></div>
+      <div class="stat"><small>已有交接資料</small><b id="detailCount">0</b></div>
+      <div class="stat"><small>待補資料</small><b id="missingCount">9</b></div>
+    </section>
+
+    <section class="toolbar">
+      <input id="search" class="field" placeholder="搜尋房名、區域、地址或備註…" oninput="render()" />
+      <select id="statusFilter" class="field" onchange="render()"><option value="all">全部狀態</option><option value="vacant">空房</option><option value="occupied">已出租</option><option value="repair">整理／維修</option></select>
+      <select id="areaFilter" class="field" onchange="render()"><option value="all">全部區域</option></select>
+    </section>
+
+    <section id="rooms" class="rooms"></section>
+    <div id="empty" class="empty">找不到符合條件的房間</div>
+  </main>
+</div>
+
+<div id="drawerBg" class="drawer-bg" onclick="bgClose(event)">
+  <aside class="drawer">
+    <div class="drawer-head"><div><div class="eyebrow">ROOM DETAIL</div><h2 id="drawerTitle">房間</h2></div><button class="close" onclick="closeDrawer()">×</button></div>
+    <div class="form">
+      <div class="group"><label>房間名稱</label><input id="fName" class="field" /></div>
+      <div class="group"><label>區域</label><input id="fArea" class="field" placeholder="例：北屯、西屯、一中" /></div>
+      <div class="group"><label>地址／位置</label><input id="fAddress" class="field" placeholder="僅儲存在此瀏覽器" /></div>
+      <div class="group"><label>狀態</label><select id="fStatus" class="field"><option value="vacant">空房</option><option value="occupied">已出租</option><option value="repair">整理／維修</option></select></div>
+      <div class="group"><label>門禁／密碼／電錶</label><textarea id="fAccess" class="field" placeholder="例：門禁、電錶位置、磁扣資訊…"></textarea></div>
+      <div class="group"><label>備註／物品／管理室</label><textarea id="fNote" class="field" placeholder="例：鑰匙、磁扣、管理費、管理室電話…"></textarea></div>
+      <div class="security"><b>本機資料：</b>這些欄位會存進目前裝置的瀏覽器 localStorage，不會寫回公開 GitHub 原始碼。共用電腦仍不建議保存門禁密碼。</div>
+      <div class="drawer-actions"><button class="btn danger" onclick="deleteCurrent()">刪除</button><button class="btn primary" onclick="saveCurrent()">儲存</button></div>
+    </div>
+  </aside>
+</div>
+
+<div id="importBg" class="modal-bg">
+  <div class="modal">
+    <h2>匯入總務交接資料</h2>
+    <p>把交接表逐行貼進來即可。建議格式：<br>編號｜地址｜密碼／電錶｜備註／物品<br>資料只會解析並保存在目前瀏覽器。</p>
+    <textarea id="pasteData" class="field paste" placeholder="20號｜北區○○路…｜門禁…｜磁扣…"></textarea>
+    <div class="hint">支援 Tab、逗號、｜分隔。若內容含實際門禁密碼，請只在自己的裝置操作。</div>
+    <div class="drawer-actions" style="margin-top:16px"><button class="btn" onclick="closeImport()">取消</button><button class="btn primary" onclick="importData()">匯入本機</button></div>
+  </div>
+</div>
+<div id="toast" class="toast">已儲存</div>
+<script>
+const KEY='house_ops_rooms_v1';
+const seed=[
+ {id:'r1',name:'北屯8B',area:'北屯',address:'',status:'vacant',access:'',note:''},
+ {id:'r2',name:'北屯8C',area:'北屯',address:'',status:'vacant',access:'',note:''},
+ {id:'r3',name:'陝西703',area:'北區',address:'',status:'vacant',access:'',note:''},
+ {id:'r4',name:'太原C',area:'北區',address:'',status:'vacant',access:'',note:''},
+ {id:'r5',name:'一中7B',area:'北區',address:'',status:'vacant',access:'',note:''},
+ {id:'r6',name:'精誠301',area:'西區',address:'',status:'vacant',access:'',note:''},
+ {id:'r7',name:'民生303',area:'西區',address:'',status:'vacant',access:'',note:''},
+ {id:'r8',name:'寧夏R8',area:'西屯',address:'',status:'vacant',access:'',note:''},
+ {id:'r9',name:'復興路五段186號3樓E室',area:'東區',address:'',status:'vacant',access:'',note:''}
+];
+let rooms=load();let currentId=null;
+function load(){try{const v=JSON.parse(localStorage.getItem(KEY));return Array.isArray(v)&&v.length?v:structuredClone(seed)}catch(e){return structuredClone(seed)}}
+function persist(){localStorage.setItem(KEY,JSON.stringify(rooms));render();flash('已儲存到此裝置')}
+function esc(s=''){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function statusName(s){return s==='occupied'?'已出租':s==='repair'?'整理／維修':'空房'}
+function rebuildAreas(){const el=document.getElementById('areaFilter'),old=el.value;const vals=[...new Set(rooms.map(r=>r.area).filter(Boolean))].sort();el.innerHTML='<option value="all">全部區域</option>'+vals.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');if([...el.options].some(o=>o.value===old))el.value=old}
+function render(){rebuildAreas();const q=document.getElementById('search').value.trim().toLowerCase(),st=document.getElementById('statusFilter').value,ar=document.getElementById('areaFilter').value;const list=rooms.filter(r=>(st==='all'||r.status===st)&&(ar==='all'||r.area===ar)&&(!q||[r.name,r.area,r.address,r.note].join(' ').toLowerCase().includes(q)));document.getElementById('rooms').innerHTML=list.map(r=>`<article class="room" onclick="openRoom('${r.id}')"><div class="room-top"><h3>${esc(r.name)}</h3><span class="badge">${statusName(r.status)}</span></div><div class="meta"><span>區域 <i>${esc(r.area||'待補')}</i></span><span>地址 <i>${esc(r.address?'已填寫':'待補')}</i></span><span>交接 <i>${esc((r.access||r.note)?'已有資料':'待補')}</i></span></div><div class="note">${esc(r.note||'點擊補充門禁、電錶、鑰匙與現場備註')}</div></article>`).join('');document.getElementById('empty').style.display=list.length?'none':'block';document.getElementById('vacantCount').textContent=rooms.filter(r=>r.status==='vacant').length;document.getElementById('allCount').textContent=rooms.length;document.getElementById('detailCount').textContent=rooms.filter(r=>r.address||r.access||r.note).length;document.getElementById('missingCount').textContent=rooms.filter(r=>!r.address&&!r.access&&!r.note).length}
+function openRoom(id){currentId=id;const r=rooms.find(x=>x.id===id);if(!r)return;document.getElementById('drawerTitle').textContent=r.name;fName.value=r.name||'';fArea.value=r.area||'';fAddress.value=r.address||'';fStatus.value=r.status||'vacant';fAccess.value=r.access||'';fNote.value=r.note||'';drawerBg.style.display='block'}
+function newRoom(){const id='r'+Date.now();rooms.unshift({id,name:'新房間',area:'',address:'',status:'vacant',access:'',note:''});openRoom(id)}
+function saveCurrent(){const r=rooms.find(x=>x.id===currentId);if(!r)return;r.name=fName.value.trim()||'未命名房間';r.area=fArea.value.trim();r.address=fAddress.value.trim();r.status=fStatus.value;r.access=fAccess.value.trim();r.note=fNote.value.trim();persist();closeDrawer()}
+function deleteCurrent(){if(!currentId)return;if(confirm('確定刪除這筆房間資料？')){rooms=rooms.filter(x=>x.id!==currentId);persist();closeDrawer()}}
+function closeDrawer(){drawerBg.style.display='none';currentId=null}function bgClose(e){if(e.target===drawerBg)closeDrawer()}
+function openImport(){importBg.style.display='grid'}function closeImport(){importBg.style.display='none'}
+function inferArea(addr){const m=addr.match(/(北屯區|西屯區|南屯區|西區|東區|南區|北區|大雅區)/);return m?m[1].replace('區',''):''}
+function importData(){const raw=pasteData.value.trim();if(!raw)return;const lines=raw.split(/\n+/).map(x=>x.trim()).filter(Boolean);let added=0;for(const line of lines){if(/編號.*地址/.test(line))continue;let p=line.split(/\t|｜|\|/).map(x=>x.trim());if(p.length<2)p=line.split(',').map(x=>x.trim());if(p.length<2)continue;const [code,address,access='',...rest]=p;rooms.push({id:'i'+Date.now()+Math.random().toString(36).slice(2,7),name:(code&&code!=='其他'?code+'｜':'')+(address.slice(0,18)||'匯入房間'),area:inferArea(address),address,status:'occupied',access,note:rest.join(' / ')});added++}localStorage.setItem(KEY,JSON.stringify(rooms));pasteData.value='';closeImport();render();flash(`已匯入 ${added} 筆到此裝置`)}
+function flash(t){toast.textContent=t;toast.style.display='block';clearTimeout(window.__t);window.__t=setTimeout(()=>toast.style.display='none',1800)}
+render();
+</script>
+</body>
+</html>
