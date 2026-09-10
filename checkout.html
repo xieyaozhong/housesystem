@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>家總管｜退租點交</title>
+<style>
+:root{--b:#07111d;--p:#0d1a2a;--l:#22364f;--t:#f4f8fc;--m:#8fa5bb;--g:#79e2b8;--a:#82b7ff;--y:#ffd88f;--r:#ff9e9e}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#07111d,#0a1726);color:var(--t);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}
+button,input,select,textarea{font:inherit}.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}.side{padding:22px 14px;border-right:1px solid var(--l)}
+.brand{font-weight:850;font-size:19px;padding:0 10px 20px}.brand small{display:block;color:var(--m);font-size:9px;letter-spacing:.2em;margin-top:4px}
+.nav{display:grid;gap:6px}.nav a,.future{border:0;background:transparent;color:#8fa5bb;text-align:left;padding:11px;border-radius:11px;text-decoration:none;font-size:13px}.nav a.on{background:#15283d;color:#fff;border:1px solid #2a405b}.nav a:hover{background:#102136;color:#dce9f5}.future{opacity:.45}
+.main{padding:28px;max-width:1450px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;gap:16px}.top h1{margin:4px 0;font-size:32px}
+.ey{color:var(--g);font-size:10px;letter-spacing:.18em;font-weight:800}.sub{color:var(--m);font-size:12px;line-height:1.6}.chip{border:1px solid #285846;background:#102c25;color:#a0efd0;border-radius:999px;padding:7px 10px;font-size:10px;height:max-content}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0}.st{border:1px solid var(--l);background:var(--p);border-radius:16px;padding:15px}.st span{display:block;color:var(--m);font-size:10px}.st b{font-size:27px;display:block;margin-top:6px}
+.panel{border:1px solid var(--l);background:var(--p);border-radius:18px;padding:18px;margin-bottom:14px}.panel h2{margin:0 0 14px;font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.f{width:100%;padding:11px 12px;border-radius:11px;border:1px solid var(--l);background:#0a1726;color:#fff;outline:none}.f:focus{border-color:#496b8f}
+textarea.f{min-height:92px;resize:vertical}.lbl{display:block;color:#8ea3b9;font-size:10px;margin-bottom:6px}.wide{grid-column:1/-1}
+.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.check{display:flex;gap:9px;align-items:flex-start;border:1px solid #1f344c;background:#0b1726;padding:10px;border-radius:12px;font-size:11px;color:#c7d3df}.check input{margin-top:2px}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:15px}.btn{border:1px solid var(--l);background:#102038;color:#cbd8e5;border-radius:11px;padding:10px 13px;cursor:pointer}.btn.primary{background:var(--g);color:#062519;border-color:var(--g);font-weight:800}.btn.danger{color:#ffb6b6}
+.tbl{overflow:auto;border:1px solid var(--l);border-radius:15px}.tbl table{border-collapse:collapse;width:100%;min-width:1050px}.tbl th,.tbl td{padding:11px;border-bottom:1px solid #1c2e44;text-align:left;font-size:11px}.tbl th{background:#102037;color:#8fa5bb}
+.badge{display:inline-block;border-radius:999px;padding:4px 7px;font-size:9px}.draft{background:#342e18;border:1px solid #5a4c24;color:#ffe29a}.done{background:#14352c;border:1px solid #2b5d4b;color:#9ceacc}.vac{background:#162c47;border:1px solid #315276;color:#a9d0ff}
+.notice{border:1px solid #294767;background:#0d2137;border-radius:14px;padding:12px 14px;color:#a9c7e8;font-size:11px;line-height:1.65;margin:14px 0}
+.lock{position:fixed;z-index:50;inset:0;background:radial-gradient(circle at 50% 0,#18324f,#07111d 55%);display:grid;place-items:center;padding:18px}.box{width:min(430px,100%);background:#0b1829;border:1px solid #2b435f;border-radius:22px;padding:25px}.box h2{margin:14px 0 7px}.box p{color:var(--m);font-size:12px;line-height:1.7}.row{display:grid;grid-template-columns:1fr auto;gap:8px}.go{border:0;border-radius:11px;background:var(--g);color:#062519;font-weight:800;padding:11px 14px}.err{height:18px;color:#ffaaaa;font-size:11px;margin-top:8px}
+.foot{margin-top:18px}.foot button,.foot a{display:block;width:100%;margin-top:7px;padding:9px;border:1px solid var(--l);border-radius:10px;background:#0e1c2d;color:#a6b8c9;text-decoration:none;text-align:center}
+@media(max-width:900px){.stats{grid-template-columns:1fr 1fr}.checks{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.app{display:block}.side{border-right:0;border-bottom:1px solid var(--l)}.nav{display:flex;overflow:auto}.future{display:none}.main{padding:18px 14px}.top{display:grid}.grid,.checks{grid-template-columns:1fr}.wide{grid-column:auto}.actions{display:grid}.actions .btn{width:100%}}
+</style>
+</head>
+<body>
+<div class="lock" id="lock"><div class="box"><div class="ey">MOVE-OUT HANDOVER</div><h2>退租點交系統</h2><p>房屋主檔為加密資料。完成退租點交後，該房間會自動加入空房系統。</p><div class="row"><input id="pw" class="f" type="password" placeholder="管理密碼"><button id="unlock" class="go">解鎖</button></div><div id="err" class="err"></div></div></div>
+<div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS</small></div><nav class="nav"><a href="vacancy.html">空房系統</a><a href="vacancy.html">房間資訊</a><a class="on" href="checkout.html">退租點交</a><div class="future">房客管理・預留</div><div class="future">租金收繳・預留</div><div class="future">水電抄表・預留</div><div class="future">報修工單・預留</div><div class="future">合約管理・預留</div></nav><div class="foot"><button id="relock">🔒 重新鎖定</button><a href="index.html">← 系統首頁</a></div></aside>
+<main class="main"><header class="top"><div><div class="ey">MOVE-OUT INSPECTION</div><h1>退租點交</h1><div class="sub">建立退租紀錄、確認鑰匙與現場狀況；按下「完成點交並轉空房」後，空房頁會自動同步</div></div><div class="chip">● 本機同步啟用</div></header>
+<div class="notice">退租紀錄保存在目前瀏覽器的 localStorage。若換電腦或清除瀏覽器資料，紀錄不會自動跟著移轉；未來可再升級成雲端多人共用版本。</div>
+<section class="stats"><div class="st"><span>點交紀錄</span><b id="sAll">0</b></div><div class="st"><span>待完成</span><b id="sDraft">0</b></div><div class="st"><span>已完成退租</span><b id="sDone">0</b></div><div class="st"><span>已自動轉空房</span><b id="sVac">0</b></div></section>
+<section class="panel"><h2>新增／編輯退租點交</h2><div class="grid">
+<div><label class="lbl">選擇物件</label><select id="property" class="f"><option value="">請選擇房屋主檔</option></select></div>
+<div><label class="lbl">房間名稱／房號</label><input id="room" class="f" placeholder="例：703、8B、301"></div>
+<div><label class="lbl">房客姓名</label><input id="tenant" class="f" placeholder="選填"></div>
+<div><label class="lbl">退租日期</label><input id="moveout" class="f" type="date"></div>
+<div><label class="lbl">點交日期</label><input id="checkoutDate" class="f" type="date"></div>
+<div><label class="lbl">最後電錶度數</label><input id="power" class="f" placeholder="選填"></div>
+<div><label class="lbl">最後水錶度數</label><input id="water" class="f" placeholder="選填"></div>
+<div><label class="lbl">押金／退款備註</label><input id="deposit" class="f" placeholder="例：押金已退、扣清潔費 500"></div>
+<div class="wide"><label class="lbl">現場備註／損壞狀況</label><textarea id="note" class="f" placeholder="家具、牆面、設備、垃圾、修繕等"></textarea></div>
+</div><div style="margin-top:14px"><label class="lbl">點交確認項目</label><div class="checks">
+<label class="check"><input type="checkbox" id="cKey">鑰匙／磁扣已收回</label><label class="check"><input type="checkbox" id="cEmpty">個人物品已清空</label><label class="check"><input type="checkbox" id="cClean">清潔狀況已確認</label><label class="check"><input type="checkbox" id="cPower">電錶已抄錄</label><label class="check"><input type="checkbox" id="cWater">水錶已抄錄</label><label class="check"><input type="checkbox" id="cDamage">損壞／修繕已確認</label><label class="check"><input type="checkbox" id="cDeposit">押金／費用已確認</label>
+</div></div><div class="actions"><button id="clear" class="btn">清空表單</button><button id="saveDraft" class="btn">儲存草稿</button><button id="complete" class="btn primary">完成點交並轉空房</button></div></section>
+<section class="panel"><h2>退租點交紀錄</h2><div class="tbl"><table><thead><tr><th>狀態</th><th>房間</th><th>地址</th><th>房客</th><th>退租日</th><th>點交日</th><th>完成項目</th><th>備註</th><th>操作</th></tr></thead><tbody id="tb"></tbody></table></div></section>
+</main></div>
+<script src="secure-data.js"></script><script>
+const KEY="house_ops_checkout_v1";let DB=null,currentId=null,$=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])),B=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function dec(v,p){let b=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveKey"]),k=await crypto.subtle.deriveKey({name:"PBKDF2",salt:B(v.salt),iterations:v.iter,hash:"SHA-256"},b,{name:"AES-GCM",length:256},false,["decrypt"]),x=new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:B(v.iv)},k,B(v.ct)));if(v.zip==="gzip"){let ds=new DecompressionStream("gzip");x=new Uint8Array(await new Response(new Blob([x]).stream().pipeThrough(ds)).arrayBuffer())}return JSON.parse(new TextDecoder().decode(x))}
+function load(){try{let v=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(v)?v:[]}catch(e){return[]}}
+function save(a){localStorage.setItem(KEY,JSON.stringify(a));render()}
+function property(id){return DB.properties.find(p=>String(p.id)===String(id))}
+function checkedCount(r){return ["key","empty","clean","power","water","damage","deposit"].filter(k=>r.checks?.[k]).length}
+function optionLabel(p){return `#${p.id}｜${p.code||"未編號"}｜${p.address}`}
+function fillProperties(){DB.properties.forEach(p=>$("#property").insertAdjacentHTML("beforeend",`<option value="${p.id}">${E(optionLabel(p))}</option>`))}
+function stats(){let a=load();$("#sAll").textContent=a.length;$("#sDraft").textContent=a.filter(x=>x.status!=="completed").length;$("#sDone").textContent=a.filter(x=>x.status==="completed").length;$("#sVac").textContent=a.filter(x=>x.status==="completed").length}
+function formData(status){return{id:currentId||("co_"+Date.now()),property_id:Number($("#property").value),room_label:$("#room").value.trim(),tenant:$("#tenant").value.trim(),moveout_date:$("#moveout").value,checkout_date:$("#checkoutDate").value,power_meter:$("#power").value.trim(),water_meter:$("#water").value.trim(),deposit_note:$("#deposit").value.trim(),note:$("#note").value.trim(),checks:{key:$("#cKey").checked,empty:$("#cEmpty").checked,clean:$("#cClean").checked,power:$("#cPower").checked,water:$("#cWater").checked,damage:$("#cDamage").checked,deposit:$("#cDeposit").checked},status,updated_at:new Date().toISOString(),completed_at:status==="completed"?new Date().toISOString():null}}
+function upsert(status){let r=formData(status);if(!r.property_id){alert("請先選擇物件");return}if(!r.room_label){alert("請輸入房間名稱／房號");return}if(status==="completed"&&!r.checkout_date){alert("完成點交前請填寫點交日期");return}let a=load(),i=a.findIndex(x=>x.id===r.id);if(i>=0){if(status!=="completed"&&a[i].completed_at)r.completed_at=a[i].completed_at;a[i]=r}else a.unshift(r);save(a);clearForm();if(status==="completed")alert("點交完成，已自動加入空房系統")}
+function render(){let a=load();stats();$("#tb").innerHTML=a.map(r=>{let p=property(r.property_id),done=r.status==="completed";return `<tr><td><span class="badge ${done?"done":"draft"}">${done?"已完成":"草稿"}</span>${done?'<span class="badge vac">已轉空房</span>':""}</td><td>${E(r.room_label||"—")}</td><td>${E(p?.address||"主檔不存在")}</td><td>${E(r.tenant||"—")}</td><td>${E(r.moveout_date||"—")}</td><td>${E(r.checkout_date||"—")}</td><td>${checkedCount(r)}/7</td><td>${E(r.note||r.deposit_note||"—")}</td><td><button class="btn edit" data-id="${r.id}">編輯</button> <button class="btn danger del" data-id="${r.id}">刪除</button></td></tr>`}).join("");document.querySelectorAll(".edit").forEach(b=>b.onclick=()=>editRecord(b.dataset.id));document.querySelectorAll(".del").forEach(b=>b.onclick=()=>deleteRecord(b.dataset.id))}
+function editRecord(id){let r=load().find(x=>x.id===id);if(!r)return;currentId=id;$("#property").value=r.property_id;$("#room").value=r.room_label||"";$("#tenant").value=r.tenant||"";$("#moveout").value=r.moveout_date||"";$("#checkoutDate").value=r.checkout_date||"";$("#power").value=r.power_meter||"";$("#water").value=r.water_meter||"";$("#deposit").value=r.deposit_note||"";$("#note").value=r.note||"";$("#cKey").checked=!!r.checks?.key;$("#cEmpty").checked=!!r.checks?.empty;$("#cClean").checked=!!r.checks?.clean;$("#cPower").checked=!!r.checks?.power;$("#cWater").checked=!!r.checks?.water;$("#cDamage").checked=!!r.checks?.damage;$("#cDeposit").checked=!!r.checks?.deposit;window.scrollTo({top:0,behavior:"smooth"})}
+function deleteRecord(id){if(!confirm("確定刪除這筆退租點交紀錄？若已完成，該房間也會從『退租自動新增空房』中移除"))return;save(load().filter(x=>x.id!==id));if(currentId===id)clearForm()}
+function clearForm(){currentId=null;["property","room","tenant","moveout","checkoutDate","power","water","deposit","note"].forEach(id=>$("#"+id).value="");["cKey","cEmpty","cClean","cPower","cWater","cDamage","cDeposit"].forEach(id=>$("#"+id).checked=false)}
+async function unlock(){try{DB=await dec(window.HOUSE_VAULT,$("#pw").value);$("#lock").style.display="none";fillProperties();render()}catch(e){$("#err").textContent="管理密碼錯誤，無法解密"}}
+$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};$("#saveDraft").onclick=()=>upsert("draft");$("#complete").onclick=()=>upsert("completed");$("#clear").onclick=clearForm;$("#relock").onclick=()=>{DB=null;$("#pw").value="";$("#lock").style.display="grid"};
+</script></body></html>
