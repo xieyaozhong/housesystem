@@ -9,36 +9,95 @@
 *{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#07111d,#0a1726);color:var(--t);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}
 button,input,select{font:inherit}.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}.side{padding:22px 14px;border-right:1px solid var(--l)}
 .brand{font-weight:850;font-size:19px;padding:0 10px 20px}.brand small{display:block;color:var(--m);font-size:9px;letter-spacing:.2em;margin-top:4px}
-.nav{display:grid;gap:6px}.nav button,.nav a,.future{border:0;background:transparent;color:#8fa5bb;text-align:left;padding:11px;border-radius:11px;text-decoration:none;font-size:13px}.nav button.on{background:#15283d;color:#fff;border:1px solid #2a405b}.nav a:hover{background:#102136;color:#dce9f5}.future{opacity:.45}
-.main{padding:28px;max-width:1450px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;gap:16px}.top h1{margin:4px 0;font-size:32px}.ey{color:var(--g);font-size:10px;letter-spacing:.18em;font-weight:800}.sub{color:var(--m);font-size:12px}.chip{border:1px solid #285846;background:#102c25;color:#a0efd0;border-radius:999px;padding:7px 10px;font-size:10px;height:max-content}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0}.st{border:1px solid var(--l);background:var(--p);border-radius:16px;padding:15px}.st span{display:block;color:var(--m);font-size:10px}.st b{font-size:27px;display:block;margin-top:6px}.tools{display:grid;grid-template-columns:1fr 180px;gap:9px;margin:12px 0}.f{width:100%;padding:11px 12px;border-radius:11px;border:1px solid var(--l);background:#0a1726;color:#fff;outline:none}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}.card{border:1px solid var(--l);background:linear-gradient(180deg,#102038,#0b1726);border-radius:17px;padding:16px;cursor:pointer}.card:hover{border-color:#45617f}.card h3{margin:0}.addr{margin:12px 0;color:#cbd7e1;font-size:12px;line-height:1.6}.badge{display:inline-block;background:#14352c;border:1px solid #2b5d4b;color:#9ceacc;border-radius:999px;padding:4px 7px;font-size:9px}.badge.checkout{background:#162c47;border-color:#315276;color:#a9d0ff;margin-left:5px}.meta{color:#7e96ad;font-size:10px;border-top:1px solid #1e3047;padding-top:9px}
-.tbl{overflow:auto;border:1px solid var(--l);border-radius:15px}.tbl table{border-collapse:collapse;width:100%;min-width:900px}.tbl th,.tbl td{padding:11px;border-bottom:1px solid #1c2e44;text-align:left;font-size:11px}.tbl th{background:#102037;color:#8fa5bb}.sens{color:#ffdfa3}.view{display:none}.view.on{display:block}
-.lock{position:fixed;z-index:50;inset:0;background:radial-gradient(circle at 50% 0,#18324f,#07111d 55%);display:grid;place-items:center;padding:18px}.box{width:min(430px,100%);background:#0b1829;border:1px solid #2b435f;border-radius:22px;padding:25px}.box h2{margin:14px 0 7px}.box p{color:var(--m);font-size:12px;line-height:1.7}.row{display:grid;grid-template-columns:1fr auto;gap:8px}.go{border:0;border-radius:11px;background:var(--g);color:#062519;font-weight:800;padding:11px 14px}.err{height:18px;color:#ffaaaa;font-size:11px;margin-top:8px}
+.nav{display:grid;gap:6px}.nav button,.nav a,.future{border:0;background:transparent;color:#8fa5bb;text-align:left;padding:11px;border-radius:11px;text-decoration:none;font-size:13px}
+.nav button.on{background:#15283d;color:#fff;border:1px solid #2a405b}.nav a:hover{background:#102136;color:#dce9f5}.future{opacity:.45}
+.main{padding:28px;max-width:1450px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;gap:16px}.top h1{margin:4px 0;font-size:32px}
+.ey{color:var(--g);font-size:10px;letter-spacing:.18em;font-weight:800}.sub{color:var(--m);font-size:12px}.chip{border:1px solid #285846;background:#102c25;color:#a0efd0;border-radius:999px;padding:7px 10px;font-size:10px;height:max-content}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0}.st{border:1px solid var(--l);background:var(--p);border-radius:16px;padding:15px}.st span{display:block;color:var(--m);font-size:10px}.st b{font-size:27px;display:block;margin-top:6px}
+.tools{display:grid;grid-template-columns:1fr 180px;gap:9px;margin:12px 0}.f{width:100%;padding:11px 12px;border-radius:11px;border:1px solid var(--l);background:#0a1726;color:#fff;outline:none}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}.card{border:1px solid var(--l);background:linear-gradient(180deg,#102038,#0b1726);border-radius:17px;padding:16px;cursor:pointer}.card:hover{border-color:#45617f}.card h3{margin:0}
+.addr{margin:12px 0;color:#cbd7e1;font-size:12px;line-height:1.6}.badge{display:inline-block;background:#14352c;border:1px solid #2b5d4b;color:#9ceacc;border-radius:999px;padding:4px 7px;font-size:9px}.badge.checkout{background:#162c47;border-color:#315276;color:#a9d0ff;margin-left:5px}
+.meta{color:#7e96ad;font-size:10px;border-top:1px solid #1e3047;padding-top:9px}.tbl{overflow:auto;border:1px solid var(--l);border-radius:15px}.tbl table{border-collapse:collapse;width:100%;min-width:900px}.tbl th,.tbl td{padding:11px;border-bottom:1px solid #1c2e44;text-align:left;font-size:11px}.tbl th{background:#102037;color:#8fa5bb}.sens{color:#ffdfa3}
+.view{display:none}.view.on{display:block}.lock{position:fixed;z-index:50;inset:0;background:radial-gradient(circle at 50% 0,#18324f,#07111d 55%);display:grid;place-items:center;padding:18px}.box{width:min(430px,100%);background:#0b1829;border:1px solid #2b435f;border-radius:22px;padding:25px}.box h2{margin:14px 0 7px}.box p{color:var(--m);font-size:12px;line-height:1.7}.row{display:grid;grid-template-columns:1fr auto;gap:8px}.go{border:0;border-radius:11px;background:var(--g);color:#062519;font-weight:800;padding:11px 14px}.err{height:18px;color:#ffaaaa;font-size:11px;margin-top:8px}
 .drawerbg{position:fixed;z-index:40;inset:0;background:#02070dc4;display:none}.drawer{position:absolute;right:0;top:0;height:100%;width:min(540px,100%);overflow:auto;background:#091625;border-left:1px solid var(--l);padding:23px}.dhead{display:flex;justify-content:space-between}.dhead h2{margin:3px 0}.x{border:0;background:transparent;color:#9ab0c5;font-size:25px}.detail{margin-top:10px;border:1px solid var(--l);border-radius:12px;padding:11px}.detail label{display:block;color:#7b91a8;font-size:9px;margin-bottom:5px}.warn{border-color:#4e472e;background:#211e13}.warn div{color:#ffe1a8}
-.notice{border:1px solid #294767;background:#0d2137;border-radius:14px;padding:12px 14px;color:#a9c7e8;font-size:11px;line-height:1.65;margin:14px 0}.foot{margin-top:18px}.foot button,.foot a{display:block;width:100%;margin-top:7px;padding:9px;border:1px solid var(--l);border-radius:10px;background:#0e1c2d;color:#a6b8c9;text-decoration:none;text-align:center}
-@media(max-width:900px){.cards{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}}@media(max-width:700px){.app{display:block}.side{border-right:0;border-bottom:1px solid var(--l)}.nav{display:flex;overflow:auto}.future{display:none}.main{padding:18px 14px}.top{display:grid}.cards{grid-template-columns:1fr}.tools{grid-template-columns:1fr}}
+.notice{border:1px solid #294767;background:#0d2137;border-radius:14px;padding:12px 14px;color:#a9c7e8;font-size:11px;line-height:1.65;margin:14px 0}
+.foot{margin-top:18px}.foot button,.foot a{display:block;width:100%;margin-top:7px;padding:9px;border:1px solid var(--l);border-radius:10px;background:#0e1c2d;color:#a6b8c9;text-decoration:none;text-align:center}
+@media(max-width:900px){.cards{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.app{display:block}.side{border-right:0;border-bottom:1px solid var(--l)}.nav{display:flex;overflow:auto}.future{display:none}.main{padding:18px 14px}.top{display:grid}.cards{grid-template-columns:1fr}.tools{grid-template-columns:1fr}}
 </style>
 </head><body>
 <div class="lock" id="lock"><div class="box"><div class="ey">ENCRYPTED HOUSE VAULT</div><h2>家總管・管理資料庫</h2><p>完整地址、門禁、電錶、鑰匙與空房對應資料已加密。輸入管理密碼後只在此裝置解密顯示。</p><div class="row"><input id="pw" class="f" type="password" placeholder="管理密碼"><button id="unlock" class="go">解鎖</button></div><div id="err" class="err"></div></div></div>
-<div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS</small></div><nav class="nav"><button class="on" data-v="vac">空房系統</button><button data-v="master">房間資訊</button><a href="checkout.html">退租點交</a><div class="future">房客管理・預留</div><div class="future">租金收繳・預留</div><div class="future">水電抄表・預留</div><div class="future">報修工單・預留</div><div class="future">合約管理・預留</div><div class="future">財務報表・預留</div></nav><div class="foot"><button id="relock">🔒 重新鎖定</button><a href="index.html">← 系統首頁</a></div></aside>
-<main class="main"><header class="top"><div><div class="ey">HOUSE VACANCY CONTROL</div><h1 id="title">空房管理</h1><div class="sub" id="sub">空房直接連結物件主檔，完成退租點交後會自動加入此清單</div></div><div class="chip">● 加密資料已解鎖</div></header><div class="notice">退租點交完成後，該房間會自動成為空房。退租紀錄保存在目前瀏覽器，不會寫入公開 GitHub 原始碼。</div>
-<section id="vac" class="view on"><div class="stats"><div class="st"><span>目前空房</span><b id="sv">—</b></div><div class="st"><span>物件主檔</span><b id="sp">—</b></div><div class="st"><span>退租新增空房</span><b id="sc">—</b></div><div class="st"><span>待確認</span><b id="sr">—</b></div></div><div class="tools"><input id="vs" class="f" placeholder="搜尋空房、地址、區域"><select id="vd" class="f"><option value="">全部區域</option></select></div><div class="cards" id="cards"></div></section>
-<section id="master" class="view"><div class="stats"><div class="st"><span>主檔筆數</span><b id="mt">—</b></div><div class="st"><span>有門禁／電錶</span><b id="ma">—</b></div><div class="st"><span>有備註</span><b id="mn">—</b></div><div class="st"><span>關聯空房物件</span><b id="mv">—</b></div></div><div class="tools"><input id="ms" class="f" placeholder="搜尋編號、地址、門禁、備註"><select id="md" class="f"><option value="">全部區域</option></select></div><div class="tbl"><table><thead><tr><th>ID</th><th>編號</th><th>整理後地址</th><th>密碼／電錶</th><th>備註／物品</th><th>空房</th></tr></thead><tbody id="tb"></tbody></table></div></section>
+
+<div class="app">
+<aside class="side"><div class="brand">家總管<small>HOUSE OPS</small></div>
+<nav class="nav">
+<button class="on" data-v="vac">空房系統</button>
+<button data-v="master">房間資訊</button>
+<a href="checkout.html">退租點交</a>
+<a href="sync-setup.html">跨裝置同步</a>
+<div class="future">房客管理・預留</div><div class="future">租金收繳・預留</div><div class="future">水電抄表・預留</div><div class="future">報修工單・預留</div><div class="future">合約管理・預留</div><div class="future">財務報表・預留</div>
+</nav>
+<div class="foot"><button id="relock">🔒 重新鎖定</button><a href="index.html">← 系統首頁</a></div></aside>
+
+<main class="main">
+<header class="top"><div><div class="ey">HOUSE VACANCY CONTROL</div><h1 id="title">空房管理</h1><div class="sub" id="sub">空房直接連結物件主檔，完成退租點交後會自動加入此清單</div></div><a id="syncChip" class="chip" href="sync-setup.html" style="text-decoration:none">● 檢查雲端同步</a></header>
+<div class="notice">退租點交完成後，該房間會自動成為空房；完成 Firebase 設定並登入後，退租與空房狀態會在不同裝置同步，本機同時保留離線快取。</div>
+
+<section id="vac" class="view on">
+<div class="stats"><div class="st"><span>目前空房</span><b id="sv">—</b></div><div class="st"><span>物件主檔</span><b id="sp">—</b></div><div class="st"><span>退租新增空房</span><b id="sc">—</b></div><div class="st"><span>待確認</span><b id="sr">—</b></div></div>
+<div class="tools"><input id="vs" class="f" placeholder="搜尋空房、地址、區域"><select id="vd" class="f"><option value="">全部區域</option></select></div><div class="cards" id="cards"></div>
+</section>
+
+<section id="master" class="view">
+<div class="stats"><div class="st"><span>主檔筆數</span><b id="mt">—</b></div><div class="st"><span>有門禁／電錶</span><b id="ma">—</b></div><div class="st"><span>有備註</span><b id="mn">—</b></div><div class="st"><span>關聯空房物件</span><b id="mv">—</b></div></div>
+<div class="tools"><input id="ms" class="f" placeholder="搜尋編號、地址、門禁、備註"><select id="md" class="f"><option value="">全部區域</option></select></div>
+<div class="tbl"><table><thead><tr><th>ID</th><th>編號</th><th>整理後地址</th><th>密碼／電錶</th><th>備註／物品</th><th>空房</th></tr></thead><tbody id="tb"></tbody></table></div>
+</section>
 </main></div>
+
 <div id="dbg" class="drawerbg"><aside class="drawer"><div class="dhead"><div><div class="ey">PROPERTY DETAIL</div><h2 id="dt"></h2></div><button id="dx" class="x">×</button></div><div id="dd"></div><p class="sub" id="dm"></p></aside></div>
-<script src="secure-data.js"></script><script>
-const CHECKOUT_KEY="house_ops_checkout_v1";let DB=null,$=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])),B=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+
+<script src="secure-data.js"></script>
+<script type="module" src="cloud-sync.js"></script>
+<script>
+const CHECKOUT_KEY="house_ops_checkout_v1";
+let DB=null,MASTER_PW=null,$=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])),B=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+
 async function dec(v,p){let b=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveKey"]),k=await crypto.subtle.deriveKey({name:"PBKDF2",salt:B(v.salt),iterations:v.iter,hash:"SHA-256"},b,{name:"AES-GCM",length:256},false,["decrypt"]),x=new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:B(v.iv)},k,B(v.ct)));if(v.zip==="gzip"){let ds=new DecompressionStream("gzip");x=new Uint8Array(await new Response(new Blob([x]).stream().pipeThrough(ds)).arrayBuffer())}return JSON.parse(new TextDecoder().decode(x))}
+
 function checkoutRecords(){try{return JSON.parse(localStorage.getItem(CHECKOUT_KEY)||"[]")}catch(e){return[]}}
-function completedCheckoutVacancies(){return checkoutRecords().filter(r=>r.status==="completed").map(r=>({property_id:Number(r.property_id),name:r.room_label||("退租房間 #"+r.property_id),confidence:"高",match_note:"由退租點交系統於 "+(r.completed_at||r.checkout_date||"")+" 自動轉入",source:"checkout",checkout_id:r.id}))}
-function allVacancies(){const base=[...(DB?.vacancies||[])],seen=new Set(base.map(v=>`${v.property_id}|${v.name}`));for(const v of completedCheckoutVacancies()){const k=`${v.property_id}|${v.name}`;if(!seen.has(k)){base.push(v);seen.add(k)}}return base}
+function completedCheckoutVacancies(){
+  return checkoutRecords().filter(r=>r.status==="completed").map(r=>({
+    property_id:Number(r.property_id),name:r.room_label||("退租房間 #"+r.property_id),confidence:"高",
+    match_note:"由退租點交系統於 "+(r.completed_at||r.checkout_date||"") +" 自動轉入",
+    source:"checkout",checkout_id:r.id
+  }));
+}
+function allVacancies(){
+  const base=[...(DB?.vacancies||[])], seen=new Set(base.map(v=>`${v.property_id}|${v.name}`));
+  for(const v of completedCheckoutVacancies()){const k=`${v.property_id}|${v.name}`;if(!seen.has(k)){base.push(v);seen.add(k)}}
+  return base;
+}
 let P=id=>DB.properties.find(x=>x.id===id),V=id=>allVacancies().filter(x=>x.property_id===id),D=p=>p?.district||"未標示";
+
 function stats(){const av=allVacancies(),cv=completedCheckoutVacancies();$("#sv").textContent=av.length;$("#sp").textContent=DB.properties.length;$("#sc").textContent=cv.length;$("#sr").textContent=av.filter(v=>v.confidence==="低").length;$("#mt").textContent=DB.properties.length;$("#ma").textContent=DB.properties.filter(p=>p.access).length;$("#mn").textContent=DB.properties.filter(p=>p.note).length;$("#mv").textContent=new Set(av.map(v=>v.property_id)).size}
+
 function filters(){let ds=[...new Set(DB.properties.map(D))].sort();["#vd","#md"].forEach(id=>{ds.forEach(d=>$(id).insertAdjacentHTML("beforeend",`<option>${E(d)}</option>`))})}
+
 function rv(){let q=$("#vs").value.toLowerCase(),d=$("#vd").value,a=allVacancies().filter(v=>{let p=P(v.property_id),h=[v.name,p?.address,p?.code,p?.note].join(" ").toLowerCase();return(!q||h.includes(q))&&(!d||D(p)===d)});$("#cards").innerHTML=a.map(v=>{let p=P(v.property_id);return`<article class="card" data-id="${v.property_id}" data-n="${E(v.name)}"><span class="badge">空房・已對應</span>${v.source==="checkout"?'<span class="badge checkout">退租自動轉入</span>':""}<h3>${E(v.name)}</h3><div class="addr">${E(p?.address||"尚未對應")}</div><div class="meta">主檔 #${v.property_id}・${E(p?.code||"未編號")}　｜　${E(D(p))}</div></article>`}).join("");document.querySelectorAll(".card").forEach(c=>c.onclick=()=>open(+c.dataset.id,c.dataset.n))}
+
 function rm(){let q=$("#ms").value.toLowerCase(),d=$("#md").value,a=DB.properties.filter(p=>{let h=[p.code,p.address,p.address_raw,p.access,p.note].join(" ").toLowerCase();return(!q||h.includes(q))&&(!d||D(p)===d)});$("#tb").innerHTML=a.map(p=>`<tr data-id="${p.id}"><td>#${p.id}</td><td>${E(p.code||"—")}</td><td>${E(p.address)}</td><td class="sens">${E(p.access||"—")}</td><td>${E(p.note||"—")}</td><td>${V(p.id).map(v=>`<span class="badge">${E(v.name)}</span>`).join(" ")||"—"}</td></tr>`).join("");document.querySelectorAll("#tb tr").forEach(r=>r.onclick=()=>open(+r.dataset.id))}
+
 function open(id,n){let p=P(id),vs=V(id),z=[["主檔編號",`#${p.id} / ${p.code||"未編號"}`],["整理後地址",p.address],["密碼／電錶",p.access||"未記錄",1],["備註／物品",p.note||"未記錄"],["目前空房",vs.map(v=>v.name).join("、")||"無"],["原始地址文字",p.address_raw||"—"]];$("#dt").textContent=n||p.address;$("#dd").innerHTML=z.map(x=>`<div class="detail ${x[2]?"warn":""}"><label>${E(x[0])}</label><div>${E(x[1])}</div></div>`).join("");let v=allVacancies().find(v=>v.name===n);$("#dm").textContent=v?`地址對應：${v.confidence}信心｜${v.match_note}`:"此資料來自加密的總務交接主檔";$("#dbg").style.display="block"}
-async function unlock(){try{DB=await dec(window.HOUSE_VAULT,$("#pw").value);$("#lock").style.display="none";filters();stats();rv();rm()}catch(e){$("#err").textContent="管理密碼錯誤，無法解密"}}
-$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};$("#relock").onclick=()=>{DB=null;$("#pw").value="";$("#lock").style.display="grid"};$("#dx").onclick=()=>$("#dbg").style.display="none";$("#dbg").onclick=e=>{if(e.target===$("#dbg"))$("#dbg").style.display="none"};$("#vs").oninput=rv;$("#vd").onchange=rv;$("#ms").oninput=rm;$("#md").onchange=rm;window.addEventListener("storage",e=>{if(e.key===CHECKOUT_KEY&&DB){stats();rv();rm()}});document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav button,.view").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("#"+b.dataset.v).classList.add("on");$("#title").textContent=b.dataset.v==="vac"?"空房管理":"房間資訊";$("#sub").textContent=b.dataset.v==="vac"?"空房直接連結物件主檔，完成退租點交後會自動加入此清單":`家總管總務交接物件主檔・共 ${DB.properties.length} 筆`});
+
+async function beginCloud(){if(!MASTER_PW||!window.HouseCloud)return;if(!window.HouseCloud.configured?.()){paintCloud({mode:"local",message:"尚未設定雲端同步"});return}try{await window.HouseCloud.setCryptoPassword(MASTER_PW);window.HouseCloud.startCheckoutSync(CHECKOUT_KEY);paintCloud(window.HouseCloud.getStatus())}catch(e){paintCloud({mode:"error",message:"雲端同步啟動失敗",error:e.message})}}
+function paintCloud(s={}){let el=$("#syncChip");if(!el)return;let map={online:"● 雲端已同步",syncing:"● 正在同步",offline:"● 離線快取",login:"● 尚未登入雲端",locked:"● 已登入・待解鎖",local:"● 尚未設定雲端",error:"● 同步異常"};el.textContent=map[s.mode]||("● "+(s.message||"同步設定"));el.title=s.error||s.message||""}
+async function unlock(){try{MASTER_PW=$("#pw").value;DB=await dec(window.HOUSE_VAULT,MASTER_PW);$("#lock").style.display="none";filters();stats();rv();rm();beginCloud()}catch(e){MASTER_PW=null;$("#err").textContent="管理密碼錯誤，無法解密"}}
+
+$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};
+$("#relock").onclick=()=>{DB=null;MASTER_PW=null;$("#pw").value="";$("#lock").style.display="grid"};
+$("#dx").onclick=()=>$("#dbg").style.display="none";$("#dbg").onclick=e=>{if(e.target===$("#dbg"))$("#dbg").style.display="none"};
+$("#vs").oninput=rv;$("#vd").onchange=rv;$("#ms").oninput=rm;$("#md").onchange=rm;
+window.addEventListener("storage",e=>{if(e.key===CHECKOUT_KEY&&DB){stats();rv();rm()}});window.addEventListener("house-cloud-ready",()=>beginCloud());window.addEventListener("house-cloud-state",e=>paintCloud(e.detail));window.addEventListener("house-checkouts-changed",()=>{if(DB){stats();rv();rm()}});
+document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav button,.view").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("#"+b.dataset.v).classList.add("on");$("#title").textContent=b.dataset.v==="vac"?"空房管理":"房間資訊";$("#sub").textContent=b.dataset.v==="vac"?"空房直接連結物件主檔，完成退租點交後會自動加入此清單":`家總管總務交接物件主檔・共 ${DB.properties.length} 筆`});
 </script></body></html>
