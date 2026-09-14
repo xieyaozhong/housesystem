@@ -1,89 +1,29 @@
 <!doctype html>
 <html lang="zh-Hant">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>家總管｜跨裝置同步設定</title>
-<style>
-:root{--b:#07111d;--p:#0d1a2a;--l:#22364f;--t:#f4f8fc;--m:#8fa5bb;--g:#79e2b8;--y:#ffd88f;--a:#82b7ff}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#07111d,#0a1726);color:var(--t);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}
-.wrap{max-width:900px;margin:auto;padding:32px 18px}.ey{color:var(--g);font-size:10px;letter-spacing:.18em;font-weight:800}h1{margin:5px 0 8px}.sub{color:var(--m);line-height:1.7;font-size:13px}
-.panel{border:1px solid var(--l);background:var(--p);border-radius:18px;padding:18px;margin:16px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.f{width:100%;padding:11px 12px;border-radius:11px;border:1px solid var(--l);background:#0a1726;color:#fff;outline:none}.lbl{display:block;color:#8ea3b9;font-size:10px;margin:0 0 6px}
-.btn{border:1px solid var(--l);background:#102038;color:#d8e4ef;border-radius:11px;padding:10px 13px;cursor:pointer;text-decoration:none}.btn.primary{background:var(--g);color:#062519;border-color:var(--g);font-weight:800}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.status{border:1px solid #2b4b64;background:#0d2137;padding:12px;border-radius:12px;color:#afd0ef;font-size:12px;line-height:1.7}
-.warn{color:var(--y)}code{color:#a9d0ff}.steps{color:#b8c7d5;font-size:12px;line-height:1.8}.links a{color:#a9d0ff;margin-right:14px}
-.pair{border:1px solid #315276;background:#0b2036;border-radius:14px;padding:14px}.pair strong{color:#cce2ff}.pairurl{margin-top:10px;display:grid;grid-template-columns:1fr auto;gap:8px}
-.ok{color:#9ceacc}@media(max-width:700px){.grid,.pairurl{grid-template-columns:1fr}.actions .btn{flex:1;text-align:center}}
-</style>
-</head>
-<body>
-<div class="wrap">
-<div class="ey">CLOUD SYNC</div><h1>跨裝置同步設定</h1>
-<div class="sub">桌機只需完成一次 Firebase 設定。之後新增手機時，使用「手機快速配對」連結即可帶入 Firebase 設定，不再手動輸入 apiKey / projectId。</div>
-<div class="panel">
-<h2>1. Firebase Web App 設定</h2>
-<div class="grid">
-<div><label class="lbl">apiKey</label><input id="apiKey" class="f"></div>
-<div><label class="lbl">authDomain</label><input id="authDomain" class="f" placeholder="project.firebaseapp.com"></div>
-<div><label class="lbl">projectId</label><input id="projectId" class="f"></div>
-<div><label class="lbl">appId</label><input id="appId" class="f"></div>
-</div>
-<div class="actions"><button id="saveCfg" class="btn primary">儲存 Firebase 設定</button><button id="clearCfg" class="btn">清除設定</button></div>
-<p class="sub">這四項是 Firebase Web App 的公開設定，不是管理員密碼或 Service Account 金鑰。</p>
-</div>
-<div class="panel">
-<h2>2. 管理員登入</h2>
-<div class="grid">
-<div><label class="lbl">Firebase Auth Email</label><input id="email" class="f" type="email"></div>
-<div><label class="lbl">密碼</label><input id="password" class="f" type="password"></div>
-</div>
-<div class="actions"><button id="login" class="btn primary">登入同步帳號</button><button id="logout" class="btn">登出</button></div>
-<div id="status" class="status" style="margin-top:12px">讀取狀態中…</div>
-</div>
-<div class="panel">
-<h2>3. 手機快速配對</h2>
-<div class="pair">
-<strong>手機不需要再填 Firebase 四個欄位</strong>
-<div class="sub">按下產生連結後，把連結傳到手機或直接用手機開啟。配對連結只包含 Firebase 公開設定與管理員 Email，不包含 Firebase 密碼、家總管管理密碼或房屋資料。</div>
-<div class="actions"><button id="makePair" class="btn primary">產生手機配對連結</button><button id="sharePair" class="btn" disabled>分享到手機</button></div>
-<div id="pairWrap" style="display:none">
-<div class="pairurl"><input id="pairUrl" class="f" readonly><button id="copyPair" class="btn">複製連結</button></div>
-<div class="actions"><a id="openPair" class="btn" href="#">在此裝置測試手機登入頁</a></div>
-</div>
-</div>
-<div class="actions"><button id="forgetTrusted" class="btn">取消此裝置信任</button><span id="trustedState" class="sub"></span></div>
-</div>
-<div class="panel">
-<h2>4. Firestore 權限</h2>
-<div class="steps">
-① Firebase Console 開啟 <b>Email/Password Authentication</b><br>
-② 建立 Cloud Firestore<br>
-③ 將 repo 內的 <code>firestore.rules</code> 部署到 Firestore Rules<br>
-④ 登入後取得 UID，建立 <code>housesystem_members/{UID}</code> 文件<br>
-⑤ 同一個管理員帳號在手機登入時會沿用相同 UID，因此不需要再新增白名單
-</div>
-<p class="sub warn">不要把 Firebase 登入密碼、家總管管理密碼或 Service Account 金鑰提交到 GitHub。</p>
-</div>
-<div class="links"><a href="vacancy.html">← 空房系統</a><a href="checkout.html">退租點交</a><a href="mobile-login.html">手機登入頁</a></div>
-</div>
-<script src="trusted-device.js"></script>
-<script type="module" src="cloud-sync.js"></script>
-<script>
-const $=s=>document.querySelector(s);
-function cfg(){try{return JSON.parse(localStorage.getItem('house_firebase_config_v1')||'null')}catch(e){return null}}
-function fill(){let c=cfg();if(c){['apiKey','authDomain','projectId','appId'].forEach(k=>$('#'+k).value=c[k]||'')}$('#email').value=localStorage.getItem('house_admin_email_v1')||''}
-fill();
-$('#saveCfg').onclick=()=>{let c={apiKey:$('#apiKey').value.trim(),authDomain:$('#authDomain').value.trim(),projectId:$('#projectId').value.trim(),appId:$('#appId').value.trim()};if(Object.values(c).some(v=>!v)){alert('四個欄位都要填寫');return}localStorage.setItem('house_firebase_config_v1',JSON.stringify(c));location.reload()};
-$('#clearCfg').onclick=()=>{if(confirm('清除這台裝置的 Firebase 設定？')){localStorage.removeItem('house_firebase_config_v1');location.reload()}};
-function paint(s={}){let u=s.user;$('#status').innerHTML=`狀態：<b>${s.message||s.mode||'讀取中'}</b>${u?`<br>Email：${u.email||'—'}<br>UID：<code>${u.uid}</code>`:''}${s.error?`<br>錯誤：${s.error}`:''}`;if(u?.email){localStorage.setItem('house_admin_email_v1',u.email);$('#email').value=u.email}}
-window.addEventListener('house-cloud-state',e=>paint(e.detail));window.addEventListener('house-cloud-ready',()=>paint(window.HouseCloud?.getStatus?.()||{}));
-$('#login').onclick=async()=>{try{await window.HouseCloud.login($('#email').value.trim(),$('#password').value);$('#password').value=''}catch(e){alert('登入失敗：'+e.message)}};$('#logout').onclick=()=>window.HouseCloud?.logout();
-const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-function makePair(){const c=cfg();if(!c){alert('請先儲存 Firebase 設定');return null}const email=window.HouseCloud?.currentUser?.()?.email||$('#email').value.trim()||localStorage.getItem('house_admin_email_v1')||'';const u=new URL('mobile-login.html',location.href);u.hash='pair='+enc({v:1,c,email});$('#pairUrl').value=u.href;$('#openPair').href=u.href;$('#pairWrap').style.display='block';$('#sharePair').disabled=false;return u.href}
-$('#makePair').onclick=makePair;
-$('#copyPair').onclick=async()=>{let u=$('#pairUrl').value||makePair();if(!u)return;await navigator.clipboard.writeText(u);$('#copyPair').textContent='已複製';setTimeout(()=>$('#copyPair').textContent='複製連結',1200)};
-$('#sharePair').onclick=async()=>{let u=$('#pairUrl').value||makePair();if(!u)return;if(navigator.share){await navigator.share({title:'家總管手機配對',text:'開啟後登入即可同步',url:u})}else{await navigator.clipboard.writeText(u);alert('配對連結已複製，可貼到 LINE 傳到手機')}};
-async function trustedState(){try{$('#trustedState').textContent=(await window.HouseTrusted.has())?'此裝置：已信任，可自動解鎖':'此裝置：尚未信任'}catch(e){$('#trustedState').textContent='無法讀取信任狀態'}}
-trustedState();$('#forgetTrusted').onclick=async()=>{if(confirm('取消此裝置信任？之後會需要重新輸入管理密碼。')){await window.HouseTrusted.forget();trustedState()}};
-</script>
-</body></html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#07111d">
+<title>家總管｜跨裝置同步設定</title><link rel="stylesheet" href="setup.css"></head>
+<body><main class="wrap">
+<header class="top"><a href="index.html" class="brand">家總管 <small>HOUSE OPS</small></a><a href="mobile-login.html">手機入口 ↗</a></header>
+<div class="ey">CONNECT YOUR DEVICES</div><h1>一次設定，房務隨行。</h1>
+<p class="sub lead">在有資料的電腦完成設定與同步，再把配對連結開在手機上。每一步都會告訴你目前進度。</p>
+<ol class="progress" aria-label="設定進度"><li id="step1">1　連結專案</li><li id="step2">2　登入帳號</li><li id="step3">3　解鎖同步</li><li id="step4">4　配對手機</li></ol>
+<div id="notice" class="status" role="status" aria-live="polite">正在讀取設定…</div>
+<section class="panel"><div class="sectionhead"><span class="number">01</span><div><h2>連結 Firebase 專案</h2><p class="sub">從 Firebase 專案設定 → 你的應用程式 → 網頁應用程式，複製設定。</p></div></div>
+<details id="configDetails" open><summary>Firebase Web App 設定</summary>
+<label for="configPaste" class="lbl">直接貼上整段 firebaseConfig 或 JSON</label><textarea id="configPaste" class="f" rows="4" placeholder="const firebaseConfig = { apiKey: …, authDomain: …, projectId: …, appId: … };" spellcheck="false"></textarea>
+<div class="actions"><button id="parseCfg" class="btn">帶入下方欄位</button><a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer">開啟 Firebase Console ↗</a></div>
+<div class="grid"><div><label for="apiKey" class="lbl">apiKey</label><input id="apiKey" class="f" spellcheck="false" autocomplete="off"></div><div><label for="authDomain" class="lbl">authDomain</label><input id="authDomain" class="f" placeholder="project.firebaseapp.com" spellcheck="false"></div><div><label for="projectId" class="lbl">projectId</label><input id="projectId" class="f" spellcheck="false"></div><div><label for="appId" class="lbl">appId</label><input id="appId" class="f" spellcheck="false"></div></div>
+<div class="actions"><button id="saveCfg" class="btn primary">儲存並連結專案</button><button id="clearCfg" class="btn quiet">清除連線設定</button></div><p class="sub">這四項是公開連線設定。請勿貼上 Service Account 金鑰或任何密碼。</p></details></section>
+<section class="panel"><div class="sectionhead"><span class="number">02</span><div><h2>登入同步帳號</h2><p class="sub">所有裝置使用同一個 Firebase 管理員帳號。</p></div></div>
+<form id="loginForm"><div class="grid"><div><label for="email" class="lbl">Firebase 管理員 Email</label><input id="email" class="f" type="email" autocomplete="username" required></div><div><label for="password" class="lbl">Firebase 登入密碼</label><input id="password" class="f" type="password" autocomplete="current-password" required></div></div><div class="actions"><button id="login" class="btn primary" type="submit">登入同步帳號</button><button id="checkAccess" class="btn" type="button" disabled>檢查讀取權限</button><button id="logout" class="btn quiet" type="button" disabled>登出並鎖定</button></div></form>
+<div id="status" class="status" role="status" aria-live="polite">尚未登入</div><div id="uidWrap" class="actions" hidden><span>帳號 UID：<code id="uid"></code></span><button id="copyUid" class="btn">複製 UID</button></div>
+<details id="permissionHelp"><summary>第一次建立 Firebase，或顯示權限不足？</summary><ol class="steps"><li>在 Authentication 開啟 Email/Password，並建立管理員帳號。</li><li>建立 Cloud Firestore，使用 <a href="https://github.com/xieyaozhong/housesystem/blob/main/firestore.rules" target="_blank" rel="noopener noreferrer">專案的 Firestore 規則</a>。</li><li>登入後複製上方 UID，在 Firestore 建立 <code>housesystem_members/{UID}</code> 文件，可新增布林欄位 <code>enabled: true</code>。</li><li>回到本頁按「檢查讀取權限」。同帳號的手機不必重加白名單。</li></ol></details></section>
+<section id="sync-data" class="panel"><div class="sectionhead"><span class="number">03</span><div><h2>解鎖並同步這台裝置</h2><p class="sub">先比對資料版本，再合併同步。離線變更與刪除會保留，連線恢復後重試。</p></div></div>
+<div class="localstats"><strong id="localCount">—</strong><span>筆本機紀錄</span><span id="pendingCount" class="sub"></span></div>
+<form id="syncForm"><label for="master" class="lbl">家總管管理密碼（與 Firebase 登入密碼不同）</label><input id="master" class="f" type="password" autocomplete="off" placeholder="信任裝置可留空"><label class="trust"><input id="trust" type="checkbox">信任這台私人裝置，之後自動解鎖</label><div class="actions"><button id="syncNow" class="btn primary" disabled>解鎖並同步</button><button id="backup" class="btn" type="button" disabled>下載加密備份</button></div></form>
+<details><summary>還原加密備份</summary><p class="sub">先解鎖，再選取之前下載的備份。系統會保留每筆較新版本及刪除紀錄。</p><label for="backupFile" class="lbl">加密備份檔（JSON）</label><input id="backupFile" class="f" type="file" accept=".json,application/json"><div class="actions"><button id="restore" class="btn" disabled>合併還原備份</button></div></details><div id="syncResult" class="status" role="status" aria-live="polite">登入並通過讀取權限檢查後，即可開始。</div><p class="sub">房屋主檔與雲端紀錄均為加密資料；退租紀錄在此瀏覽器保留本機快取，請使用有螢幕鎖定的私人裝置。</p></section>
+<section class="panel"><div class="sectionhead"><span class="number">04</span><div><h2>把手機連上來</h2><p class="sub">完成一次同步後，產生配對連結。手機只需登入帳號並輸入管理密碼。</p></div></div>
+<div class="actions"><button id="makePair" class="btn primary" disabled>產生手機配對連結</button></div>
+<div id="pairWrap" hidden><label for="pairUrl" class="lbl">手機配對連結</label><input id="pairUrl" class="f" readonly><div class="actions"><button id="copyPair" class="btn">複製連結</button><button id="sharePair" class="btn">分享連結</button><a id="openPair" href="mobile-login.html">開啟手機登入頁 ↗</a></div><p class="sub">連結包含公開 Firebase 設定與 Email。密碼、解鎖金鑰和房務資料不會放進連結。</p></div>
+</section><footer class="actions"><a class="btn" href="vacancy.html">進入空房系統 →</a><a class="btn" href="checkout.html">退租點交</a><button id="forgetTrusted" class="btn quiet">取消此裝置信任</button><span id="trustedState" class="sub"></span></footer>
+</main><script src="house-core.js"></script><script src="secure-data.js"></script><script src="trusted-device.js"></script><script type="module" src="cloud-sync.js"></script><script src="sync-setup.js"></script></body></html>

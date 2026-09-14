@@ -26,7 +26,7 @@ button,input,select{font:inherit}.app{display:grid;grid-template-columns:220px 1
 @media(max-width:700px){.app{display:block}.side{border-right:0;border-bottom:1px solid var(--l)}.nav{display:flex;overflow:auto}.future{display:none}.main{padding:18px 14px}.top{display:grid}.cards{grid-template-columns:1fr}.tools{grid-template-columns:1fr}}
 </style>
 </head><body>
-<div class="lock" id="lock"><div class="box"><div class="ey">ENCRYPTED HOUSE VAULT</div><h2>家總管・管理資料庫</h2><p>完整地址、門禁、電錶、鑰匙與空房對應資料已加密。輸入管理密碼後只在此裝置解密顯示。</p><div class="row"><input id="pw" class="f" type="password" placeholder="管理密碼"><button id="unlock" class="go">解鎖</button></div><div id="err" class="err"></div></div></div>
+<div class="lock" id="lock"><div class="box"><div class="ey">ENCRYPTED HOUSE VAULT</div><h2>家總管・管理資料庫</h2><p>完整地址、門禁、電錶、鑰匙與空房對應資料已加密。輸入管理密碼後只在此裝置解密顯示。</p><div class="row"><input aria-label="家總管管理密碼" autocomplete="off" id="pw" class="f" type="password" placeholder="管理密碼"><button id="unlock" class="go">解鎖</button></div><div id="err" class="err" role="alert"></div><p><a href="index.html" style="color:#a9d0ff">回首頁</a>　·　<a href="sync-setup.html" style="color:#a9d0ff">同步設定</a></p></div></div>
 
 <div class="app">
 <aside class="side"><div class="brand">家總管<small>HOUSE OPS</small></div>
@@ -57,15 +57,16 @@ button,input,select{font:inherit}.app{display:grid;grid-template-columns:220px 1
 
 <div id="dbg" class="drawerbg"><aside class="drawer"><div class="dhead"><div><div class="ey">PROPERTY DETAIL</div><h2 id="dt"></h2></div><button id="dx" class="x">×</button></div><div id="dd"></div><p class="sub" id="dm"></p></aside></div>
 
+<script src="house-core.js"></script>
 <script src="secure-data.js"></script>
+<script src="trusted-device.js"></script>
 <script type="module" src="cloud-sync.js"></script>
 <script>
 const CHECKOUT_KEY="house_ops_checkout_v1";
-let DB=null,MASTER_PW=null,$=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])),B=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+let DB=null,$=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])),B=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 
-async function dec(v,p){let b=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveKey"]),k=await crypto.subtle.deriveKey({name:"PBKDF2",salt:B(v.salt),iterations:v.iter,hash:"SHA-256"},b,{name:"AES-GCM",length:256},false,["decrypt"]),x=new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:B(v.iv)},k,B(v.ct)));if(v.zip==="gzip"){let ds=new DecompressionStream("gzip");x=new Uint8Array(await new Response(new Blob([x]).stream().pipeThrough(ds)).arrayBuffer())}return JSON.parse(new TextDecoder().decode(x))}
 
-function checkoutRecords(){try{return JSON.parse(localStorage.getItem(CHECKOUT_KEY)||"[]")}catch(e){return[]}}
+function checkoutRecords(){return HouseCore.readRecords().filter(r=>!r.__deleted)}
 function completedCheckoutVacancies(){
   return checkoutRecords().filter(r=>r.status==="completed").map(r=>({
     property_id:Number(r.property_id),name:r.room_label||("退租房間 #"+r.property_id),confidence:"高",
@@ -82,22 +83,19 @@ let P=id=>DB.properties.find(x=>x.id===id),V=id=>allVacancies().filter(x=>x.prop
 
 function stats(){const av=allVacancies(),cv=completedCheckoutVacancies();$("#sv").textContent=av.length;$("#sp").textContent=DB.properties.length;$("#sc").textContent=cv.length;$("#sr").textContent=av.filter(v=>v.confidence==="低").length;$("#mt").textContent=DB.properties.length;$("#ma").textContent=DB.properties.filter(p=>p.access).length;$("#mn").textContent=DB.properties.filter(p=>p.note).length;$("#mv").textContent=new Set(av.map(v=>v.property_id)).size}
 
-function filters(){let ds=[...new Set(DB.properties.map(D))].sort();["#vd","#md"].forEach(id=>{ds.forEach(d=>$(id).insertAdjacentHTML("beforeend",`<option>${E(d)}</option>`))})}
+function filters(){["#vd","#md"].forEach(id=>$(id).innerHTML='<option value="">全部區域</option>');let ds=[...new Set(DB.properties.map(D))].sort();["#vd","#md"].forEach(id=>{ds.forEach(d=>$(id).insertAdjacentHTML("beforeend",`<option>${E(d)}</option>`))})}
 
-function rv(){let q=$("#vs").value.toLowerCase(),d=$("#vd").value,a=allVacancies().filter(v=>{let p=P(v.property_id),h=[v.name,p?.address,p?.code,p?.note].join(" ").toLowerCase();return(!q||h.includes(q))&&(!d||D(p)===d)});$("#cards").innerHTML=a.map(v=>{let p=P(v.property_id);return`<article class="card" data-id="${v.property_id}" data-n="${E(v.name)}"><span class="badge">空房・已對應</span>${v.source==="checkout"?'<span class="badge checkout">退租自動轉入</span>':""}<h3>${E(v.name)}</h3><div class="addr">${E(p?.address||"尚未對應")}</div><div class="meta">主檔 #${v.property_id}・${E(p?.code||"未編號")}　｜　${E(D(p))}</div></article>`}).join("");document.querySelectorAll(".card").forEach(c=>c.onclick=()=>open(+c.dataset.id,c.dataset.n))}
+function rv(){if(!DB)return;let q=$("#vs").value.toLowerCase(),d=$("#vd").value,a=allVacancies().filter(v=>{let p=P(v.property_id),h=[v.name,p?.address,p?.code,p?.note].join(" ").toLowerCase();return(!q||h.includes(q))&&(!d||D(p)===d)});$("#cards").innerHTML=a.map(v=>{let p=P(v.property_id);return`<article class="card" data-id="${v.property_id}" data-n="${E(v.name)}"><span class="badge">空房・已對應</span>${v.source==="checkout"?'<span class="badge checkout">退租自動轉入</span>':""}<h3>${E(v.name)}</h3><div class="addr">${E(p?.address||"尚未對應")}</div><div class="meta">主檔 #${v.property_id}・${E(p?.code||"未編號")}　｜　${E(D(p))}</div></article>`}).join("");document.querySelectorAll(".card").forEach(c=>c.onclick=()=>open(+c.dataset.id,c.dataset.n))}
 
-function rm(){let q=$("#ms").value.toLowerCase(),d=$("#md").value,a=DB.properties.filter(p=>{let h=[p.code,p.address,p.address_raw,p.access,p.note].join(" ").toLowerCase();return(!q||h.includes(q))&&(!d||D(p)===d)});$("#tb").innerHTML=a.map(p=>`<tr data-id="${p.id}"><td>#${p.id}</td><td>${E(p.code||"—")}</td><td>${E(p.address)}</td><td class="sens">${E(p.access||"—")}</td><td>${E(p.note||"—")}</td><td>${V(p.id).map(v=>`<span class="badge">${E(v.name)}</span>`).join(" ")||"—"}</td></tr>`).join("");document.querySelectorAll("#tb tr").forEach(r=>r.onclick=()=>open(+r.dataset.id))}
+function rm(){if(!DB)return;let q=$("#ms").value.toLowerCase(),d=$("#md").value,a=DB.properties.filter(p=>{let h=[p.code,p.address,p.address_raw,p.access,p.note].join(" ").toLowerCase();return(!q||h.includes(q))&&(!d||D(p)===d)});$("#tb").innerHTML=a.map(p=>`<tr data-id="${p.id}"><td>#${p.id}</td><td>${E(p.code||"—")}</td><td>${E(p.address)}</td><td class="sens">${E(p.access||"—")}</td><td>${E(p.note||"—")}</td><td>${V(p.id).map(v=>`<span class="badge">${E(v.name)}</span>`).join(" ")||"—"}</td></tr>`).join("");document.querySelectorAll("#tb tr").forEach(r=>r.onclick=()=>open(+r.dataset.id))}
 
-function open(id,n){let p=P(id),vs=V(id),z=[["主檔編號",`#${p.id} / ${p.code||"未編號"}`],["整理後地址",p.address],["密碼／電錶",p.access||"未記錄",1],["備註／物品",p.note||"未記錄"],["目前空房",vs.map(v=>v.name).join("、")||"無"],["原始地址文字",p.address_raw||"—"]];$("#dt").textContent=n||p.address;$("#dd").innerHTML=z.map(x=>`<div class="detail ${x[2]?"warn":""}"><label>${E(x[0])}</label><div>${E(x[1])}</div></div>`).join("");let v=allVacancies().find(v=>v.name===n);$("#dm").textContent=v?`地址對應：${v.confidence}信心｜${v.match_note}`:"此資料來自加密的總務交接主檔";$("#dbg").style.display="block"}
+function open(id,n){let p=P(id);if(!p)return;let vs=V(id),z=[["主檔編號",`#${p.id} / ${p.code||"未編號"}`],["整理後地址",p.address],["密碼／電錶",p.access||"未記錄",1],["備註／物品",p.note||"未記錄"],["目前空房",vs.map(v=>v.name).join("、")||"無"],["原始地址文字",p.address_raw||"—"]];$("#dt").textContent=n||p.address;$("#dd").innerHTML=z.map(x=>`<div class="detail ${x[2]?"warn":""}"><label>${E(x[0])}</label><div>${E(x[1])}</div></div>`).join("");let v=allVacancies().find(v=>v.name===n);$("#dm").textContent=v?`地址對應：${v.confidence}信心｜${v.match_note}`:"此資料來自加密的總務交接主檔";$("#dbg").style.display="block"}
 
-async function beginCloud(){if(!MASTER_PW||!window.HouseCloud)return;if(!window.HouseCloud.configured?.()){paintCloud({mode:"local",message:"尚未設定雲端同步"});return}try{await window.HouseCloud.setCryptoPassword(MASTER_PW);window.HouseCloud.startCheckoutSync(CHECKOUT_KEY);paintCloud(window.HouseCloud.getStatus())}catch(e){paintCloud({mode:"error",message:"雲端同步啟動失敗",error:e.message})}}
-function paintCloud(s={}){let el=$("#syncChip");if(!el)return;let map={online:"● 雲端已同步",syncing:"● 正在同步",offline:"● 離線快取",login:"● 尚未登入雲端",locked:"● 已登入・待解鎖",local:"● 尚未設定雲端",error:"● 同步異常"};el.textContent=map[s.mode]||("● "+(s.message||"同步設定"));el.title=s.error||s.message||""}
-async function unlock(){try{MASTER_PW=$("#pw").value;DB=await dec(window.HOUSE_VAULT,MASTER_PW);$("#lock").style.display="none";filters();stats();rv();rm();beginCloud()}catch(e){MASTER_PW=null;$("#err").textContent="管理密碼錯誤，無法解密"}}
+function paintCloud(s={}){let el=$("#syncChip");if(!el)return;let map={online:"● 雲端已同步",syncing:"● 正在同步",offline:"● 離線快取",login:"● 尚未登入雲端",locked:"● 已登入・待解鎖",local:"● 尚未設定雲端",error:"● 同步異常"};el.textContent=(s.pending ? `● ${s.pending} 筆待同步` : map[s.mode])||("● "+(s.message||"同步設定"));el.title=s.message||s.error||""}
 
-$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};
-$("#relock").onclick=()=>{DB=null;MASTER_PW=null;$("#pw").value="";$("#lock").style.display="grid"};
 $("#dx").onclick=()=>$("#dbg").style.display="none";$("#dbg").onclick=e=>{if(e.target===$("#dbg"))$("#dbg").style.display="none"};
 $("#vs").oninput=rv;$("#vd").onchange=rv;$("#ms").oninput=rm;$("#md").onchange=rm;
-window.addEventListener("storage",e=>{if(e.key===CHECKOUT_KEY&&DB){stats();rv();rm()}});window.addEventListener("house-cloud-ready",()=>beginCloud());window.addEventListener("house-cloud-state",e=>paintCloud(e.detail));window.addEventListener("house-checkouts-changed",()=>{if(DB){stats();rv();rm()}});
+window.addEventListener("storage",e=>{if(e.key===CHECKOUT_KEY&&DB){stats();rv();rm()}});window.addEventListener("house-checkouts-changed",()=>{if(DB){stats();rv();rm()}});
 document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav button,.view").forEach(x=>x.classList.remove("on"));b.classList.add("on");$("#"+b.dataset.v).classList.add("on");$("#title").textContent=b.dataset.v==="vac"?"空房管理":"房間資訊";$("#sub").textContent=b.dataset.v==="vac"?"空房直接連結物件主檔，完成退租點交後會自動加入此清單":`家總管總務交接物件主檔・共 ${DB.properties.length} 筆`});
-</script></body></html>
+window.HouseView={show:data=>{DB=data;filters();stats();rv();rm()},clear:()=>{DB=null;["cards","tb","dd"].forEach(id=>$("#"+id).textContent="");$("#dbg").style.display="none";["sv","sp","sc","sr","mt","ma","mn","mv"].forEach(id=>$("#"+id).textContent="—")},status:paintCloud};
+</script><script src="app-session.js"></script></body></html>
