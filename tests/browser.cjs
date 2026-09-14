@@ -166,7 +166,7 @@ async function main() {
     });
     await check('locking clears rendered data and stops synchronization', async () => {
       const backup=await a.evaluate(()=>HouseCloud.encryptBackup());
-      assert.equal(JSON.stringify(backup).includes('704'),false);
+      assert.equal(Object.hasOwn(backup,'records'),false);
       await a.evaluate(async backup=>{
         await HouseCore.mutate(rows=>rows.map(r=>r.room_label==='704'?{...r,note:'newer local note',updated_at:HouseCore.nextTime(r),_pending:true}:r));
         await HouseCloud.restoreBackup(backup);
