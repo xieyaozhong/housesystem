@@ -52,7 +52,7 @@
   try {
     const c = C.readConfig();
     if (c) { C.fields.forEach(k => $('#' + k).value = c[k]); $('#configDetails').open = false; }
-    $('#email').value = localStorage.getItem('house_admin_email_v1') || '';
+    $('#email').value = localStorage.getItem('house_admin_email_v1') || C.ADMIN_EMAIL;
   } catch (e) { message('#notice', C.errorMessage(e), true); }
   $('#parseCfg').onclick = () => run('parseCfg', async () => { const c = C.parseConfig($('#configPaste').value); C.fields.forEach(k => $('#' + k).value = c[k]); message('#notice', '設定已帶入，確認後按「儲存並連結專案」。'); });
   $('#saveCfg').onclick = () => run('saveCfg', async () => { C.saveConfig(Object.fromEntries(C.fields.map(k => [k, $('#' + k).value]))); location.reload(); });

@@ -1,6 +1,7 @@
 (function (root) {
   'use strict';
   const CONFIG_KEY = 'house_firebase_config_v1', LOCAL_KEY = 'house_ops_checkout_v1';
+  const ADMIN_EMAIL = 'handsomeboy784@gmail.com';
   const PROJECT_KEY = 'house_data_project_v1', LOCK_KEY = 'house_manual_lock_v1';
   const fields = ['apiKey', 'authDomain', 'projectId', 'appId'];
   function config(value) {
@@ -110,6 +111,7 @@
       'unavailable': '雲端暫時無法連線，本機資料會保留，連線恢復後重試'
     })[String(e?.code || '')] || e?.message || '操作未完成，請重試';
   }
-  root.HouseCore = { CONFIG_KEY, LOCAL_KEY, LOCK_KEY, fields, config, parseConfig, readConfig, saveConfig, assertProject, encode, decodePair, record, clean, version, compare, reconcile, readRecords, mutate, nextTime, lock, errorMessage };
+  const isAutoAdmin = email => typeof email === 'string' && email.trim().toLowerCase() === ADMIN_EMAIL;
+  root.HouseCore = { CONFIG_KEY, LOCAL_KEY, LOCK_KEY, ADMIN_EMAIL, fields, config, parseConfig, readConfig, saveConfig, assertProject, encode, decodePair, record, clean, version, compare, reconcile, readRecords, mutate, nextTime, lock, errorMessage, isAutoAdmin };
   if (root.addEventListener) root.addEventListener('storage', e => { if (e.key === LOCK_KEY && e.newValue) root.dispatchEvent(new CustomEvent('house-lock')); });
 })(globalThis);

@@ -49,10 +49,10 @@
 1. 建立或選擇 Firebase 專案，新增網頁應用程式，取得 `apiKey`、`authDomain`、`projectId`、`appId`。
 2. 在 Authentication 開啟 Email/Password，建立供各裝置登入的帳號，並確認部署網域的相關設定。
 3. 建立 Cloud Firestore，檢查並發布儲存庫的 `firestore.rules`。
-4. 在同步設定頁登入，取得 UID，再由管理員建立 `housesystem_members/{UID}` 文件。
+4. `handsomeboy784@gmail.com` 是內建指定管理員；該 Firebase 帳號必須完成 Email 驗證。其他帳號仍需由管理員建立 `housesystem_members/{UID}` 文件。
 5. 回到設定頁檢查讀取權限、輸入家總管管理密碼並完成同步，確認後產生手機配對連結。
 
-目前規則以會員文件「存在」判定資格，授予會員共享 `housesystem_checkouts` 集合的讀寫權限，前端不能自行新增會員。`enabled` 欄位本身不會停用帳號的存取權；停用資格需管理員移除會員文件，或另行設計並發布對應規則。
+目前規則授予已驗證的 `handsomeboy784@gmail.com` 及會員文件存在的帳號共享 `housesystem_checkouts` 集合讀寫權限，前端不能自行新增會員。`enabled` 欄位本身不會停用帳號的存取權；停用資格需管理員移除會員文件，或另行設計並發布對應規則。
 
 **GitHub Pages 部署只更新靜態網站，不會更新既有 Firebase 專案的 Authentication 設定、會員資料或 Firestore rules。** 儲存庫內有規則檔案，也不代表正式專案已套用；正式登入與讀寫權限仍需在目標專案確認。
 
@@ -75,3 +75,5 @@ npm run build
 `npm run build` 將明確列出的前端執行檔複製到 `_site`，並產生 `.nojekyll` 與包含版本及提交識別的 `release.json`。新增前端資源時，要同步更新 `scripts/build.mjs` 的檔案清單。
 
 `.github/workflows/deploy.yml` 在 `main` 收到 push 或手動觸發時，先執行 `validate`：安裝依賴、核心檢查、瀏覽器測試、建置及上傳 Pages artifact。`deploy` 依賴 `validate` 成功後才發布。GitHub 儲存庫的 Pages 來源需使用 GitHub Actions；實際發布是否成功，以該次工作流程與站上的 `release.json` 為準。
+
+若要讓同一個工作流程自動發布 Firestore 規則，請在 GitHub 儲存庫設定 `FIREBASE_PROJECT_ID` repository variable，以及內容為 Firebase service-account JSON 的 `FIREBASE_SERVICE_ACCOUNT` repository secret。兩者缺一時，Pages 仍會部署，但規則工作會略過；本專案不把憑證提交到 Git。

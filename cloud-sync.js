@@ -126,6 +126,11 @@ async function checkAccess() {
   await requireAuth();
   if (!user) throw new Error('請先登入同步帳號');
   try {
+    if (C.isAutoAdmin(user.email)) {
+      await F.getDocsFromServer(F.query(F.collection(db, COLLECTION), F.limit(1)));
+      paint({ access: true, error: null, message: '指定管理員帳號已通過自動授權；請確認 Firebase Authentication 已驗證 Email' });
+      return true;
+    }
     const member = await F.getDocFromServer(F.doc(db, 'housesystem_members', user.uid));
     if (!member.exists()) throw new Error('尚未加入會員白名單。請建立 housesystem_members/' + user.uid + ' 文件（可加 enabled: true）。');
     await F.getDocsFromServer(F.query(F.collection(db, COLLECTION), F.limit(1)));

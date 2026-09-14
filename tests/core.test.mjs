@@ -38,6 +38,13 @@ test('Firebase settings normalize whitespace and retain only the four public fie
   assert.deepEqual(core.config(settings), firebaseConfig);
 });
 
+test('the requested verified email is the only built-in administrator identity', () => {
+  assert.equal(core.ADMIN_EMAIL, 'handsomeboy784@gmail.com');
+  assert.equal(core.isAutoAdmin('handsomeboy784@gmail.com'), true);
+  assert.equal(core.isAutoAdmin(' HANDSOMEBOY784@GMAIL.COM '), true);
+  assert.equal(core.isAutoAdmin('other@example.com'), false);
+});
+
 test('Firebase settings reject missing fields and malformed API, domain, project and app values', () => {
   for (const settings of [null, [], {},
     { ...firebaseConfig, apiKey: 'short' },

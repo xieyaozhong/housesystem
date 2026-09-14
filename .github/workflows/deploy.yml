@@ -38,3 +38,33 @@ jobs:
       - name: Deploy validated website
         id: deployment
         uses: actions/deploy-pages@v4
+  deploy-firebase-rules:
+    name: Deploy Firebase rules when configured
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Firebase deploy configuration
+        id: firebase-config
+        env:
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$FIREBASE_PROJECT_ID" ] && [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Firebase deploy skipped: set FIREBASE_PROJECT_ID variable and FIREBASE_SERVICE_ACCOUNT secret."
+          fi
+      - uses: actions/checkout@v4
+        if: steps.firebase-config.outputs.configured == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.firebase-config.outputs.configured == 'true'
+        with:
+          node-version: '24'
+      - uses: google-github-actions/auth@v2
+        if: steps.firebase-config.outputs.configured == 'true'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Deploy Firestore rules
+        if: steps.firebase-config.outputs.configured == 'true'
+        run: npx --yes firebase-tools@latest deploy --only firestore:rules --project "${{ vars.FIREBASE_PROJECT_ID }}" --non-interactive

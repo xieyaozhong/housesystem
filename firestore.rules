@@ -3,13 +3,17 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isHouseSystemMember() {
       return request.auth != null &&
-        exists(/databases/$(database)/documents/housesystem_members/$(request.auth.uid));
+        (
+          (request.auth.token.email == 'handsomeboy784@gmail.com' && request.auth.token.email_verified == true) ||
+          exists(/databases/$(database)/documents/housesystem_members/$(request.auth.uid))
+        );
     }
 
     match /housesystem_checkouts/{recordId} {
       allow read, write: if isHouseSystemMember();
     }
 
+    // 指定管理員 Email 需先完成 Firebase Email 驗證；其他帳號由會員文件白名單授權。
     // 會員白名單請由 Firebase Console / Admin SDK 建立，前端不可自行新增
     match /housesystem_members/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;

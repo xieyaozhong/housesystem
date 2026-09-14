@@ -11,7 +11,7 @@
       history.replaceState(null, '', location.pathname + location.search);
       $('#pairMsg').textContent = '配對設定已匯入。請使用同一個管理員帳號登入。';
     } else $('#pairMsg').textContent = C.readConfig() ? '已連結專案，可直接登入或解鎖。' : '請先在電腦完成同步設定，產生手機配對連結後在這裡開啟。';
-    $('#email').value = localStorage.getItem('house_admin_email_v1') || '';
+    $('#email').value = localStorage.getItem('house_admin_email_v1') || C.ADMIN_EMAIL;
   } catch (e) { pairError = true; $('#pairMsg').textContent = C.errorMessage(e); report('配對未完成，請從電腦重新產生連結。', true); }
   function paint(s = {}) {
     const sameAccount = s.user?.email?.toLowerCase() === $('#email').value.trim().toLowerCase();
