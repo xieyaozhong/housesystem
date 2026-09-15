@@ -35,6 +35,32 @@
     if (vault.zip === 'gzip') data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
     return JSON.parse(td.decode(data));
   }
+  async function importCheckoutSeed(vaultKey) {
+    try {
+      const C = window.HouseCore;
+      if (!C || !vaultKey) return 0;
+      const mod = await import('./checkout-seed.js');
+      if (!mod.CHECKOUT_SEED) return 0;
+      const seeded = await decryptVaultWithKey(mod.CHECKOUT_SEED, vaultKey);
+      if (!Array.isArray(seeded)) throw new Error('seed_format');
+      let changed = 0;
+      await C.mutate(local => {
+        const map = new Map(local.map(r => [String(r.id), r]));
+        for (const raw of seeded) {
+          const record = C.record(raw), old = map.get(record.id);
+          if (!old || C.compare(record, old) > 0) {
+            map.set(record.id, { ...record, _pending: true });
+            changed++;
+          }
+        }
+        return [...map.values()];
+      });
+      return changed;
+    } catch (e) {
+      console.error('Encrypted checkout seed import failed', e);
+      return 0;
+    }
+  }
   async function prepare(password, projectId) {
     if (!password) throw new Error('請輸入家總管管理密碼');
     if (!window.HOUSE_VAULT) throw new Error('房屋加密主檔尚未載入，請重新整理');
@@ -43,6 +69,7 @@
       vaultKey = await derive(password, bytes(HOUSE_VAULT.salt), HOUSE_VAULT.iter || 250000);
       data = await decryptVaultWithKey(HOUSE_VAULT, vaultKey);
     } catch (_) { throw new Error('家總管管理密碼不正確，無法解鎖資料'); }
+    await importCheckoutSeed(vaultKey);
     const syncKey = projectId ? await derive(password, te.encode(`housesystem-sync-v1|${projectId}`), 250000) : null;
     return { vaultKey, syncKey, projectId: projectId || null, data };
   }
@@ -57,12 +84,13 @@
   async function getKeys(projectId) {
     const value = await read();
     if (!projectId || value.meta?.projectId !== projectId || !value.vaultKey || !value.syncKey) return null;
+    await importCheckoutSeed(value.vaultKey);
     // Upgrade older trusted devices without recovering or retaining their password.
     await transaction('readwrite', store => { store.delete('passwordBlob'); store.delete('sealKey'); });
     return { vaultKey: value.vaultKey, syncKey: value.syncKey, projectId };
   }
   async function forget(options = {}) { await transaction('readwrite', store => store.clear()); if (options.lock !== false) window.HouseCore?.lock(); }
-  window.HouseTrusted = { prepare, remember, getKeys, decryptVaultWithKey, forget,
+  window.HouseTrusted = { prepare, remember, getKeys, decryptVaultWithKey, importCheckoutSeed, forget,
     has: async projectId => !!(await getKeys(projectId || window.HouseCore?.readConfig()?.projectId)),
     trust: async (password, projectId) => remember(await prepare(password, projectId)) };
 })();
