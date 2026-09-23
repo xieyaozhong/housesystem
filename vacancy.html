@@ -74,9 +74,18 @@ function completedCheckoutVacancies(){
     source:"checkout",checkout_id:r.id
   }));
 }
+const roomKey=s=>String(s??"").replace(/\s+/g,"").toUpperCase();
+function isRentedVacancy(v){
+  const rented=DB?.rented_status?.rented||[], name=roomKey(v.name);
+  return rented.some(r=>{
+    if(Number(r.property_id)!==Number(v.property_id))return false;
+    const aliases=Array.isArray(r.aliases)&&r.aliases.length?r.aliases:[r.room_label];
+    return aliases.some(a=>{const x=roomKey(a);return name===x||(x.length>=3&&name.includes(x))});
+  });
+}
 function allVacancies(){
-  const base=[...(DB?.vacancies||[])], seen=new Set(base.map(v=>`${v.property_id}|${v.name}`));
-  for(const v of completedCheckoutVacancies()){const k=`${v.property_id}|${v.name}`;if(!seen.has(k)){base.push(v);seen.add(k)}}
+  const base=[...(DB?.vacancies||[])].filter(v=>!isRentedVacancy(v)), seen=new Set(base.map(v=>`${v.property_id}|${v.name}`));
+  for(const v of completedCheckoutVacancies()){if(isRentedVacancy(v))continue;const k=`${v.property_id}|${v.name}`;if(!seen.has(k)){base.push(v);seen.add(k)}}
   return base;
 }
 let P=id=>DB.properties.find(x=>x.id===id),V=id=>allVacancies().filter(x=>x.property_id===id),D=p=>p?.district||"未標示";
