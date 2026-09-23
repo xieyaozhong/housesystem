@@ -33,7 +33,15 @@
   async function decryptVaultWithKey(vault, key) {
     let data = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes(vault.iv) }, key, bytes(vault.ct)));
     if (vault.zip === 'gzip') data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
-    return JSON.parse(td.decode(data));
+    const decoded = JSON.parse(td.decode(data));
+    if (vault === window.HOUSE_VAULT && window.HOUSE_VACANCY_STATUS) {
+      try {
+        const status = window.HOUSE_VACANCY_STATUS;
+        const raw = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes(status.iv) }, key, bytes(status.ct));
+        decoded.rented_status = JSON.parse(td.decode(raw));
+      } catch (_) { decoded.rented_status = { v: 1, rented: [] }; }
+    }
+    return decoded;
   }
   async function importCheckoutSeed(vaultKey) {
     try {
