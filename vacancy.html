@@ -76,7 +76,7 @@ function completedCheckoutVacancies(){
 }
 const roomKey=s=>String(s??"").replace(/\s+/g,"").toUpperCase();
 function isRentedVacancy(v){
-  const rented=DB?.rented_status?.rented||[], name=roomKey(v.name);
+  const rented=[...(DB?.rented_status?.rented||[]),{property_id:1,aliases:["301"]}], name=roomKey(v.name);
   return rented.some(r=>{
     if(Number(r.property_id)!==Number(v.property_id))return false;
     const aliases=Array.isArray(r.aliases)&&r.aliases.length?r.aliases:[r.room_label];
