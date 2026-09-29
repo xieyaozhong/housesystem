@@ -1,10 +1,45 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>家總管｜每週帳務</title><link rel="stylesheet" href="public-style.css"></head><body>
-<div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS · PUBLIC</small></div><nav class="nav"><a href="vacancy.html">空房系統</a><a href="checkout.html">退租紀錄</a><a class="on" href="weekly-accounting.html">每週帳務</a></nav><div class="foot"><a href="index.html">← 系統首頁</a></div></aside>
-<main class="main"><header class="top"><div><div class="ey">PUBLIC FRIDAY SETTLEMENT</div><h1>每週報修／退租帳務</h1><div class="sub">公開唯讀｜每週五集中查看廠商應付款與退租房客應退款</div></div><div class="chip" id="updated">● 讀取中</div></header>
-<div class="notice">公開頁只顯示匯款必要摘要與帳號末四碼，不顯示完整銀行帳號，也不提供任何付款或修改操作</div>
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>家總管｜每週帳務</title><link rel="stylesheet" href="public-style.css"><style>
+.lock{position:fixed;z-index:50;inset:0;background:radial-gradient(circle at 50% 0,#18324f,#07111d 55%);display:grid;place-items:center;padding:18px}.box{width:min(430px,100%);background:#0b1829;border:1px solid #2b435f;border-radius:22px;padding:25px}.box h2{margin:14px 0 7px}.box p{color:#8fa5bb;font-size:12px;line-height:1.7}.row{display:grid;grid-template-columns:1fr auto;gap:8px}.f{width:100%;padding:11px 12px;border-radius:11px;border:1px solid #22364f;background:#0a1726;color:#fff;outline:none}.go{border:0;border-radius:11px;background:#79e2b8;color:#062519;font-weight:800;padding:11px 14px}.err{min-height:18px;color:#ffaaaa;font-size:11px;margin-top:8px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid #22364f;background:#102038;color:#cbd8e5;border-radius:11px;padding:9px 12px;cursor:pointer}.secure-note{color:#9ceacc}.account{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em}
+</style></head><body>
+<div class="lock" id="lock"><div class="box"><div class="ey">FINANCE ACCESS</div><h2>主管／帳務登入</h2><p>第一次在這台私人裝置輸入家總管管理密碼，之後可直接查看待匯款項目與完整銀行帳號</p><div class="row"><input id="pw" class="f" type="password" autocomplete="current-password" placeholder="家總管管理密碼"><button id="unlock" class="go">解鎖</button></div><div id="err" class="err"></div><p>完整銀行資料使用同一把家總管加密金鑰解密，不會寫進公開資料檔</p></div></div>
+
+<div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS · FINANCE</small></div><nav class="nav"><a href="vacancy.html">空房系統</a><a href="checkout.html">退租紀錄</a><a class="on" href="weekly-accounting.html">每週帳務</a></nav><div class="foot"><button id="forget" class="btn" style="width:100%">忘記此裝置並鎖定</button><a href="index.html">← 系統首頁</a></div></aside>
+<main class="main"><header class="top"><div><div class="ey">FRIDAY SETTLEMENT</div><h1>每週報修／退租帳務</h1><div class="sub">主管／帳務專用｜查看完整匯款資料，每週五集中結算</div></div><div class="chip" id="updated">● 讀取中</div></header>
+<div class="notice secure-note">此頁需要管理密碼解鎖。解鎖後顯示完整銀行代號與帳號；資料仍為唯讀，更新由管理視窗統一處理</div>
 <section class="stats"><div class="st"><span>待付廠商</span><b id="sVendor">$0</b></div><div class="st"><span>待退房客</span><b id="sRefund">$0</b></div><div class="st"><span>待處理筆數</span><b id="sPending">0</b></div><div class="st"><span>已完成金額</span><b id="sPaid">$0</b></div></section>
-<section class="panel"><h2>週五結算清單</h2><div class="tbl"><table><thead><tr><th>狀態</th><th>類型</th><th>收款人</th><th>物件</th><th>項目</th><th>金額</th><th>銀行摘要</th><th>結算週五</th></tr></thead><tbody id="tb"></tbody></table></div></section>
-</main></div><script src="public-data.js"></script><script>
+<section class="panel"><h2>待匯款項目</h2><div class="tbl"><table><thead><tr><th>狀態</th><th>類型</th><th>收款人</th><th>物件</th><th>項目</th><th>金額</th><th>銀行代號</th><th>完整銀行帳號</th><th>退款期限</th><th>結算週五</th></tr></thead><tbody id="tb"></tbody></table></div></section>
+</main></div>
+
+<script src="public-data.js"></script><script src="secure-data.js"></script><script src="trusted-device.js"></script><script src="finance-secure.js"></script><script>
 const D=window.HOUSE_PUBLIC_DATA,$=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])),M=n=>"$"+Math.round(Number(n)||0).toLocaleString("zh-TW");
-const a=D.weekly_accounts,p=a.filter(x=>x.status!=="paid");$("#sVendor").textContent=M(p.filter(x=>x.kind==="vendor").reduce((s,x)=>s+x.amount,0));$("#sRefund").textContent=M(p.filter(x=>x.kind==="refund").reduce((s,x)=>s+x.amount,0));$("#sPending").textContent=p.length;$("#sPaid").textContent=M(a.filter(x=>x.status==="paid").reduce((s,x)=>s+x.amount,0));$("#updated").textContent="● 更新 "+new Date(D.updated_at).toLocaleString("zh-TW");$("#tb").innerHTML=a.sort((x,y)=>String(x.settlement_date).localeCompare(String(y.settlement_date))).map(r=>`<tr><td><span class="badge ${r.status==="paid"?"paid":"pending"}">${r.status==="paid"?"已完成":"待處理"}</span></td><td><span class="badge ${r.kind==="vendor"?"vendor":"refund"}">${r.kind==="vendor"?"廠商":"退租退款"}</span></td><td>${E(r.party||"—")}</td><td><b>${E(r.property_label||"—")}</b></td><td>${E(r.description||"—")}</td><td class="money">${M(r.amount)}</td><td>${E(r.bank_display||"—")}</td><td>${E(r.settlement_date||"—")}</td></tr>`).join("");
+let SEC=new Map();
+
+function render(){
+  const a=D.weekly_accounts.slice().sort((x,y)=>(x.status==="paid")-(y.status==="paid")||String(x.settlement_date).localeCompare(String(y.settlement_date))),p=a.filter(x=>x.status!=="paid");
+  $("#sVendor").textContent=M(p.filter(x=>x.kind==="vendor").reduce((s,x)=>s+x.amount,0));
+  $("#sRefund").textContent=M(p.filter(x=>x.kind==="refund").reduce((s,x)=>s+x.amount,0));
+  $("#sPending").textContent=p.length;
+  $("#sPaid").textContent=M(a.filter(x=>x.status==="paid").reduce((s,x)=>s+x.amount,0));
+  $("#updated").textContent="● 更新 "+new Date(D.updated_at).toLocaleString("zh-TW");
+  $("#tb").innerHTML=a.map(r=>{const s=SEC.get(r.id)||{};return `<tr><td><span class="badge ${r.status==="paid"?"paid":"pending"}">${r.status==="paid"?"已完成":"待處理"}</span></td><td><span class="badge ${r.kind==="vendor"?"vendor":"refund"}">${r.kind==="vendor"?"廠商":"退租退款"}</span></td><td>${E(r.party||"—")}</td><td><b>${E(r.property_label||"—")}</b></td><td>${E(r.description||"—")}</td><td class="money">${M(r.amount)}</td><td class="account">${E(s.bank_code||"—")}</td><td class="account">${E(s.bank_account||"—")}</td><td>${E(r.due_date||"—")}</td><td>${E(r.settlement_date||"—")}</td></tr>`}).join("");
+}
+
+async function openWithKey(key){
+  const secure=await HouseTrusted.decryptVaultWithKey(HOUSE_FINANCE_SECURE,key);
+  SEC=new Map((secure.accounts||[]).map(x=>[x.id,x]));
+  $("#lock").style.display="none";
+  render();
+}
+async function unlock(){
+  $("#err").textContent="";
+  try{
+    const keys=await HouseTrusted.prepare($("#pw").value,null);
+    await openWithKey(keys.vaultKey);
+    await HouseTrusted.rememberVaultKey(keys.vaultKey);
+    $("#pw").value="";
+  }catch(e){$("#err").textContent=e?.message||"無法解鎖"}
+}
+$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};
+$("#forget").onclick=async()=>{await HouseTrusted.forgetVaultKey();SEC.clear();$("#tb").textContent="";$("#lock").style.display="grid"};
+(async()=>{try{const key=await HouseTrusted.getVaultKey();if(key)await openWithKey(key)}catch(_){await HouseTrusted.forgetVaultKey()}})();
 </script></body></html>
