@@ -19,50 +19,48 @@ async function main(){
   const browser=await chromium.launch({headless:true});
   try{
     const p=await browser.newPage({viewport:{width:390,height:844}});
-    for(const name of ['index.html','vacancy.html','checkout.html']){
+    for(const name of ['index.html','vacancy.html','checkout.html','weekly-accounting.html']){
       await p.goto(origin+'/'+name);
       await p.waitForLoadState('networkidle');
-      assert.equal(await p.locator('input[type="password"]').count(),0,name+' must stay public');
-      assert.equal((await p.textContent('body')).includes('01910010974190'),false,name+' must not expose full bank account');
-      assert.equal((await p.textContent('body')).includes('20301800995588'),false,name+' must not expose Mingde 6D full bank account');
-      assert.equal((await p.textContent('body')).includes('01016800045858'),false,name+' must not expose Mingde 5C full bank account');
+      assert.equal(await p.locator('input[type="password"]').count(),1,name+' must require the unified management password');
+      assert.equal(await p.locator('#lock').isVisible(),true,name+' must start locked on a new device');
+      const body=await p.textContent('body');
+      for(const secret of ['明德5C','明德6D','一中4A','01016800045858','20301800995588','01910010974190']){
+        assert.equal(body.includes(secret),false,name+' must not render operational or banking data before unlock');
+      }
       assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,name+' must fit mobile width');
     }
-    await p.goto(origin+'/vacancy.html');
-    assert.equal(await p.locator('#cards').textContent().then(x=>x.includes('精誠301')),false,'rented Jingcheng 301 must not be listed as vacant');
-    assert.equal(await p.locator('#rented').textContent().then(x=>x.includes('精誠301')),true,'rented Jingcheng 301 should appear in rented list');
 
-    await p.goto(origin+'/checkout.html');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('一中4A')),true,'public checkout should keep Yizhong 4A move-out history');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('22,079')),false,'completed Yizhong refund amount must be masked');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('已封存')),true,'completed refund financial details must show as archived');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('明德6D')),true,'pending Mingde 6D refund must remain visible');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('8,625')),true,'pending Mingde 6D refund amount should stay visible');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('明德5C')),true,'pending Mingde 5C refund must remain visible');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('8,755')),true,'pending Mingde 5C refund amount should stay visible');
-
-    await p.goto(origin+'/weekly-accounting.html');
-    await p.waitForLoadState('networkidle');
-    assert.equal(await p.locator('input[type="password"]').count(),1,'finance accounting must require the management password');
-    assert.equal(await p.locator('#lock').isVisible(),true,'finance accounting must start locked on a new device');
-    assert.equal((await p.textContent('body')).includes('01910010974190'),false,'locked finance page must not render Yizhong full account');
-    assert.equal((await p.textContent('body')).includes('20301800995588'),false,'locked finance page must not render Mingde 6D full account');
-    assert.equal((await p.textContent('body')).includes('01016800045858'),false,'locked finance page must not render Mingde 5C full account');
-    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'finance page must fit mobile width');
-    const financePageSource=fs.readFileSync(path.join(root,'weekly-accounting.html'),'utf8');
-    assert.equal(financePageSource.includes('D.weekly_accounts.filter(x=>x.status!=="paid")'),true,'finance front-end must automatically exclude completed transfers');
-    assert.equal(financePageSource.includes('function groupedPending()'),true,'finance front-end must group same-vendor payments');
-    assert.equal(financePageSource.includes('(r.settlement_date||"")+"|"'),true,'vendor grouping must be scoped by settlement week');
-    assert.equal(financePageSource.includes('g.amount+=Number(r.amount)||0'),true,'same-vendor repair amounts must be summed');
-    assert.equal(financePageSource.includes('⚠ 帳號不一致'),true,'grouped vendor account mismatch must be flagged');
+    const opsSource=fs.readFileSync(path.join(root,'ops-secure.js'),'utf8');
     const financeSource=fs.readFileSync(path.join(root,'finance-secure.js'),'utf8');
-    assert.equal(financeSource.includes('01910010974190'),false,'encrypted finance file must not contain Yizhong plaintext account');
-    assert.equal(financeSource.includes('20301800995588'),false,'encrypted finance file must not contain Mingde 6D plaintext account');
-    assert.equal(financeSource.includes('01016800045858'),false,'encrypted finance file must not contain Mingde 5C plaintext account');
+    const retiredPublic=fs.readFileSync(path.join(root,'public-data.js'),'utf8');
+    for(const secret of ['明德5C','明德6D','一中4A','台中市南區明德街66號']){
+      assert.equal(opsSource.includes(secret),false,'encrypted operations payload must not contain plaintext operational data');
+      assert.equal(retiredPublic.includes(secret),false,'retired public snapshot must not retain operational data');
+    }
+    for(const secret of ['01016800045858','20301800995588','01910010974190']){
+      assert.equal(financeSource.includes(secret),false,'encrypted finance payload must not contain plaintext bank accounts');
+    }
+
+    const build=fs.readFileSync(path.join(root,'scripts/build.mjs'),'utf8');
+    assert.equal(build.includes("'ops-secure.js'"),true,'Pages build must include encrypted operations payload');
+    assert.equal(build.includes("'secure-app.js'"),true,'Pages build must include unified secure loader');
+    assert.equal(build.includes("'public-data.js'"),false,'Pages build must not ship retired public snapshot');
+
+    const vacancy=fs.readFileSync(path.join(root,'vacancy.html'),'utf8');
+    const checkout=fs.readFileSync(path.join(root,'checkout.html'),'utf8');
+    const weekly=fs.readFileSync(path.join(root,'weekly-accounting.html'),'utf8');
+    assert.equal(vacancy.includes('HOUSE_PUBLIC_DATA'),false,'vacancy must only use encrypted data');
+    assert.equal(checkout.includes('HOUSE_PUBLIC_DATA'),false,'checkout must only use encrypted data');
+    assert.equal(weekly.includes('HOUSE_PUBLIC_DATA'),false,'finance must only use encrypted data');
+    assert.equal(weekly.includes('function groupedPending()'),true,'finance must preserve same-vendor weekly aggregation');
+    assert.equal(weekly.includes('x.status!=="paid"'),true,'finance must continue hiding completed transfers from the pending list');
 
     await p.goto(origin+'/mobile-login.html');
     await p.waitForURL(origin+'/index.html');
-    console.log('PASS public house pages stay open while finance details require one-time device unlock');
+    assert.equal(await p.locator('input[type="password"]').count(),1,'legacy mobile entry must land on locked dashboard');
+
+    console.log('PASS all primary pages require one password and ship only encrypted operational data');
   } finally {
     await browser.close();
     server.close();
