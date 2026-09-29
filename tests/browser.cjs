@@ -19,11 +19,12 @@ async function main(){
   const browser=await chromium.launch({headless:true});
   try{
     const p=await browser.newPage({viewport:{width:390,height:844}});
-    for(const name of ['index.html','vacancy.html','checkout.html','weekly-accounting.html']){
+    for(const name of ['index.html','vacancy.html','checkout.html']){
       await p.goto(origin+'/'+name);
       await p.waitForLoadState('networkidle');
-      assert.equal(await p.locator('input[type="password"]').count(),0,name+' must not require a password');
+      assert.equal(await p.locator('input[type="password"]').count(),0,name+' must stay public');
       assert.equal((await p.textContent('body')).includes('01910010974190'),false,name+' must not expose full bank account');
+      assert.equal((await p.textContent('body')).includes('20301800995588'),false,name+' must not expose Mingde full bank account');
       assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,name+' must fit mobile width');
     }
     await p.goto(origin+'/vacancy.html');
@@ -35,12 +36,19 @@ async function main(){
     assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('22,079')),true,'public checkout should show refund amount');
 
     await p.goto(origin+'/weekly-accounting.html');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('一中4A')),true,'weekly accounting should show pending refund');
-    assert.equal(await p.locator('#tb button').count(),0,'public accounting must be read-only');
+    await p.waitForLoadState('networkidle');
+    assert.equal(await p.locator('input[type="password"]').count(),1,'finance accounting must require the management password');
+    assert.equal(await p.locator('#lock').isVisible(),true,'finance accounting must start locked on a new device');
+    assert.equal((await p.textContent('body')).includes('01910010974190'),false,'locked finance page must not render Yizhong full account');
+    assert.equal((await p.textContent('body')).includes('20301800995588'),false,'locked finance page must not render Mingde full account');
+    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'finance page must fit mobile width');
+    const financeSource=fs.readFileSync(path.join(root,'finance-secure.js'),'utf8');
+    assert.equal(financeSource.includes('01910010974190'),false,'encrypted finance file must not contain Yizhong plaintext account');
+    assert.equal(financeSource.includes('20301800995588'),false,'encrypted finance file must not contain Mingde plaintext account');
 
     await p.goto(origin+'/mobile-login.html');
     await p.waitForURL(origin+'/index.html');
-    console.log('PASS public read-only pages load without login and redact sensitive data');
+    console.log('PASS public house pages stay open while finance details require one-time device unlock');
   } finally {
     await browser.close();
     server.close();
