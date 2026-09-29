@@ -32,8 +32,11 @@ async function main(){
     assert.equal(await p.locator('#rented').textContent().then(x=>x.includes('精誠301')),true,'rented Jingcheng 301 should appear in rented list');
 
     await p.goto(origin+'/checkout.html');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('一中4A')),true,'public checkout should show Yizhong 4A');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('22,079')),true,'public checkout should show refund amount');
+    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('一中4A')),true,'public checkout should keep Yizhong 4A move-out history');
+    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('22,079')),false,'completed Yizhong refund amount must be masked');
+    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('已封存')),true,'completed refund financial details must show as archived');
+    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('明德6D')),true,'pending Mingde 6D refund must remain visible');
+    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('8,625')),true,'pending Mingde refund amount should stay visible');
 
     await p.goto(origin+'/weekly-accounting.html');
     await p.waitForLoadState('networkidle');
@@ -42,6 +45,8 @@ async function main(){
     assert.equal((await p.textContent('body')).includes('01910010974190'),false,'locked finance page must not render Yizhong full account');
     assert.equal((await p.textContent('body')).includes('20301800995588'),false,'locked finance page must not render Mingde full account');
     assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'finance page must fit mobile width');
+    const financePageSource=fs.readFileSync(path.join(root,'weekly-accounting.html'),'utf8');
+    assert.equal(financePageSource.includes('D.weekly_accounts.filter(x=>x.status!=="paid")'),true,'finance front-end must automatically exclude completed transfers');
     const financeSource=fs.readFileSync(path.join(root,'finance-secure.js'),'utf8');
     assert.equal(financeSource.includes('01910010974190'),false,'encrypted finance file must not contain Yizhong plaintext account');
     assert.equal(financeSource.includes('20301800995588'),false,'encrypted finance file must not contain Mingde plaintext account');
