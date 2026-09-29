@@ -68,7 +68,7 @@ async function mergeSnapshot(snap, g) {
     return;
   }
   const cryptoKey = key, remote = [];
-  for (const d of snap.docs) remote.push(await decrypt(d.data(), d.id, cryptoKey));
+  for (const d of snap.docs) { const data=d.data(); if(data.type!=='checkout-v1') continue; remote.push(await decrypt(data, d.id, cryptoKey)); }
   if (!active(g)) return;
   let uploads;
   await C.mutate(rows => {
