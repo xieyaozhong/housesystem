@@ -1,10 +1,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import os from 'node:os';
+import { execFileSync } from 'node:child_process';
 const root = process.cwd();
 let checked = 0;
 for (const name of fs.readdirSync(root)) {
-  if (name.endsWith('.js')) { new vm.Script(fs.readFileSync(name, 'utf8'), { filename: name }); checked++; }
+  if (name.endsWith('.js')) {
+    const source = fs.readFileSync(name, 'utf8');
+    if (/^\s*(?:import|export)\s/m.test(source)) {
+      const temp = path.join(os.tmpdir(), 'housesystem-check-' + process.pid + '-' + name.replace(/[^a-z0-9_.-]/gi, '_') + '.mjs');
+      fs.writeFileSync(temp, source);
+      try { execFileSync(process.execPath, ['--check', temp], { stdio: 'pipe' }); }
+      finally { fs.rmSync(temp, { force: true }); }
+    } else new vm.Script(source, { filename: name });
+    checked++;
+  }
   if (!name.endsWith('.html')) continue;
   const html = fs.readFileSync(name, 'utf8');
   for (const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
