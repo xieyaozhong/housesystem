@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>家總管｜每週報修／退租帳務</title>
+<style>
+:root{--b:#07111d;--p:#0d1a2a;--l:#22364f;--t:#f4f8fc;--m:#8fa5bb;--g:#79e2b8;--a:#82b7ff;--y:#ffd88f;--r:#ff9e9e}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#07111d,#0a1726);color:var(--t);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif}
+button,input,select,textarea{font:inherit}.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}.side{padding:22px 14px;border-right:1px solid var(--l)}
+.brand{font-weight:850;font-size:19px;padding:0 10px 20px}.brand small{display:block;color:var(--m);font-size:9px;letter-spacing:.2em;margin-top:4px}
+.nav{display:grid;gap:6px}.nav a{color:#8fa5bb;text-decoration:none;padding:11px;border-radius:11px;font-size:13px}.nav a.on{background:#15283d;color:#fff;border:1px solid #2a405b}.nav a:hover{background:#102136;color:#dce9f5}
+.main{padding:28px;max-width:1450px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;gap:16px}.top h1{margin:4px 0;font-size:32px}.ey{color:var(--g);font-size:10px;letter-spacing:.18em;font-weight:800}.sub{color:var(--m);font-size:12px;line-height:1.65}.chip{border:1px solid #285846;background:#102c25;color:#a0efd0;border-radius:999px;padding:7px 10px;font-size:10px;height:max-content;text-decoration:none}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0}.st{border:1px solid var(--l);background:var(--p);border-radius:16px;padding:15px}.st span{display:block;color:var(--m);font-size:10px}.st b{font-size:27px;display:block;margin-top:6px}
+.panel{border:1px solid var(--l);background:var(--p);border-radius:18px;padding:18px;margin-bottom:14px}.panel h2{margin:0 0 14px;font-size:18px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.f{width:100%;padding:11px 12px;border-radius:11px;border:1px solid var(--l);background:#0a1726;color:#fff;outline:none}.f:focus{border-color:#496b8f}textarea.f{min-height:84px;resize:vertical}.lbl{display:block;color:#8ea3b9;font-size:10px;margin-bottom:6px}.wide{grid-column:1/-1}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.btn{border:1px solid var(--l);background:#102038;color:#cbd8e5;border-radius:11px;padding:10px 13px;cursor:pointer;text-decoration:none}.btn.primary{background:var(--g);color:#062519;border-color:var(--g);font-weight:800}.btn.warn{color:#ffe2a1}.btn.danger{color:#ffb6b6}
+.weekbar{display:grid;grid-template-columns:220px 1fr auto;gap:10px;align-items:end}.notice{border:1px solid #294767;background:#0d2137;border-radius:14px;padding:12px 14px;color:#a9c7e8;font-size:11px;line-height:1.65;margin:14px 0}
+.tbl{overflow:auto;border:1px solid var(--l);border-radius:15px}.tbl table{border-collapse:collapse;width:100%;min-width:1100px}.tbl th,.tbl td{padding:11px;border-bottom:1px solid #1c2e44;text-align:left;font-size:11px}.tbl th{background:#102037;color:#8fa5bb}
+.badge{display:inline-block;border-radius:999px;padding:4px 7px;font-size:9px}.vendor{background:#1d2f47;border:1px solid #315276;color:#afd3ff}.refund{background:#342e18;border:1px solid #5a4c24;color:#ffe29a}.paid{background:#14352c;border:1px solid #2b5d4b;color:#9ceacc}.pending{background:#3a2227;border:1px solid #64333b;color:#ffb7c0}
+.money{font-variant-numeric:tabular-nums;font-weight:800}.muted{color:var(--m)}.foot{margin-top:18px}.foot a{display:block;width:100%;margin-top:7px;padding:9px;border:1px solid var(--l);border-radius:10px;background:#0e1c2d;color:#a6b8c9;text-decoration:none;text-align:center}
+.lock{position:fixed;z-index:50;inset:0;background:radial-gradient(circle at 50% 0,#18324f,#07111d 55%);display:grid;place-items:center;padding:18px}.box{width:min(430px,100%);background:#0b1829;border:1px solid #2b435f;border-radius:22px;padding:25px}.box h2{margin:14px 0 7px}.box p{color:var(--m);font-size:12px;line-height:1.7}.row{display:grid;grid-template-columns:1fr auto;gap:8px}.go{border:0;border-radius:11px;background:var(--g);color:#062519;font-weight:800;padding:11px 14px}.err{min-height:18px;color:#ffaaaa;font-size:11px;margin-top:8px}
+@media(max-width:900px){.stats{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}.weekbar{grid-template-columns:1fr 1fr}.weekbar .span{grid-column:1/-1}}
+@media(max-width:700px){.app{display:block}.side{border-right:0;border-bottom:1px solid var(--l)}.nav{display:flex;overflow:auto}.main{padding:18px 14px}.top{display:grid}.grid,.weekbar{grid-template-columns:1fr}.wide,.weekbar .span{grid-column:auto}.stats{grid-template-columns:1fr 1fr}.actions .btn{flex:1}}
+</style>
+</head>
+<body>
+<div class="lock" id="lock"><div class="box"><div class="ey">WEEKLY SETTLEMENT</div><h2>每週報修／退租帳務</h2><p>帳務與銀行資料會使用家總管加密金鑰處理。已信任裝置可自動解鎖。</p><div class="row"><input id="pw" class="f" type="password" autocomplete="off" placeholder="家總管管理密碼"><button id="unlock" class="go">解鎖</button></div><div id="err" class="err"></div><p><a href="index.html" style="color:#a9d0ff">回首頁</a>　·　<a href="sync-setup.html" style="color:#a9d0ff">同步設定</a></p></div></div>
+<div class="app">
+<aside class="side"><div class="brand">家總管<small>HOUSE OPS</small></div><nav class="nav">
+<a href="vacancy.html">空房系統</a><a href="checkout.html">退租點交</a><a class="on" href="weekly-accounting.html">每週帳務</a><a href="sync-setup.html">跨裝置同步</a>
+</nav><div class="foot"><a href="index.html">← 系統首頁</a></div></aside>
+<main class="main">
+<header class="top"><div><div class="ey">FRIDAY SETTLEMENT</div><h1>每週報修／退租帳務</h1><div class="sub">每週五結算一次：廠商應付款、報修費用、退租房客退款集中在同一批次處理</div></div><a id="syncChip" class="chip" href="sync-setup.html">● 檢查同步</a></header>
+<div class="notice">新增帳務時會自動排到最近的週五。銀行代號與帳號只保存在加密資料中；列表只顯示帳號尾碼。完成實際匯款後再標記「已付款／已退款」。</div>
+<section class="stats">
+<div class="st"><span>本週待付廠商</span><b id="sVendor">$0</b></div>
+<div class="st"><span>本週待退房客</span><b id="sRefund">$0</b></div>
+<div class="st"><span>本週待處理筆數</span><b id="sPending">0</b></div>
+<div class="st"><span>本週已完成</span><b id="sPaid">$0</b></div>
+</section>
+<section class="panel">
+<div class="weekbar">
+<div><label class="lbl">查看結算週五</label><select id="week" class="f"></select></div>
+<div class="span"><div class="sub" id="weekHint"></div></div>
+<div class="actions" style="margin:0"><button id="copyWeek" class="btn">複製本週匯款清單</button><button id="settleWeek" class="btn primary">標記本週全部完成</button></div>
+</div>
+</section>
+<section class="panel">
+<h2>新增／編輯帳務</h2>
+<div class="grid">
+<div><label class="lbl">類型</label><select id="kind" class="f"><option value="vendor">報修／廠商付款</option><option value="refund">退租房客退款</option></select></div>
+<div><label class="lbl">收款人／廠商</label><input id="party" class="f" placeholder="廠商名稱或房客姓名"></div>
+<div><label class="lbl">物件／房號</label><input id="property" class="f" placeholder="例：一中4A、精誠301"></div>
+<div><label class="lbl">金額</label><input id="amount" class="f" type="number" min="0" step="1" placeholder="0"></div>
+<div><label class="lbl">結算週五</label><input id="settleDate" class="f" type="date"></div>
+<div><label class="lbl">狀態</label><select id="status" class="f"><option value="pending">待付款／待退款</option><option value="paid">已完成</option></select></div>
+<div><label class="lbl">銀行代號</label><input id="bankCode" class="f" inputmode="numeric" maxlength="4" placeholder="例：700"></div>
+<div><label class="lbl">銀行帳號</label><input id="bankAccount" class="f" autocomplete="off" placeholder="僅加密保存"></div>
+<div><label class="lbl">費用日期</label><input id="date" class="f" type="date"></div>
+<div class="wide"><label class="lbl">項目／用途</label><input id="description" class="f" placeholder="例：冷氣維修、退押金＋剩餘電費"></div>
+<div class="wide"><label class="lbl">備註</label><textarea id="note" class="f" placeholder="發票、工單、退款計算、其他說明"></textarea></div>
+</div>
+<div class="actions"><button id="clear" class="btn">清空</button><button id="importRefunds" class="btn warn">從退租系統匯入待退款</button><button id="save" class="btn primary">儲存帳務</button></div>
+<div id="saveNotice" class="notice" role="status">尚未儲存</div>
+</section>
+<section class="panel">
+<h2>本週結算清單</h2>
+<div class="tbl"><table><thead><tr><th>狀態</th><th>類型</th><th>收款人</th><th>物件</th><th>項目</th><th>金額</th><th>銀行</th><th>結算日</th><th>操作</th></tr></thead><tbody id="tb"></tbody></table></div>
+</section>
+</main></div>
+<script src="house-core.js"></script><script src="secure-data.js"></script><script src="trusted-device.js"></script>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
+import { getAuth,setPersistence,browserLocalPersistence,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
+import { getFirestore,collection,doc,setDoc,onSnapshot,serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+const LOCAL='house_ops_weekly_accounts_v1',COL='housesystem_weekly_accounts',te=new TextEncoder(),td=new TextDecoder(),$=s=>document.querySelector(s);
+let key=null,config=null,auth=null,db=null,user=null,records=[],editing=null,unsub=null;
+const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u))),ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const money=n=>'$'+Math.round(Number(n)||0).toLocaleString('zh-TW'),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+function today(){return new Date().toISOString().slice(0,10)}
+function fridayFor(value){const d=new Date((value||today())+'T12:00:00');d.setDate(d.getDate()+((5-d.getDay()+7)%7));return d.toISOString().slice(0,10)}
+function localRows(){try{const a=JSON.parse(localStorage.getItem(LOCAL)||'[]');return Array.isArray(a)?a:[]}catch{return[]}}
+function saveLocal(a){localStorage.setItem(LOCAL,JSON.stringify(a))}
+async function encryptRecord(r){const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,te.encode(JSON.stringify(r)));return{id:r.id,updated_at:r.updated_at,iv:b64(iv),ct:b64(ct)}}
+async function decryptWrap(w){const out=await crypto.subtle.decrypt({name:'AES-GCM',iv:ub64(w.iv)},key,ub64(w.ct));const r=JSON.parse(td.decode(out));if(String(r.id)!==String(w.id))throw new Error('帳務資料驗證失敗');return r}
+async function readLocal(){const out=[];for(const w of localRows()){try{out.push(await decryptWrap(w))}catch(e){console.warn(e)}}return out}
+async function writeRecords(a){const wrappers=[];for(const r of a)wrappers.push(await encryptRecord(r));saveLocal(wrappers);records=a;render()}
+const newer=(a,b)=>Date.parse(a?.updated_at||0)>=Date.parse(b?.updated_at||0)?a:b;
+async function putCloud(r){if(!db||!user||!key)return;const w=await encryptRecord(r);await setDoc(doc(db,COL,r.id),{v:1,iv:w.iv,ct:w.ct,clientUpdatedAt:r.updated_at,updatedAt:serverTimestamp(),uid:user.uid,type:'weekly-account-v1'})}
+async function mergeCloud(snap){const local=await readLocal(),map=new Map(local.map(r=>[r.id,r]));for(const d of snap.docs){try{const data=d.data(),r=await decryptWrap({id:d.id,updated_at:data.clientUpdatedAt,iv:data.iv,ct:data.ct});const old=map.get(r.id);map.set(r.id,old?newer(old,r):r)}catch(e){console.warn(e)}}const merged=[...map.values()];await writeRecords(merged);const remoteIds=new Set(snap.docs.map(d=>d.id));for(const r of merged){if(!remoteIds.has(r.id))await putCloud(r)}paintSync('online','雲端已同步')}
+function startSync(){if(unsub){unsub();unsub=null}if(!db||!user||!key)return;paintSync('syncing','正在同步');unsub=onSnapshot(collection(db,COL),s=>mergeCloud(s).catch(e=>paintSync('error',e.message)),e=>paintSync('error',e.message))}
+function paintSync(mode,msg){const m={online:'● 雲端已同步',syncing:'● 正在同步',login:'● 尚未登入雲端',local:'● 尚未設定雲端',error:'● 同步異常'};$('#syncChip').textContent=m[mode]||'● '+msg;$('#syncChip').title=msg||''}
+function formRecord(){
+ const old=records.find(r=>r.id===editing);
+ return {id:editing||('wa_'+crypto.randomUUID()),kind:$('#kind').value,party:$('#party').value.trim(),property_label:$('#property').value.trim(),amount:Number($('#amount').value||0),settlement_date:$('#settleDate').value||fridayFor($('#date').value),status:$('#status').value,bank_code:$('#bankCode').value.trim(),bank_account:$('#bankAccount').value.trim(),date:$('#date').value||today(),description:$('#description').value.trim(),note:$('#note').value.trim(),source:old?.source||'manual',source_id:old?.source_id||null,paid_at:$('#status').value==='paid'?(old?.paid_at||new Date().toISOString()):null,updated_at:new Date().toISOString()};
+}
+async function saveRecord(r){const list=records.filter(x=>x.id!==r.id);list.push(r);await writeRecords(list);await putCloud(r);editing=null;clearForm();$('#saveNotice').textContent='已儲存；若雲端已登入，會同步到其他裝置'}
+async function removeRecord(id){if(!confirm('確定刪除這筆帳務？'))return;const old=records.find(r=>r.id===id);if(!old)return;const r={...old,__deleted:true,updated_at:new Date().toISOString()};await saveRecord(r)}
+function clearForm(){editing=null;$('#kind').value='vendor';['party','property','amount','bankCode','bankAccount','description','note'].forEach(id=>$('#'+id).value='');$('#status').value='pending';$('#date').value=today();$('#settleDate').value=fridayFor(today())}
+function edit(id){const r=records.find(x=>x.id===id);if(!r)return;editing=id;$('#kind').value=r.kind;$('#party').value=r.party||'';$('#property').value=r.property_label||'';$('#amount').value=r.amount||'';$('#settleDate').value=r.settlement_date||fridayFor(r.date);$('#status').value=r.status||'pending';$('#bankCode').value=r.bank_code||'';$('#bankAccount').value=r.bank_account||'';$('#date').value=r.date||today();$('#description').value=r.description||'';$('#note').value=r.note||'';window.scrollTo({top:0,behavior:'smooth'})}
+function weeks(){const set=new Set([fridayFor(today()),...records.filter(r=>!r.__deleted).map(r=>r.settlement_date).filter(Boolean)]);const vals=[...set].sort().reverse();const cur=$('#week').value;$('#week').innerHTML=vals.map(v=>'<option value="'+v+'">'+v+'</option>').join('');$('#week').value=vals.includes(cur)?cur:fridayFor(today())}
+function visible(){const w=$('#week').value||fridayFor(today());return records.filter(r=>!r.__deleted&&r.settlement_date===w)}
+function render(){weeks();const a=visible(),pending=a.filter(r=>r.status!=='paid'),vendors=pending.filter(r=>r.kind==='vendor'),refunds=pending.filter(r=>r.kind==='refund'),paid=a.filter(r=>r.status==='paid');$('#sVendor').textContent=money(vendors.reduce((s,r)=>s+r.amount,0));$('#sRefund').textContent=money(refunds.reduce((s,r)=>s+r.amount,0));$('#sPending').textContent=pending.length;$('#sPaid').textContent=money(paid.reduce((s,r)=>s+r.amount,0));const w=$('#week').value;$('#weekHint').textContent='結算批次：'+w+'｜待處理 '+pending.length+' 筆｜總待匯 '+money(pending.reduce((s,r)=>s+r.amount,0));$('#tb').innerHTML=a.sort((x,y)=>(x.status==='paid')-(y.status==='paid')||x.kind.localeCompare(y.kind)).map(r=>'<tr><td><span class="badge '+(r.status==='paid'?'paid':'pending')+'">'+(r.status==='paid'?'已完成':'待處理')+'</span></td><td><span class="badge '+(r.kind==='vendor'?'vendor':'refund')+'">'+(r.kind==='vendor'?'廠商':'退租退款')+'</span></td><td>'+esc(r.party||'—')+'</td><td>'+esc(r.property_label||'—')+'</td><td>'+esc(r.description||'—')+'</td><td class="money">'+money(r.amount)+'</td><td>'+esc(r.bank_code||'—')+(r.bank_account?'｜••••'+esc(r.bank_account.slice(-4)):'')+'</td><td>'+esc(r.settlement_date)+'</td><td><button class="btn pay" data-id="'+esc(r.id)+'">'+(r.status==='paid'?'改回待處理':'標記完成')+'</button> <button class="btn edit" data-id="'+esc(r.id)+'">編輯</button> <button class="btn danger del" data-id="'+esc(r.id)+'">刪除</button></td></tr>').join('');document.querySelectorAll('.edit').forEach(b=>b.onclick=()=>edit(b.dataset.id));document.querySelectorAll('.del').forEach(b=>b.onclick=()=>removeRecord(b.dataset.id));document.querySelectorAll('.pay').forEach(b=>b.onclick=()=>togglePaid(b.dataset.id))}
+async function togglePaid(id){const r=records.find(x=>x.id===id);if(!r)return;const next={...r,status:r.status==='paid'?'pending':'paid',paid_at:r.status==='paid'?null:new Date().toISOString(),updated_at:new Date().toISOString()};await saveRecord(next)}
+function parseRefundAmount(text){const s=String(text||'');const m=s.match(/(?:應退|退款|退押金)[^0-9]{0,12}([0-9][0-9,]*)/);return m?Number(m[1].replace(/,/g,'')):0}
+async function importRefunds(){let checkouts=[];try{checkouts=HouseCore.readRecords().filter(r=>!r.__deleted&&r.status==='completed')}catch(e){}let n=0;for(const c of checkouts){if(records.some(r=>r.source==='checkout'&&r.source_id===c.id&&!r.__deleted))continue;const amount=Number(c.refund_amount)||parseRefundAmount((c.deposit_note||'')+' '+(c.note||''));if(!amount)continue;const r={id:'wa_ref_'+c.id,kind:'refund',party:c.tenant||'退租房客',property_label:c.room_label||'',amount,settlement_date:fridayFor(c.checkout_date||c.moveout_date||today()),status:c.refund_status==='paid'?'paid':'pending',bank_code:'',bank_account:'',date:c.checkout_date||c.moveout_date||today(),description:'退租退款',note:c.deposit_note||'',source:'checkout',source_id:c.id,paid_at:c.refund_status==='paid'?new Date().toISOString():null,updated_at:new Date().toISOString()};records.push(r);await putCloud(r);n++}await writeRecords(records);$('#saveNotice').textContent=n?'已從退租系統匯入 '+n+' 筆待退款資料':'沒有找到新的可匯入退款資料'}
+function settlementText(){const a=visible().filter(r=>r.status!=='paid');return ['家總管｜'+($('#week').value||'')+' 週五結算',''].concat(a.map((r,i)=>(i+1)+'. '+(r.kind==='vendor'?'廠商':'退租退款')+'｜'+(r.party||'未填')+'｜'+(r.property_label||'')+'｜'+money(r.amount)+(r.bank_code?'｜銀行 '+r.bank_code:'')+(r.bank_account?'｜'+r.bank_account:'')+(r.description?'｜'+r.description:''))).concat(['','合計：'+money(a.reduce((s,r)=>s+r.amount,0))]).join('\n')}
+async function copyWeek(){await navigator.clipboard.writeText(settlementText());$('#saveNotice').textContent='本週匯款清單已複製'}
+async function settleWeek(){const a=visible().filter(r=>r.status!=='paid');if(!a.length)return;if(!confirm('確認這 '+a.length+' 筆都已實際完成匯款／退款？'))return;for(const old of a){const r={...old,status:'paid',paid_at:new Date().toISOString(),updated_at:new Date().toISOString()};records=records.filter(x=>x.id!==r.id).concat(r);await putCloud(r)}await writeRecords(records)}
+async function unlockWith(keys){key=keys.syncKey;if(!key)throw new Error('請先完成 Firebase 設定');records=(await readLocal()).filter(Boolean);$('#lock').style.display='none';render();startSync()}
+async function unlock(){try{const keys=await HouseTrusted.prepare($('#pw').value,HouseCore.readConfig()?.projectId);await unlockWith(keys);$('#pw').value=''}catch(e){$('#err').textContent=HouseCore.errorMessage(e)}}
+async function initFirebase(){config=HouseCore.readConfig();if(!config){paintSync('local','尚未設定 Firebase');return}const app=initializeApp(config,'housesystem-sync');auth=getAuth(app);db=getFirestore(app);await setPersistence(auth,browserLocalPersistence);await auth.authStateReady();user=auth.currentUser;onAuthStateChanged(auth,u=>{user=u;paintSync(u?'syncing':'login',u?'已登入':'尚未登入');if(u&&key)startSync()});if(!user)paintSync('login','尚未登入')}
+$('#unlock').onclick=unlock;$('#pw').onkeydown=e=>{if(e.key==='Enter')unlock()};$('#save').onclick=async()=>{const r=formRecord();if(!r.party||!r.amount){$('#saveNotice').textContent='請至少填收款人／廠商與金額';return}await saveRecord(r)};$('#clear').onclick=clearForm;$('#week').onchange=render;$('#importRefunds').onclick=importRefunds;$('#copyWeek').onclick=copyWeek;$('#settleWeek').onclick=settleWeek;clearForm();
+await initFirebase();
+try{const trusted=await HouseTrusted.getKeys(HouseCore.readConfig()?.projectId);if(trusted)await unlockWith(trusted)}catch(e){}
+</script>
+</body></html>
