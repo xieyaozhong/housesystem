@@ -24,7 +24,8 @@ async function main(){
       await p.waitForLoadState('networkidle');
       assert.equal(await p.locator('input[type="password"]').count(),0,name+' must stay public');
       assert.equal((await p.textContent('body')).includes('01910010974190'),false,name+' must not expose full bank account');
-      assert.equal((await p.textContent('body')).includes('20301800995588'),false,name+' must not expose Mingde full bank account');
+      assert.equal((await p.textContent('body')).includes('20301800995588'),false,name+' must not expose Mingde 6D full bank account');
+      assert.equal((await p.textContent('body')).includes('01016800045858'),false,name+' must not expose Mingde 5C full bank account');
       assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,name+' must fit mobile width');
     }
     await p.goto(origin+'/vacancy.html');
@@ -36,14 +37,17 @@ async function main(){
     assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('22,079')),false,'completed Yizhong refund amount must be masked');
     assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('已封存')),true,'completed refund financial details must show as archived');
     assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('明德6D')),true,'pending Mingde 6D refund must remain visible');
-    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('8,625')),true,'pending Mingde refund amount should stay visible');
+    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('8,625')),true,'pending Mingde 6D refund amount should stay visible');
+    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('明德5C')),true,'pending Mingde 5C refund must remain visible');
+    assert.equal(await p.locator('#tb').textContent().then(x=>x.includes('8,755')),true,'pending Mingde 5C refund amount should stay visible');
 
     await p.goto(origin+'/weekly-accounting.html');
     await p.waitForLoadState('networkidle');
     assert.equal(await p.locator('input[type="password"]').count(),1,'finance accounting must require the management password');
     assert.equal(await p.locator('#lock').isVisible(),true,'finance accounting must start locked on a new device');
     assert.equal((await p.textContent('body')).includes('01910010974190'),false,'locked finance page must not render Yizhong full account');
-    assert.equal((await p.textContent('body')).includes('20301800995588'),false,'locked finance page must not render Mingde full account');
+    assert.equal((await p.textContent('body')).includes('20301800995588'),false,'locked finance page must not render Mingde 6D full account');
+    assert.equal((await p.textContent('body')).includes('01016800045858'),false,'locked finance page must not render Mingde 5C full account');
     assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'finance page must fit mobile width');
     const financePageSource=fs.readFileSync(path.join(root,'weekly-accounting.html'),'utf8');
     assert.equal(financePageSource.includes('D.weekly_accounts.filter(x=>x.status!=="paid")'),true,'finance front-end must automatically exclude completed transfers');
@@ -53,7 +57,8 @@ async function main(){
     assert.equal(financePageSource.includes('⚠ 帳號不一致'),true,'grouped vendor account mismatch must be flagged');
     const financeSource=fs.readFileSync(path.join(root,'finance-secure.js'),'utf8');
     assert.equal(financeSource.includes('01910010974190'),false,'encrypted finance file must not contain Yizhong plaintext account');
-    assert.equal(financeSource.includes('20301800995588'),false,'encrypted finance file must not contain Mingde plaintext account');
+    assert.equal(financeSource.includes('20301800995588'),false,'encrypted finance file must not contain Mingde 6D plaintext account');
+    assert.equal(financeSource.includes('01016800045858'),false,'encrypted finance file must not contain Mingde 5C plaintext account');
 
     await p.goto(origin+'/mobile-login.html');
     await p.waitForURL(origin+'/index.html');
