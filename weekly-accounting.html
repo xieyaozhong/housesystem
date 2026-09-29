@@ -20,7 +20,7 @@ function groupedPending(){
   const groups=new Map(),out=[];
   for(const r of pending){
     if(r.kind!=="vendor"){out.push({...r,_grouped:false});continue}
-    const key=(r.settlement_date||"")+"|"+vendorKey(r.party);
+    const nameKey=vendorKey(r.party),key=(r.settlement_date||"")+"|"+(nameKey||("id:"+r.id));
     if(!groups.has(key))groups.set(key,{...r,_grouped:true,_items:[],amount:0});
     const g=groups.get(key);g._items.push(r);g.amount+=Number(r.amount)||0;
   }
