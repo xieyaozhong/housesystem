@@ -1,6 +1,6 @@
 window.HOUSE_PUBLIC_DATA = {
   version: 1,
-  updated_at: "2026-09-29T11:18:00+08:00",
+  updated_at: "2026-09-29T14:39:00+08:00",
   mode: "public-readonly",
   vacancies: [
     { room: "北屯8B", address: "台中市北區北屯路45號（8樓）", source: "既有空房" },
@@ -10,7 +10,8 @@ window.HOUSE_PUBLIC_DATA = {
     { room: "寧夏R8", address: "台中市西屯區寧夏路79號8樓", source: "既有空房" },
     { room: "復興路五段186號3樓E室", address: "台中市東區復興路五段186號3樓之5", source: "既有空房" },
     { room: "一中4A", address: "台中市北區一中街133號", source: "退租轉空房", since: "2026-09-11" },
-    { room: "明德6D", address: "台中市南區明德街66號", source: "退租轉空房", since: "2026-09-29" }
+    { room: "明德6D", address: "台中市南區明德街66號", source: "退租轉空房", since: "2026-09-29" },
+    { room: "明德5C", address: "台中市南區明德街66號", source: "退租轉空房", since: "2026-09-29" }
   ],
   rented: [
     { room: "梅亭503", address: "台中市北區梅亭街171號503", updated_at: "2026-09-23" },
@@ -37,6 +38,15 @@ window.HOUSE_PUBLIC_DATA = {
       refund_due_date: "2026-10-06",
       refund_status: "pending",
       note: "本期電 14754－上期電 14679＝75 度；75 × 5 元＝375 元；押金 9,000 元－375 元＝應退 8,625 元"
+    },
+    {
+      room: "明德5C",
+      address: "台中市南區明德街66號",
+      checkout_date: "2026-09-29",
+      refund_amount: 8755,
+      refund_due_date: "2026-10-06",
+      refund_status: "pending",
+      note: "本期電 15030－上期電 14781＝249 度；249 × 5 元＝1,245 元；押金 10,000 元－1,245 元＝應退 8,755 元"
     }
   ],
   weekly_accounts: [
@@ -63,6 +73,18 @@ window.HOUSE_PUBLIC_DATA = {
       status: "pending",
       description: "退租退款｜押金 9,000 元－電費 375 元",
       bank_display: "銀行 807｜帳號末四碼 5588"
+    },
+    {
+      id: "refund-mingde-5c",
+      kind: "refund",
+      party: "退租房客",
+      property_label: "明德5C",
+      amount: 8755,
+      settlement_date: "2026-10-02",
+      due_date: "2026-10-06",
+      status: "pending",
+      description: "退租退款｜押金 10,000 元－電費 1,245 元",
+      bank_display: "銀行 700｜帳號末四碼 5858"
     }
   ]
 };
