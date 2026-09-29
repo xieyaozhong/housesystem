@@ -81,7 +81,9 @@ textarea.f{min-height:92px;resize:vertical}.lbl{display:block;color:#8ea3b9;font
     <div><label class="lbl">點交日期</label><input id="checkoutDate" class="f" type="date"></div>
     <div><label class="lbl">最後電錶度數</label><input id="power" class="f" placeholder="選填"></div>
     <div><label class="lbl">最後水錶度數</label><input id="water" class="f" placeholder="選填"></div>
-    <div><label class="lbl">押金／退款備註</label><input id="deposit" class="f" placeholder="例：押金已退、扣清潔費 500"></div>
+    <div><label class="lbl">押金／退款備註</label><input id="deposit" class="f" placeholder="例：押金 22000＋剩餘電費 79"></div>
+    <div><label class="lbl">應退金額</label><input id="refundAmount" class="f" type="number" min="0" step="1" placeholder="例：22079"></div>
+    <div><label class="lbl">退款狀態</label><select id="refundStatus" class="f"><option value="pending">待退款</option><option value="paid">已退款</option><option value="">不適用</option></select></div>
     <div class="wide"><label class="lbl">現場備註／損壞狀況</label><textarea id="note" class="f" placeholder="家具、牆面、設備、垃圾、修繕等"></textarea></div>
   </div>
 
@@ -143,6 +145,8 @@ function formData(status){
     power_meter:$("#power").value.trim(),
     water_meter:$("#water").value.trim(),
     deposit_note:$("#deposit").value.trim(),
+    refund_amount:Number($("#refundAmount").value||0),
+    refund_status:$("#refundStatus").value,
     note:$("#note").value.trim(),
     checks:{key:$("#cKey").checked,empty:$("#cEmpty").checked,clean:$("#cClean").checked,power:$("#cPower").checked,water:$("#cWater").checked,damage:$("#cDamage").checked,deposit:$("#cDeposit").checked},
     status,
@@ -190,7 +194,7 @@ function render(){
 function editRecord(id){
   if(saving)return;
   let r=load().find(x=>x.id===id);if(!r)return;currentId=id;editVersion=HouseCore.version(r);
-  $("#property").value=r.property_id;$("#room").value=r.room_label||"";$("#tenant").value=r.tenant||"";$("#moveout").value=r.moveout_date||"";$("#checkoutDate").value=r.checkout_date||"";$("#power").value=r.power_meter||"";$("#water").value=r.water_meter||"";$("#deposit").value=r.deposit_note||"";$("#note").value=r.note||"";
+  $("#property").value=r.property_id;$("#room").value=r.room_label||"";$("#tenant").value=r.tenant||"";$("#moveout").value=r.moveout_date||"";$("#checkoutDate").value=r.checkout_date||"";$("#power").value=r.power_meter||"";$("#water").value=r.water_meter||"";$("#deposit").value=r.deposit_note||"";$("#refundAmount").value=r.refund_amount||"";$("#refundStatus").value=r.refund_status||"";$("#note").value=r.note||"";
   $("#cKey").checked=!!r.checks?.key;$("#cEmpty").checked=!!r.checks?.empty;$("#cClean").checked=!!r.checks?.clean;$("#cPower").checked=!!r.checks?.power;$("#cWater").checked=!!r.checks?.water;$("#cDamage").checked=!!r.checks?.damage;$("#cDeposit").checked=!!r.checks?.deposit;
   window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -206,7 +210,7 @@ async function deleteRecord(id){
   }catch(e){$("#saveNotice").textContent=HouseCore.errorMessage(e)}
 }
 function clearForm(){
-  currentId=null;editVersion=null;["property","room","tenant","moveout","checkoutDate","power","water","deposit","note"].forEach(id=>$("#"+id).value="");
+  currentId=null;editVersion=null;["property","room","tenant","moveout","checkoutDate","power","water","deposit","refundAmount","note"].forEach(id=>$("#"+id).value="");$("#refundStatus").value="pending";
   ["cKey","cEmpty","cClean","cPower","cWater","cDamage","cDeposit"].forEach(id=>$("#"+id).checked=false)
 }
 
