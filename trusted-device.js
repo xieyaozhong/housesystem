@@ -97,8 +97,26 @@
     await transaction('readwrite', store => { store.delete('passwordBlob'); store.delete('sealKey'); });
     return { vaultKey: value.vaultKey, syncKey: value.syncKey, projectId };
   }
+  async function rememberVaultKey(vaultKey) {
+    if (!vaultKey) throw new Error('缺少解鎖金鑰');
+    await transaction('readwrite', store => {
+      store.put(vaultKey, 'financeVaultKey');
+      store.put({ trustedAt: new Date().toISOString() }, 'financeMeta');
+    });
+  }
+  async function getVaultKey() {
+    const result = {};
+    await transaction('readonly', store => {
+      store.get('financeVaultKey').onsuccess = e => { result.key = e.target.result; };
+      store.get('financeMeta').onsuccess = e => { result.meta = e.target.result; };
+    });
+    return result.key || null;
+  }
+  async function forgetVaultKey() {
+    await transaction('readwrite', store => { store.delete('financeVaultKey'); store.delete('financeMeta'); });
+  }
   async function forget(options = {}) { await transaction('readwrite', store => store.clear()); if (options.lock !== false) window.HouseCore?.lock(); }
-  window.HouseTrusted = { prepare, remember, getKeys, decryptVaultWithKey, importCheckoutSeed, forget,
+  window.HouseTrusted = { prepare, remember, getKeys, rememberVaultKey, getVaultKey, forgetVaultKey, decryptVaultWithKey, importCheckoutSeed, forget,
     has: async projectId => !!(await getKeys(projectId || window.HouseCore?.readConfig()?.projectId)),
     trust: async (password, projectId) => remember(await prepare(password, projectId)) };
 })();
