@@ -1,46 +1,5 @@
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#0b1220" />
-  <title>家總管｜房務管理系統</title>
-  <style>
-    :root{--bg:#08101d;--panel:#0f1a2b;--line:#1f2f46;--text:#f7fafc;--muted:#8fa4bd;--accent:#75e0b8;--accent2:#7fb5ff;--warn:#ffd479}
-    *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;background:radial-gradient(circle at 85% 5%,#173050 0,transparent 34%),linear-gradient(145deg,#07101c,#0a1423 55%,#07101b);color:var(--text);min-height:100vh}
-    .shell{max-width:1180px;margin:auto;padding:34px 22px 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:54px}.brand{font-weight:800;letter-spacing:.06em;font-size:20px}.tag{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:8px 12px;border-radius:999px;background:#0d1828aa}
-    .hero{display:grid;grid-template-columns:1.2fr .8fr;gap:24px;align-items:stretch}.hero h1{font-size:clamp(42px,7vw,80px);line-height:.96;margin:0 0 22px;letter-spacing:-.055em}.hero p{max-width:650px;color:#a9bbcf;font-size:17px;line-height:1.8;margin:0}.eyebrow{color:var(--accent);font-size:13px;font-weight:800;letter-spacing:.16em;margin-bottom:16px}
-    .summary{border:1px solid var(--line);border-radius:26px;background:linear-gradient(180deg,#112038dd,#0c1727dd);padding:24px;display:flex;flex-direction:column;justify-content:space-between;min-height:260px}.summary .num{font-size:70px;font-weight:850;letter-spacing:-.06em}.summary small{color:var(--muted)}.summary .foot{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:16px;color:#bac8d8}
-    .section-title{display:flex;justify-content:space-between;align-items:end;margin:56px 0 18px}.section-title h2{font-size:18px;margin:0}.section-title span{color:var(--muted);font-size:13px}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{position:relative;display:block;text-decoration:none;color:inherit;border:1px solid var(--line);background:#0d1828cc;border-radius:20px;padding:20px;min-height:172px;transition:.22s ease;overflow:hidden}.card:hover{transform:translateY(-3px);border-color:#395778;background:#112039}.card.live:after{content:"";position:absolute;width:130px;height:130px;border-radius:50%;right:-50px;top:-60px;background:#75e0b81e}.icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:#17263a;border:1px solid #243954;margin-bottom:24px}.card h3{margin:0 0 7px;font-size:17px}.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}.state{position:absolute;right:16px;bottom:16px;font-size:11px;color:#73879e}.live .state{color:var(--accent)}
-    .security{margin-top:34px;padding:18px 20px;border:1px dashed #35516e;border-radius:18px;color:#91a8c1;font-size:13px;line-height:1.7;background:#0b1726}.security b{color:#dfe9f3}
-    @media(max-width:780px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:1fr 1fr}.summary{min-height:210px}.top{margin-bottom:40px}}@media(max-width:520px){.grid{grid-template-columns:1fr}.shell{padding:24px 16px 46px}.hero h1{font-size:48px}}
-  </style>
-</head>
-<body>
-  <main class="shell">
-    <header class="top"><div class="brand">家總管 HOUSE OPS</div><div class="tag">總務 × 房務 × 交接</div></header>
-    <section class="hero">
-      <div><div class="eyebrow">HOUSE MANAGEMENT SYSTEM</div><h1>一個地方<br>管好所有房務</h1><p>先從空房開始。集中掌握房間狀態、交接資訊與現場備註，未來可逐步擴充房客、租金、水電、報修、合約與財務管理。</p></div>
-      <div class="summary"><div><small>房務工作台</small><div class="num" style="font-size:40px">解鎖後查看</div></div><div class="foot"><span>空房模組已啟用</span><span>跨裝置同步</span></div></div>
-    </section>
-    <div class="section-title"><h2>工作模組</h2><span>電腦與手機接續工作</span></div>
-    <section class="grid">
-<a class="card live" href="vacancy.html"><div class="icon">⌂</div><h3>空房系統</h3><p>空房清單、搜尋、狀態、備註與交接資料</p><span class="state">立即使用 →</span></a>
-<a class="card live" href="checkout.html"><div class="icon">✓</div><h3>退租點交</h3><p>記錄現場狀況，完成點交後自動加入空房清單</p><span class="state">立即使用 →</span></a>
-<a class="card live" href="sync-setup.html"><div class="icon">⇄</div><h3>跨裝置同步</h3><p>一次設定、權限檢查、資料同步與手機配對</p><span class="state">開始設定 →</span></a>
-<a class="card live" href="mobile-login.html"><div class="icon">▯</div><h3>手機入口</h3><p>登入並解鎖，隨時掌握空房與退租點交</p><span class="state">開啟家總管 →</span></a>\n<a class="card live" href="weekly-accounting.html"><div class="icon">$</div><h3>每週帳務</h3><p>每週五集中結算報修廠商與退租房客退款</p><span class="state">開始結算 →</span></a>
-
-
-      <div class="card"><div class="icon">$</div><h3>租金收繳</h3><p>租金週期、繳費狀態、催繳與收據紀錄</p><span class="state">預留</span></div>
-      <div class="card"><div class="icon">⚡</div><h3>水電抄表</h3><p>電錶、水錶、照片、度數與費用計算</p><span class="state">預留</span></div>
-      <div class="card"><div class="icon">↗</div><h3>報修工單</h3><p>維修案件、進度、廠商、照片與成本</p><span class="state">預留</span></div>
-      <div class="card"><div class="icon">▤</div><h3>合約管理</h3><p>租約到期、續約、文件與重要日期提醒</p><span class="state">預留</span></div>
-      <div class="card"><div class="icon">□</div><h3>總務交接</h3><p>鑰匙、磁扣、門禁、管理室與現場注意事項</p><span class="state">預留</span></div>
-      <div class="card"><div class="icon">◫</div><h3>財務報表</h3><p>收入、支出、管理費與物件收益彙整</p><span class="state">預留</span></div>
-
-    </section>
-    <div class="security"><b>資料與裝置信任：</b>房屋主檔與雲端退租紀錄採加密儲存。此瀏覽器的退租快取用於離線工作；請在私人裝置上使用，離開時按「鎖定」。手動鎖定後需重新輸入管理密碼。</div>
-  </main>
-</body>
-</html>
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1220"><title>家總管｜公開房務看板</title><style>
+:root{--bg:#08101d;--panel:#0f1a2b;--line:#1f2f46;--text:#f7fafc;--muted:#8fa4bd;--accent:#75e0b8}*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;background:radial-gradient(circle at 85% 5%,#173050 0,transparent 34%),linear-gradient(145deg,#07101c,#0a1423 55%,#07101b);color:var(--text);min-height:100vh}.shell{max-width:1080px;margin:auto;padding:34px 22px 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:54px}.brand{font-weight:800;letter-spacing:.06em;font-size:20px}.tag{font-size:12px;color:var(--accent);border:1px solid #285846;padding:8px 12px;border-radius:999px;background:#102c25}.hero h1{font-size:clamp(42px,7vw,78px);line-height:.98;margin:0 0 22px;letter-spacing:-.055em}.hero p{max-width:720px;color:#a9bbcf;font-size:17px;line-height:1.8}.ey{color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.16em;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:42px}.card{position:relative;display:block;text-decoration:none;color:inherit;border:1px solid var(--line);background:#0d1828cc;border-radius:20px;padding:22px;min-height:190px;transition:.2s}.card:hover{transform:translateY(-3px);border-color:#395778;background:#112039}.icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:#17263a;border:1px solid #243954;margin-bottom:28px}.card h2{margin:0 0 8px;font-size:19px}.card p{margin:0;color:var(--muted);font-size:13px;line-height:1.65}.go{position:absolute;right:18px;bottom:18px;color:var(--accent);font-size:11px}.note{margin-top:28px;padding:18px 20px;border:1px dashed #35516e;border-radius:18px;color:#91a8c1;font-size:13px;line-height:1.7;background:#0b1726}.updated{margin-top:12px;color:#71879f;font-size:11px}@media(max-width:760px){.grid{grid-template-columns:1fr}.shell{padding:24px 16px 46px}.top{margin-bottom:40px}.hero h1{font-size:48px}}
+</style></head><body><main class="shell"><header class="top"><div class="brand">家總管 HOUSE OPS</div><div class="tag">公開唯讀</div></header><section class="hero"><div class="ey">PUBLIC HOUSE OPERATIONS BOARD</div><h1>最新房務狀態<br>直接查看</h1><p>目前暫時採公開唯讀模式，不需要登入或管理密碼。所有人都能查看最新發布的空房、退租與週五帳務摘要，資料更新由管理視窗統一處理</p></section>
+<section class="grid"><a class="card" href="vacancy.html"><div class="icon">⌂</div><h2>空房系統</h2><p>查看目前空房、近期已出租與退租轉空房狀態</p><span class="go">立即查看 →</span></a><a class="card" href="checkout.html"><div class="icon">✓</div><h2>退租紀錄</h2><p>查看退租日期、應退金額、預計退款日與退款狀態</p><span class="go">立即查看 →</span></a><a class="card" href="weekly-accounting.html"><div class="icon">$</div><h2>每週帳務</h2><p>查看每週五待付廠商、待退房客與已完成金額</p><span class="go">立即查看 →</span></a></section>
+<div class="note"><b style="color:#dfe9f3">公開資料原則：</b>只公開營運所需狀態與金額摘要。門禁密碼、鑰匙位置、完整銀行帳號、Firebase 設定等敏感資料仍不公開<div class="updated" id="updated"></div></div></main><script src="public-data.js"></script><script>document.querySelector("#updated").textContent="資料更新時間："+new Date(HOUSE_PUBLIC_DATA.updated_at).toLocaleString("zh-TW")</script></body></html>
