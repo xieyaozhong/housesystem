@@ -1,67 +1,10 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>家總管｜每週帳務</title><link rel="stylesheet" href="public-style.css"><style>
-.lock{position:fixed;z-index:50;inset:0;background:radial-gradient(circle at 50% 0,#18324f,#07111d 55%);display:grid;place-items:center;padding:18px}.box{width:min(430px,100%);background:#0b1829;border:1px solid #2b435f;border-radius:22px;padding:25px}.box h2{margin:14px 0 7px}.box p{color:#8fa5bb;font-size:12px;line-height:1.7}.row{display:grid;grid-template-columns:1fr auto;gap:8px}.f{width:100%;padding:11px 12px;border-radius:11px;border:1px solid #22364f;background:#0a1726;color:#fff;outline:none}.go{border:0;border-radius:11px;background:#79e2b8;color:#062519;font-weight:800;padding:11px 14px}.err{min-height:18px;color:#ffaaaa;font-size:11px;margin-top:8px}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid #22364f;background:#102038;color:#cbd8e5;border-radius:11px;padding:9px 12px;cursor:pointer}.secure-note{color:#9ceacc}.account{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em}
-</style></head><body>
-<div class="lock" id="lock"><div class="box"><div class="ey">FINANCE ACCESS</div><h2>主管／帳務登入</h2><p>第一次在這台私人裝置輸入家總管管理密碼，之後可直接查看待匯款項目與完整銀行帳號</p><div class="row"><input id="pw" class="f" type="password" autocomplete="current-password" placeholder="家總管管理密碼"><button id="unlock" class="go">解鎖</button></div><div id="err" class="err"></div><p>完整銀行資料使用同一把家總管加密金鑰解密，不會寫進公開資料檔</p></div></div>
-
-<div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS · FINANCE</small></div><nav class="nav"><a href="vacancy.html">空房系統</a><a href="checkout.html">退租紀錄</a><a class="on" href="weekly-accounting.html">每週帳務</a></nav><div class="foot"><button id="forget" class="btn" style="width:100%">忘記此裝置並鎖定</button><a href="index.html">← 系統首頁</a></div></aside>
-<main class="main"><header class="top"><div><div class="ey">FRIDAY SETTLEMENT</div><h1>每週報修／退租帳務</h1><div class="sub">主管／帳務專用｜查看完整匯款資料，每週五集中結算</div></div><div class="chip" id="updated">● 讀取中</div></header>
-<div class="notice secure-note">此頁需要管理密碼解鎖。解鎖後顯示完整銀行代號與帳號；同一結算週、同一廠商的多筆維修會自動合計，並保留各物件明細。資料仍為唯讀，更新由管理視窗統一處理</div>
-<section class="stats"><div class="st"><span>待付廠商</span><b id="sVendor">$0</b></div><div class="st"><span>待退房客</span><b id="sRefund">$0</b></div><div class="st"><span>待處理筆數</span><b id="sPending">0</b></div><div class="st"><span>顯示範圍</span><b style="font-size:18px">僅待匯款</b></div></section>
-<section class="panel"><h2>待匯款項目</h2><div class="tbl"><table><thead><tr><th>狀態</th><th>類型</th><th>收款人</th><th>物件</th><th>項目</th><th>金額</th><th>銀行代號</th><th>完整銀行帳號</th><th>退款期限</th><th>結算週五</th></tr></thead><tbody id="tb"></tbody></table></div></section>
-</main></div>
-
-<script src="public-data.js"></script><script src="secure-data.js"></script><script src="trusted-device.js"></script><script src="finance-secure.js"></script><script>
-const D=window.HOUSE_PUBLIC_DATA,$=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])),M=n=>"$"+Math.round(Number(n)||0).toLocaleString("zh-TW");
-let SEC=new Map();
-
-const vendorKey=s=>String(s??"").trim().replace(/\s+/g,"").toLowerCase();
-function groupedPending(){
-  const pending=D.weekly_accounts.filter(x=>x.status!=="paid");
-  const groups=new Map(),out=[];
-  for(const r of pending){
-    if(r.kind!=="vendor"){out.push({...r,_grouped:false});continue}
-    const nameKey=vendorKey(r.party),key=(r.settlement_date||"")+"|"+(nameKey||("id:"+r.id));
-    if(!groups.has(key))groups.set(key,{...r,_grouped:true,_items:[],amount:0});
-    const g=groups.get(key);g._items.push(r);g.amount+=Number(r.amount)||0;
-  }
-  for(const g of groups.values()){
-    g.property_label=[...new Set(g._items.map(x=>x.property_label).filter(Boolean))].join("、");
-    g.description=g._items.length===1?(g._items[0].description||"維修款"):("共 "+g._items.length+" 筆｜"+g._items.map(x=>[x.property_label,x.description].filter(Boolean).join("：")).filter(Boolean).join("；"));
-    g.due_date=g._items.map(x=>x.due_date).filter(Boolean).sort()[0]||"";
-    out.push(g);
-  }
-  return out.sort((x,y)=>String(x.settlement_date).localeCompare(String(y.settlement_date))||String(x.party||"").localeCompare(String(y.party||"")));
-}
-function bankFor(r){
-  const ids=r._grouped?r._items.map(x=>x.id):[r.id],rows=ids.map(id=>SEC.get(id)||{}),codes=[...new Set(rows.map(x=>x.bank_code).filter(Boolean))],accounts=[...new Set(rows.map(x=>x.bank_account).filter(Boolean))];
-  if(codes.length>1||accounts.length>1)return {bank_code:"⚠ 帳號不一致",bank_account:"請逐筆確認"};
-  return {bank_code:codes[0]||"—",bank_account:accounts[0]||"—"};
-}
-function render(){
-  const raw=D.weekly_accounts.filter(x=>x.status!=="paid"),a=groupedPending();
-  $("#sVendor").textContent=M(raw.filter(x=>x.kind==="vendor").reduce((s,x)=>s+(Number(x.amount)||0),0));
-  $("#sRefund").textContent=M(raw.filter(x=>x.kind==="refund").reduce((s,x)=>s+(Number(x.amount)||0),0));
-  $("#sPending").textContent=a.length;
-  $("#updated").textContent="● 更新 "+new Date(D.updated_at).toLocaleString("zh-TW");
-  $("#tb").innerHTML=a.map(r=>{const s=bankFor(r),vendorDetail=r.kind==="vendor"&&r._grouped&&r._items.length>1?'<div class="meta">同廠商 '+r._items.length+' 筆已合計</div>':"";return `<tr><td><span class="badge pending">待處理</span></td><td><span class="badge ${r.kind==="vendor"?"vendor":"refund"}">${r.kind==="vendor"?"廠商":"退租退款"}</span></td><td>${E(r.party||"—")}${vendorDetail}</td><td><b>${E(r.property_label||"—")}</b></td><td>${E(r.description||"—")}</td><td class="money">${M(r.amount)}</td><td class="account">${E(s.bank_code)}</td><td class="account">${E(s.bank_account)}</td><td>${E(r.due_date||"—")}</td><td>${E(r.settlement_date||"—")}</td></tr>`}).join("");
-}
-
-async function openWithKey(key){
-  const secure=await HouseTrusted.decryptVaultWithKey(HOUSE_FINANCE_SECURE,key);
-  SEC=new Map((secure.accounts||[]).map(x=>[x.id,x]));
-  $("#lock").style.display="none";
-  render();
-}
-async function unlock(){
-  $("#err").textContent="";
-  try{
-    const keys=await HouseTrusted.prepare($("#pw").value,null);
-    await openWithKey(keys.vaultKey);
-    await HouseTrusted.rememberVaultKey(keys.vaultKey);
-    $("#pw").value="";
-  }catch(e){$("#err").textContent=e?.message||"無法解鎖"}
-}
-$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};
-$("#forget").onclick=async()=>{await HouseTrusted.forgetVaultKey();SEC.clear();$("#tb").textContent="";$("#lock").style.display="grid"};
-(async()=>{try{const key=await HouseTrusted.getVaultKey();if(key)await openWithKey(key)}catch(_){await HouseTrusted.forgetVaultKey()}})();
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>家總管｜每週帳務</title><link rel="stylesheet" href="public-style.css"><link rel="stylesheet" href="secure-style.css"></head><body>
+<div class="lock" id="lock"><div class="lockbox"><div class="ey">FINANCE SECURE</div><h2>每週帳務登入</h2><p>輸入管理密碼後查看完整銀行帳號與待匯款資訊</p><div class="lockrow"><input id="pw" class="secure-input" type="password" autocomplete="current-password" placeholder="管理密碼"><button id="unlock" class="unlock-btn">解鎖</button></div><div id="err" class="lockerr"></div></div></div>
+<div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS · SECURE</small></div><nav class="nav"><a href="vacancy.html">空房系統</a><a href="checkout.html">退租紀錄</a><a class="on" href="weekly-accounting.html">每週帳務</a></nav><div class="foot"><button id="forget" class="secure-btn" style="width:100%">鎖定此裝置</button><a href="index.html">← 系統首頁</a></div></aside>
+<main class="main"><header class="top"><div><div class="ey">FRIDAY SETTLEMENT</div><h1>每週報修／退租帳務</h1><div class="sub">內部完整資料｜只列待匯款；完成後自動從清單移除，同週同廠商自動合計</div></div><div class="chip" id="updated">● 已加密</div></header><section class="stats"><div class="st"><span>待付廠商</span><b id="sVendor">$0</b></div><div class="st"><span>待退房客</span><b id="sRefund">$0</b></div><div class="st"><span>待處理筆數</span><b id="sPending">0</b></div><div class="st"><span>顯示範圍</span><b style="font-size:18px">僅待匯款</b></div></section><section class="panel"><h2>待匯款完整資訊</h2><div class="tbl"><table><thead><tr><th>類型</th><th>收款人</th><th>物件</th><th>項目</th><th>金額</th><th>銀行代號</th><th>完整銀行帳號</th><th>退款期限</th><th>結算週五</th></tr></thead><tbody id="tb"></tbody></table></div></section></main></div><script src="secure-data.js"></script><script src="trusted-device.js"></script><script src="ops-secure.js"></script><script src="finance-secure.js"></script><script src="secure-app.js"></script><script>
+const $=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])),M=n=>"$"+Math.round(Number(n)||0).toLocaleString("zh-TW"),vendorKey=s=>String(s??"").trim().replace(/\s+/g,"").toLowerCase();let S=null;
+function groupedPending(){const pending=S.ops.weekly_accounts.filter(x=>x.status!=="paid"),groups=new Map(),out=[];for(const r of pending){if(r.kind!=="vendor"){out.push({...r,_grouped:false});continue}const nk=vendorKey(r.party),k=(r.settlement_date||"")+"|"+(nk||("id:"+r.id));if(!groups.has(k))groups.set(k,{...r,_grouped:true,_items:[],amount:0});const g=groups.get(k);g._items.push(r);g.amount+=Number(r.amount)||0}for(const g of groups.values()){g.property_label=[...new Set(g._items.map(x=>x.property_label).filter(Boolean))].join("、");g.description=g._items.length===1?(g._items[0].description||"維修款"):("共 "+g._items.length+" 筆｜"+g._items.map(x=>[x.property_label,x.description].filter(Boolean).join("：")).filter(Boolean).join("；"));g.due_date=g._items.map(x=>x.due_date).filter(Boolean).sort()[0]||"";out.push(g)}return out.sort((x,y)=>String(x.settlement_date).localeCompare(String(y.settlement_date))||String(x.party||"").localeCompare(String(y.party||"")))}
+function bankFor(r){const fm=new Map((S.finance.accounts||[]).map(x=>[x.id,x])),ids=r._grouped?r._items.map(x=>x.id):[r.id],rows=ids.map(id=>fm.get(id)||{}),codes=[...new Set(rows.map(x=>x.bank_code).filter(Boolean))],accounts=[...new Set(rows.map(x=>x.bank_account).filter(Boolean))];if(codes.length>1||accounts.length>1)return{bank_code:"⚠ 帳號不一致",bank_account:"請逐筆確認"};return{bank_code:codes[0]||"—",bank_account:accounts[0]||"—"}}
+function render(session){S=session;$("#lock").style.display="none";const raw=S.ops.weekly_accounts.filter(x=>x.status!=="paid"),a=groupedPending();$("#sVendor").textContent=M(raw.filter(x=>x.kind==="vendor").reduce((s,x)=>s+(Number(x.amount)||0),0));$("#sRefund").textContent=M(raw.filter(x=>x.kind==="refund").reduce((s,x)=>s+(Number(x.amount)||0),0));$("#sPending").textContent=a.length;$("#updated").textContent="● 更新 "+new Date(S.ops.updated_at).toLocaleString("zh-TW");$("#tb").innerHTML=a.map(r=>{const b=bankFor(r),detail=r.kind==="vendor"&&r._grouped&&r._items.length>1?'<div class="meta">同廠商 '+r._items.length+' 筆已合計</div>':"";return `<tr><td><span class="badge ${r.kind==="vendor"?"vendor":"refund"}">${r.kind==="vendor"?"廠商":"退租退款"}</span></td><td>${E(r.party||"—")}${detail}</td><td><b>${E(r.property_label||"—")}</b></td><td>${E(r.description||"—")}</td><td class="money">${M(r.amount)}</td><td class="account">${E(b.bank_code)}</td><td class="account">${E(b.bank_account)}</td><td>${E(r.due_date||"—")}</td><td>${E(r.settlement_date||"—")}</td></tr>`}).join("")}
+async function unlock(){try{render(await HouseSecureApp.unlock($("#pw").value));$("#pw").value=""}catch(e){$("#err").textContent=e?.message||"無法解鎖"}}$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};$("#forget").onclick=async()=>{await HouseSecureApp.forget();location.reload()};(async()=>{const s=await HouseSecureApp.auto();if(s)render(s)})();
 </script></body></html>
