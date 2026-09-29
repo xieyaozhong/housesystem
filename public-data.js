@@ -1,6 +1,6 @@
 window.HOUSE_PUBLIC_DATA = {
   version: 1,
-  updated_at: "2026-09-29T10:17:00+08:00",
+  updated_at: "2026-09-29T10:30:00+08:00",
   mode: "public-readonly",
   vacancies: [
     { room: "北屯8B", address: "台中市北區北屯路45號（8樓）", source: "既有空房" },
@@ -24,7 +24,8 @@ window.HOUSE_PUBLIC_DATA = {
       checkout_date: "2026-09-11",
       refund_amount: 22079,
       refund_due_date: "2026-09-15",
-      refund_status: "pending",
+      refund_status: "paid",
+      refund_paid_date: "2026-09-29",
       note: "存電 15.7 度 × 5 元 = 78.5 元，計 79 元；押金 22,000 元＋79 元＝應退 22,079 元"
     }
   ],
@@ -36,7 +37,8 @@ window.HOUSE_PUBLIC_DATA = {
       property_label: "一中4A",
       amount: 22079,
       settlement_date: "2026-10-02",
-      status: "pending",
+      status: "paid",
+      paid_date: "2026-09-29",
       description: "退租退款｜押金 22,000 元＋存電 79 元",
       bank_display: "銀行 700｜帳號末四碼 4190"
     }
