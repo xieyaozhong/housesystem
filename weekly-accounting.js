@@ -1,7 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import { getAuth,setPersistence,browserLocalPersistence,onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { getFirestore,collection,doc,setDoc,onSnapshot,serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-const LOCAL='house_ops_weekly_accounts_v1',COL='housesystem_weekly_accounts',te=new TextEncoder(),td=new TextDecoder(),$=s=>document.querySelector(s);
+const LOCAL='house_ops_weekly_accounts_v1',COL='housesystem_checkouts',te=new TextEncoder(),td=new TextDecoder(),$=s=>document.querySelector(s);
 let key=null,config=null,auth=null,db=null,user=null,records=[],editing=null,unsub=null;
 const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u))),ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const money=n=>'$'+Math.round(Number(n)||0).toLocaleString('zh-TW'),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
@@ -15,7 +15,7 @@ async function readLocal(){const out=[];for(const w of localRows()){try{out.push
 async function writeRecords(a){const wrappers=[];for(const r of a)wrappers.push(await encryptRecord(r));saveLocal(wrappers);records=a;render()}
 const newer=(a,b)=>Date.parse(a?.updated_at||0)>=Date.parse(b?.updated_at||0)?a:b;
 async function putCloud(r){if(!db||!user||!key)return;const w=await encryptRecord(r);await setDoc(doc(db,COL,r.id),{v:1,iv:w.iv,ct:w.ct,clientUpdatedAt:r.updated_at,updatedAt:serverTimestamp(),uid:user.uid,type:'weekly-account-v1'})}
-async function mergeCloud(snap){const local=await readLocal(),map=new Map(local.map(r=>[r.id,r])),remote=new Map();for(const d of snap.docs){try{const data=d.data(),r=await decryptWrap({id:d.id,updated_at:data.clientUpdatedAt,iv:data.iv,ct:data.ct});remote.set(r.id,r);const old=map.get(r.id);map.set(r.id,old?newer(old,r):r)}catch(e){console.warn(e)}}const merged=[...map.values()];await writeRecords(merged);for(const r of merged){const rr=remote.get(r.id);if(!rr||Date.parse(r.updated_at)>Date.parse(rr.updated_at))await putCloud(r)}paintSync('online','雲端已同步')}
+async function mergeCloud(snap){const local=await readLocal(),map=new Map(local.map(r=>[r.id,r])),remote=new Map();for(const d of snap.docs){try{const data=d.data();if(data.type!=='weekly-account-v1')continue;const r=await decryptWrap({id:d.id,updated_at:data.clientUpdatedAt,iv:data.iv,ct:data.ct});remote.set(r.id,r);const old=map.get(r.id);map.set(r.id,old?newer(old,r):r)}catch(e){console.warn(e)}}const merged=[...map.values()];await writeRecords(merged);for(const r of merged){const rr=remote.get(r.id);if(!rr||Date.parse(r.updated_at)>Date.parse(rr.updated_at))await putCloud(r)}paintSync('online','雲端已同步')}
 function startSync(){if(unsub){unsub();unsub=null}if(!db||!user||!key)return;paintSync('syncing','正在同步');unsub=onSnapshot(collection(db,COL),s=>mergeCloud(s).catch(e=>paintSync('error',e.message)),e=>paintSync('error',e.message))}
 function paintSync(mode,msg){const m={online:'● 雲端已同步',syncing:'● 正在同步',login:'● 尚未登入雲端',local:'● 尚未設定雲端',error:'● 同步異常'};$('#syncChip').textContent=m[mode]||'● '+msg;$('#syncChip').title=msg||''}
 function formRecord(){
