@@ -47,6 +47,10 @@ async function main(){
     assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,'finance page must fit mobile width');
     const financePageSource=fs.readFileSync(path.join(root,'weekly-accounting.html'),'utf8');
     assert.equal(financePageSource.includes('D.weekly_accounts.filter(x=>x.status!=="paid")'),true,'finance front-end must automatically exclude completed transfers');
+    assert.equal(financePageSource.includes('function groupedPending()'),true,'finance front-end must group same-vendor payments');
+    assert.equal(financePageSource.includes('(r.settlement_date||"")+"|"'),true,'vendor grouping must be scoped by settlement week');
+    assert.equal(financePageSource.includes('g.amount+=Number(r.amount)||0'),true,'same-vendor repair amounts must be summed');
+    assert.equal(financePageSource.includes('⚠ 帳號不一致'),true,'grouped vendor account mismatch must be flagged');
     const financeSource=fs.readFileSync(path.join(root,'finance-secure.js'),'utf8');
     assert.equal(financeSource.includes('01910010974190'),false,'encrypted finance file must not contain Yizhong plaintext account');
     assert.equal(financeSource.includes('20301800995588'),false,'encrypted finance file must not contain Mingde plaintext account');
