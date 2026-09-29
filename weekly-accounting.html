@@ -6,7 +6,7 @@
 <div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS · FINANCE</small></div><nav class="nav"><a href="vacancy.html">空房系統</a><a href="checkout.html">退租紀錄</a><a class="on" href="weekly-accounting.html">每週帳務</a></nav><div class="foot"><button id="forget" class="btn" style="width:100%">忘記此裝置並鎖定</button><a href="index.html">← 系統首頁</a></div></aside>
 <main class="main"><header class="top"><div><div class="ey">FRIDAY SETTLEMENT</div><h1>每週報修／退租帳務</h1><div class="sub">主管／帳務專用｜查看完整匯款資料，每週五集中結算</div></div><div class="chip" id="updated">● 讀取中</div></header>
 <div class="notice secure-note">此頁需要管理密碼解鎖。解鎖後顯示完整銀行代號與帳號；資料仍為唯讀，更新由管理視窗統一處理</div>
-<section class="stats"><div class="st"><span>待付廠商</span><b id="sVendor">$0</b></div><div class="st"><span>待退房客</span><b id="sRefund">$0</b></div><div class="st"><span>待處理筆數</span><b id="sPending">0</b></div><div class="st"><span>已完成金額</span><b id="sPaid">$0</b></div></section>
+<section class="stats"><div class="st"><span>待付廠商</span><b id="sVendor">$0</b></div><div class="st"><span>待退房客</span><b id="sRefund">$0</b></div><div class="st"><span>待處理筆數</span><b id="sPending">0</b></div><div class="st"><span>顯示範圍</span><b style="font-size:18px">僅待匯款</b></div></section>
 <section class="panel"><h2>待匯款項目</h2><div class="tbl"><table><thead><tr><th>狀態</th><th>類型</th><th>收款人</th><th>物件</th><th>項目</th><th>金額</th><th>銀行代號</th><th>完整銀行帳號</th><th>退款期限</th><th>結算週五</th></tr></thead><tbody id="tb"></tbody></table></div></section>
 </main></div>
 
@@ -15,11 +15,10 @@ const D=window.HOUSE_PUBLIC_DATA,$=s=>document.querySelector(s),E=s=>String(s??"
 let SEC=new Map();
 
 function render(){
-  const a=D.weekly_accounts.slice().sort((x,y)=>(x.status==="paid")-(y.status==="paid")||String(x.settlement_date).localeCompare(String(y.settlement_date))),p=a.filter(x=>x.status!=="paid");
+  const a=D.weekly_accounts.filter(x=>x.status!=="paid").slice().sort((x,y)=>String(x.settlement_date).localeCompare(String(y.settlement_date))),p=a;
   $("#sVendor").textContent=M(p.filter(x=>x.kind==="vendor").reduce((s,x)=>s+x.amount,0));
   $("#sRefund").textContent=M(p.filter(x=>x.kind==="refund").reduce((s,x)=>s+x.amount,0));
   $("#sPending").textContent=p.length;
-  $("#sPaid").textContent=M(a.filter(x=>x.status==="paid").reduce((s,x)=>s+x.amount,0));
   $("#updated").textContent="● 更新 "+new Date(D.updated_at).toLocaleString("zh-TW");
   $("#tb").innerHTML=a.map(r=>{const s=SEC.get(r.id)||{};return `<tr><td><span class="badge ${r.status==="paid"?"paid":"pending"}">${r.status==="paid"?"已完成":"待處理"}</span></td><td><span class="badge ${r.kind==="vendor"?"vendor":"refund"}">${r.kind==="vendor"?"廠商":"退租退款"}</span></td><td>${E(r.party||"—")}</td><td><b>${E(r.property_label||"—")}</b></td><td>${E(r.description||"—")}</td><td class="money">${M(r.amount)}</td><td class="account">${E(s.bank_code||"—")}</td><td class="account">${E(s.bank_account||"—")}</td><td>${E(r.due_date||"—")}</td><td>${E(r.settlement_date||"—")}</td></tr>`}).join("");
 }
