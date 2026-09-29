@@ -13,6 +13,10 @@ service cloud.firestore {
       allow read, write: if isHouseSystemMember();
     }
 
+    match /housesystem_weekly_accounts/{recordId} {
+      allow read, write: if isHouseSystemMember();
+    }
+
     // 指定管理員 Email 需先完成 Firebase Email 驗證；其他帳號由會員文件白名單授權。
     // 會員白名單請由 Firebase Console / Admin SDK 建立，前端不可自行新增
     match /housesystem_members/{uid} {
