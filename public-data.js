@@ -1,6 +1,6 @@
 window.HOUSE_PUBLIC_DATA = {
   version: 1,
-  updated_at: "2026-09-29T11:00:00+08:00",
+  updated_at: "2026-09-29T11:18:00+08:00",
   mode: "public-readonly",
   vacancies: [
     { room: "北屯8B", address: "台中市北區北屯路45號（8樓）", source: "既有空房" },
@@ -10,7 +10,7 @@ window.HOUSE_PUBLIC_DATA = {
     { room: "寧夏R8", address: "台中市西屯區寧夏路79號8樓", source: "既有空房" },
     { room: "復興路五段186號3樓E室", address: "台中市東區復興路五段186號3樓之5", source: "既有空房" },
     { room: "一中4A", address: "台中市北區一中街133號", source: "退租轉空房", since: "2026-09-11" },
-    { room: "明德6D", address: "地址未登錄", source: "退租轉空房", since: "2026-09-29" }
+    { room: "明德6D", address: "台中市南區明德街66號", source: "退租轉空房", since: "2026-09-29" }
   ],
   rented: [
     { room: "梅亭503", address: "台中市北區梅亭街171號503", updated_at: "2026-09-23" },
@@ -31,7 +31,7 @@ window.HOUSE_PUBLIC_DATA = {
     },
     {
       room: "明德6D",
-      address: "地址未登錄",
+      address: "台中市南區明德街66號",
       checkout_date: "2026-09-29",
       refund_amount: 8625,
       refund_due_date: "2026-10-06",
