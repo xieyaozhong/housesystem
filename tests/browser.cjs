@@ -53,6 +53,11 @@ async function main(){
     assert.equal(vacancy.includes('HOUSE_PUBLIC_DATA'),false,'vacancy must only use encrypted data');
     assert.equal(vacancy.includes('月租 '),true,'vacancy cards must render monthly rent when present');
     assert.equal(vacancy.includes('元／度'),true,'vacancy cards must render electricity rate when present');
+    assert.equal(vacancy.includes('<th>月租</th><th>電費</th>'),true,'rented list must show rent and electricity columns');
+    const secureApp=fs.readFileSync(path.join(root,'secure-app.js'),'utf8');
+    assert.equal(secureApp.includes('rent:12500'),true,'latest rented room must retain monthly rent');
+    assert.equal(secureApp.includes('power_rate:5.5'),true,'latest rented room must retain electricity rate');
+    assert.equal(secureApp.includes('ops.vacancies.splice(0,1)'),true,'latest rented room must be removed from vacancy list');
     assert.equal(checkout.includes('HOUSE_PUBLIC_DATA'),false,'checkout must only use encrypted data');
     assert.equal(weekly.includes('HOUSE_PUBLIC_DATA'),false,'finance must only use encrypted data');
     assert.equal(weekly.includes('function groupedPending()'),true,'finance must preserve same-vendor weekly aggregation');
