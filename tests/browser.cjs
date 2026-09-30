@@ -57,7 +57,14 @@ async function main(){
     const secureApp=fs.readFileSync(path.join(root,'secure-app.js'),'utf8');
     assert.equal(secureApp.includes('rent:12500'),true,'latest rented room must retain monthly rent');
     assert.equal(secureApp.includes('power_rate:5.5'),true,'latest rented room must retain electricity rate');
-    assert.equal(secureApp.includes('ops.vacancies.splice(0,1)'),true,'latest rented room must be removed from vacancy list');
+    assert.equal(secureApp.includes('findIndex(r=>r.room==="北屯8B")'),true,'rented room removal must target the room by name');
+    for(const expected of [
+      '"北屯8C":{rent:11000,power_rate:5.5}',
+      '"陝西703":{rent:8500,power_rate:5.5}',
+      '"民生303":{rent:13500,power_rate:5.5}',
+      '"寧夏R8":{rent:12000,power_rate:5}',
+      '"復興路五段186號3樓E室":{rent:9000,power_rate:5}'
+    ]) assert.equal(secureApp.includes(expected),true,'vacancy pricing must include '+expected);
     assert.equal(checkout.includes('HOUSE_PUBLIC_DATA'),false,'checkout must only use encrypted data');
     assert.equal(weekly.includes('HOUSE_PUBLIC_DATA'),false,'finance must only use encrypted data');
     assert.equal(weekly.includes('function groupedPending()'),true,'finance must preserve same-vendor weekly aggregation');
