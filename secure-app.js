@@ -18,6 +18,11 @@
       ops.vacancies[6].rent=11000;
       ops.vacancies[6].power_rate=5;
     }
+    if(ops?.vacancies?.[0]){
+      const rentedRoom={...ops.vacancies[0],rent:12500,power_rate:5.5,updated_at:"2026-09-30",status:"rented"};
+      ops.vacancies.splice(0,1);
+      ops.rented=[...(ops.rented||[]),rentedRoom];
+    }
     ops.updated_at="2026-09-30T15:09:00+08:00";
     return {key,ops,finance,vault};
   }
