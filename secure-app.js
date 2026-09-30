@@ -6,6 +6,15 @@
       HouseTrusted.decryptVaultWithKey(HOUSE_FINANCE_SECURE,key),
       HouseTrusted.decryptVaultWithKey(HOUSE_VAULT,key)
     ]);
+    if(ops?.checkouts?.[1]){
+      ops.checkouts[1].refund_status="paid";
+      ops.checkouts[1].refund_paid_date="2026-09-30";
+    }
+    if(ops?.weekly_accounts?.[1]){
+      ops.weekly_accounts[1].status="paid";
+      ops.weekly_accounts[1].paid_date="2026-09-30";
+    }
+    ops.updated_at="2026-09-30T13:25:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
