@@ -14,7 +14,11 @@
       ops.weekly_accounts[1].status="paid";
       ops.weekly_accounts[1].paid_date="2026-09-30";
     }
-    ops.updated_at="2026-09-30T13:25:00+08:00";
+    if(ops?.vacancies?.[6]){
+      ops.vacancies[6].rent=11000;
+      ops.vacancies[6].power_rate=5;
+    }
+    ops.updated_at="2026-09-30T15:09:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
