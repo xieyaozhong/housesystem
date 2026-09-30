@@ -51,6 +51,8 @@ async function main(){
     const checkout=fs.readFileSync(path.join(root,'checkout.html'),'utf8');
     const weekly=fs.readFileSync(path.join(root,'weekly-accounting.html'),'utf8');
     assert.equal(vacancy.includes('HOUSE_PUBLIC_DATA'),false,'vacancy must only use encrypted data');
+    assert.equal(vacancy.includes('月租 '),true,'vacancy cards must render monthly rent when present');
+    assert.equal(vacancy.includes('元／度'),true,'vacancy cards must render electricity rate when present');
     assert.equal(checkout.includes('HOUSE_PUBLIC_DATA'),false,'checkout must only use encrypted data');
     assert.equal(weekly.includes('HOUSE_PUBLIC_DATA'),false,'finance must only use encrypted data');
     assert.equal(weekly.includes('function groupedPending()'),true,'finance must preserve same-vendor weekly aggregation');
