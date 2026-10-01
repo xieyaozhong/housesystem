@@ -6,6 +6,17 @@
       HouseTrusted.decryptVaultWithKey(HOUSE_FINANCE_SECURE,key),
       HouseTrusted.decryptVaultWithKey(HOUSE_VAULT,key)
     ]);
+    try{
+      if(!window.HOUSE_OPS_DELTA_SECURE)await import('./ops-delta-secure.js');
+      if(window.HOUSE_OPS_DELTA_SECURE){
+        const delta=await HouseTrusted.decryptVaultWithKey(HOUSE_OPS_DELTA_SECURE,key);
+        const weeklyIds=new Set((ops.weekly_accounts||[]).map(x=>x.id));
+        for(const row of delta.weekly_accounts||[])if(!weeklyIds.has(row.id))ops.weekly_accounts.push(row);
+        const financeIds=new Set((finance.accounts||[]).map(x=>x.id));
+        for(const row of delta.finance_accounts||[])if(!financeIds.has(row.id))finance.accounts.push(row);
+        if(delta.updated_at)ops.updated_at=delta.updated_at;
+      }
+    }catch(e){console.error('Secure delta load failed',e)}
     if(ops?.checkouts?.[1]){
       ops.checkouts[1].refund_status="paid";
       ops.checkouts[1].refund_paid_date="2026-09-30";
