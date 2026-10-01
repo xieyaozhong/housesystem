@@ -74,6 +74,9 @@ async function main(){
     assert.equal(weekly.includes('navigator.clipboard'),true,'finance copy must use Clipboard API when available');
     assert.equal(weekly.includes('document.execCommand("copy")'),true,'finance copy must include Safari-compatible fallback');
     assert.equal(weekly.includes('canCopy=b.bank_account'),true,'account copy must be disabled when bank data is unavailable or conflicting');
+    assert.equal(weekly.includes('b.bank_name'),true,'finance must display bank name when encrypted data provides it');
+    const trustedDevice=fs.readFileSync(path.join(root,'trusted-device.js'),'utf8');
+    assert.equal(trustedDevice.includes("Array.isArray(s)?s.join(''):s"),true,'decryptor must support chunked encrypted payloads');
 
     await p.goto(origin+'/mobile-login.html');
     await p.waitForURL(origin+'/index.html');
