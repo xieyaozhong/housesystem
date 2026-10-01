@@ -87,7 +87,13 @@ async function main(){
     assert.equal(weekly.includes('剩餘零用金'),true,'finance must display remaining petty cash');
     assert.equal(weekly.includes('balance=fund-spent-advance'),true,'management advances must reduce remaining petty cash');
     assert.equal(weekly.includes('$("#pettyTb").addEventListener'),true,'management reserve receipt buttons must open Drive receipts');
-    const deltaSource=fs.readFileSync(path.join(root,'ops-delta-secure.js'),'utf8');
+    const vendorSecure=fs.readFileSync(path.join(root,'vendor-payables-secure.js'),'utf8');
+    assert.equal(vendorSecure.includes('025200180300'),false,'vendor bank account must remain encrypted');
+    assert.equal(vendorSecure.includes('徐志騰'),false,'vendor payment details must not be plaintext');
+    assert.equal(vendorSecure.includes('1D3zMsH-uo9-qu4pNMvkoc36TFgREXtEt'),false,'vendor receipt ID must remain encrypted');
+    assert.equal(build.includes("'vendor-payables-secure.js'"),true,'Pages build must include encrypted vendor payment data');
+    assert.equal(secureApp.includes('HOUSE_VENDOR_PAYABLES_SECURE'),true,'unlock must load encrypted vendor additions');
+        const deltaSource=fs.readFileSync(path.join(root,'ops-delta-secure.js'),'utf8');
     assert.equal(deltaSource.includes('drive.google.com/file/d/'),false,'encrypted delta must not expose receipt URLs in plaintext');
     assert.equal(deltaSource.includes('1T8a8FProZHdMJKkLnqid4jw3IppJ7SW4'),false,'encrypted delta must not expose receipt file IDs in plaintext');
     assert.equal(deltaSource.includes('119sTb-9jLMksVtHHAEQEA4K05jomlHl4'),false,'encrypted delta must not expose the prior receipt file ID in plaintext');
