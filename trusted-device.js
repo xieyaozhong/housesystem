@@ -2,7 +2,7 @@
   'use strict';
   const DB_NAME = 'house_ops_secure_device_v1', STORE = 'keys';
   const te = new TextEncoder(), td = new TextDecoder();
-  const bytes = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  const bytes = s => Uint8Array.from(atob(Array.isArray(s)?s.join(''):s), c => c.charCodeAt(0));
   function openDB() {
     return new Promise((resolve, reject) => {
       const r = indexedDB.open(DB_NAME, 1);
