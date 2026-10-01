@@ -25,6 +25,19 @@
         if(delta.updated_at)ops.updated_at=delta.updated_at;
       }
     }catch(e){console.error('Secure delta load failed',e)}
+    try{
+      if(!window.HOUSE_VENDOR_PAYABLES_SECURE)await import('./vendor-payables-secure.js');
+      if(window.HOUSE_VENDOR_PAYABLES_SECURE){
+        const added=await HouseTrusted.decryptVaultWithKey(HOUSE_VENDOR_PAYABLES_SECURE,key);
+        ops.weekly_accounts=ops.weekly_accounts||[];
+        finance.accounts=finance.accounts||[];
+        const weeklyIds=new Set(ops.weekly_accounts.map(x=>x.id));
+        for(const row of added.weekly_accounts||[])if(!weeklyIds.has(row.id)){ops.weekly_accounts.push(row);weeklyIds.add(row.id)}
+        const financeIds=new Set(finance.accounts.map(x=>x.id));
+        for(const row of added.finance_accounts||[])if(!financeIds.has(row.id)){finance.accounts.push(row);financeIds.add(row.id)}
+        if(added.updated_at)ops.updated_at=added.updated_at;
+      }
+    }catch(e){console.error('Encrypted vendor additions unavailable',e)}
     if(ops?.checkouts?.[1]){
       ops.checkouts[1].refund_status="paid";
       ops.checkouts[1].refund_paid_date="2026-09-30";
@@ -51,7 +64,7 @@
       ops.vacancies.splice(beitun8B,1);
       ops.rented=[...(ops.rented||[]),rentedRoom];
     }
-    ops.updated_at="2026-10-01T10:28:00+08:00";
+    ops.updated_at="2026-10-01T16:34:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
