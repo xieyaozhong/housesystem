@@ -32,7 +32,7 @@
       ops.vacancies.splice(beitun8B,1);
       ops.rented=[...(ops.rented||[]),rentedRoom];
     }
-    ops.updated_at="2026-09-30T15:09:00+08:00";
+    ops.updated_at="2026-10-01T10:28:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
