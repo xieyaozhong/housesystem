@@ -10,10 +10,18 @@
       if(!window.HOUSE_OPS_DELTA_SECURE)await import('./ops-delta-secure.js');
       if(window.HOUSE_OPS_DELTA_SECURE){
         const delta=await HouseTrusted.decryptVaultWithKey(HOUSE_OPS_DELTA_SECURE,key);
-        const weeklyIds=new Set((ops.weekly_accounts||[]).map(x=>x.id));
-        for(const row of delta.weekly_accounts||[])if(!weeklyIds.has(row.id))ops.weekly_accounts.push(row);
-        const financeIds=new Set((finance.accounts||[]).map(x=>x.id));
-        for(const row of delta.finance_accounts||[])if(!financeIds.has(row.id))finance.accounts.push(row);
+        const weeklyMap=new Map((ops.weekly_accounts||[]).map(x=>[x.id,x]));
+        for(const row of delta.weekly_accounts||[]){
+          const current=weeklyMap.get(row.id);
+          if(current)Object.assign(current,row);
+          else{ops.weekly_accounts.push(row);weeklyMap.set(row.id,row)}
+        }
+        const financeMap=new Map((finance.accounts||[]).map(x=>[x.id,x]));
+        for(const row of delta.finance_accounts||[]){
+          const current=financeMap.get(row.id);
+          if(current)Object.assign(current,row);
+          else{finance.accounts.push(row);financeMap.set(row.id,row)}
+        }
         if(delta.updated_at)ops.updated_at=delta.updated_at;
       }
     }catch(e){console.error('Secure delta load failed',e)}
