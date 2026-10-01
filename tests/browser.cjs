@@ -75,6 +75,12 @@ async function main(){
     assert.equal(weekly.includes('document.execCommand("copy")'),true,'finance copy must include Safari-compatible fallback');
     assert.equal(weekly.includes('canCopy=b.bank_account'),true,'account copy must be disabled when bank data is unavailable or conflicting');
     assert.equal(weekly.includes('b.bank_name'),true,'finance must display bank name when encrypted data provides it');
+    assert.equal(weekly.includes('<th>收據</th>'),true,'finance must show a receipt column');
+    assert.equal(weekly.includes('function receiptCell(r)'),true,'finance must render receipt links after unlock');
+    const deltaSource=fs.readFileSync(path.join(root,'ops-delta-secure.js'),'utf8');
+    assert.equal(deltaSource.includes('drive.google.com/file/d/'),false,'encrypted delta must not expose receipt URLs in plaintext');
+    assert.equal(deltaSource.includes('1T8a8FProZHdMJKkLnqid4jw3IppJ7SW4'),false,'encrypted delta must not expose receipt file IDs in plaintext');
+    assert.equal(build.includes("'ops-delta-secure.js'"),true,'Pages build must include encrypted operations delta');
     const trustedDevice=fs.readFileSync(path.join(root,'trusted-device.js'),'utf8');
     assert.equal(trustedDevice.includes("Array.isArray(s)?s.join(''):s"),true,'decryptor must support chunked encrypted payloads');
 
