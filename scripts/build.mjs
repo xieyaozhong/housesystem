@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-const files = ['ops-delta-secure.js','index.html','vacancy.html','checkout.html','sync-setup.html','mobile-login.html','weekly-accounting.html','upload-local.html','house-core.js','cloud-sync.js','trusted-device.js','secure-data.js','app-session.js','sync-setup.js','mobile-login.js','weekly-accounting.js','ops-secure.js','finance-secure.js','secure-app.js','public-style.css','secure-style.css','setup.css'];
+const files = ['petty-cash-secure.js','ops-delta-secure.js','index.html','vacancy.html','checkout.html','sync-setup.html','mobile-login.html','weekly-accounting.html','upload-local.html','house-core.js','cloud-sync.js','trusted-device.js','secure-data.js','app-session.js','sync-setup.js','mobile-login.js','weekly-accounting.js','ops-secure.js','finance-secure.js','secure-app.js','public-style.css','secure-style.css','setup.css'];
 fs.mkdirSync('_site', { recursive: true });
 for (const file of files) fs.copyFileSync(file, '_site/' + file);
 fs.writeFileSync('_site/.nojekyll', '');
