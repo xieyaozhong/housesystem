@@ -33,6 +33,7 @@ async function main(){
 
     const opsSource=fs.readFileSync(path.join(root,'ops-secure.js'),'utf8');
     const financeSource=fs.readFileSync(path.join(root,'finance-secure.js'),'utf8');
+    const pettySource=fs.readFileSync(path.join(root,'petty-cash-secure.js'),'utf8');
     const retiredPublic=fs.readFileSync(path.join(root,'public-data.js'),'utf8');
     for(const secret of ['明德5C','明德6D','一中4A','台中市南區明德街66號']){
       assert.equal(opsSource.includes(secret),false,'encrypted operations payload must not contain plaintext operational data');
@@ -41,10 +42,14 @@ async function main(){
     for(const secret of ['01016800045858','20301800995588','01910010974190']){
       assert.equal(financeSource.includes(secret),false,'encrypted finance payload must not contain plaintext bank accounts');
     }
+    for(const secret of ['馬卡','零用金']){
+      assert.equal(pettySource.includes(secret),false,'encrypted management reserve payload must not expose plaintext reserve data');
+    }
 
     const build=fs.readFileSync(path.join(root,'scripts/build.mjs'),'utf8');
     assert.equal(build.includes("'ops-secure.js'"),true,'Pages build must include encrypted operations payload');
     assert.equal(build.includes("'secure-app.js'"),true,'Pages build must include unified secure loader');
+    assert.equal(build.includes("'petty-cash-secure.js'"),true,'Pages build must include encrypted management reserve payload');
     assert.equal(build.includes("'public-data.js'"),false,'Pages build must not ship retired public snapshot');
 
     const vacancy=fs.readFileSync(path.join(root,'vacancy.html'),'utf8');
@@ -77,6 +82,9 @@ async function main(){
     assert.equal(weekly.includes('b.bank_name'),true,'finance must display bank name when encrypted data provides it');
     assert.equal(weekly.includes('<th>收據</th>'),true,'finance must show a receipt column');
     assert.equal(weekly.includes('function receiptCell(r)'),true,'finance must render receipt links after unlock');
+    assert.equal(weekly.includes('id="pettySection"'),true,'finance must include the management reserve section');
+    assert.equal(weekly.includes('function renderPetty()'),true,'finance must calculate management reserve balances after unlock');
+    assert.equal(weekly.includes('剩餘零用金'),true,'finance must display remaining petty cash');
     const deltaSource=fs.readFileSync(path.join(root,'ops-delta-secure.js'),'utf8');
     assert.equal(deltaSource.includes('drive.google.com/file/d/'),false,'encrypted delta must not expose receipt URLs in plaintext');
     assert.equal(deltaSource.includes('1T8a8FProZHdMJKkLnqid4jw3IppJ7SW4'),false,'encrypted delta must not expose receipt file IDs in plaintext');
