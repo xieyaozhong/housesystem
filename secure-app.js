@@ -1,5 +1,28 @@
 (function(){
   'use strict';
+  const REFUND_ID="refund-pingde-401-20261002";
+  const REFUND_STORAGE_KEY="house_ops_refund_account_v1:"+REFUND_ID;
+  async function readRefundAccount(key){
+    try{
+      const saved=localStorage.getItem(REFUND_STORAGE_KEY);
+      if(!saved)return "";
+      const decoded=await HouseTrusted.decryptVaultWithKey(JSON.parse(saved),key);
+      return decoded.id===REFUND_ID&&/^\\d{6,20}$/.test(decoded.account)?decoded.account:"";
+    }catch(e){console.warn("Local refund bank account unavailable",e);return ""}
+  }
+  async function saveRefundAccount(session,id,account){
+    if(id!==REFUND_ID||!session?.key)throw new Error("退款紀錄或解鎖資訊有誤");
+    const cleaned=String(account||"").replace(/[\\s-]/g,"");
+    if(!/^\\d{6,20}$/.test(cleaned))throw new Error("請輸入正確的數字銀行帳號");
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const body=new TextEncoder().encode(JSON.stringify({id,account:cleaned}));
+    const encrypted=await crypto.subtle.encrypt({name:"AES-GCM",iv},session.key,body);
+    const b64=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes)));
+    localStorage.setItem(REFUND_STORAGE_KEY,JSON.stringify({v:1,iv:b64(iv),ct:b64(encrypted)}));
+    const row=(session.finance.accounts||[]).find(x=>x.id===id);
+    if(row)row.bank_account=cleaned;
+    return true;
+  }
   async function loadWithKey(key){
     const [ops,finance,vault]=await Promise.all([
       HouseTrusted.decryptVaultWithKey(HOUSE_OPS_SECURE,key),
@@ -71,7 +94,45 @@
       ops.rented=ops.rented||[];
       if(!ops.rented.some(r=>r.room==="一中4A"))ops.rented.push(rentedRoom);
     }
-    ops.updated_at="2026-10-02T11:31:00+08:00";
+    const pingdeRoom="平德401";
+    const checkoutDate="2026-10-02";
+    const roomAddress=(ops.vacancies||[]).find(x=>x.room===pingdeRoom)?.address
+      ||(ops.rented||[]).find(x=>x.room===pingdeRoom)?.address
+      ||(vault.properties||[]).find(x=>String(x.code||"").includes("平德")||String(x.address||"").includes("平德"))?.address
+      ||"";
+    ops.checkouts=ops.checkouts||[];
+    if(!ops.checkouts.some(x=>x.room===pingdeRoom&&x.checkout_date===checkoutDate)){
+      ops.checkouts.push({
+        id:"checkout-pingde-401-20261002",room:pingdeRoom,address:roomAddress,
+        checkout_date:checkoutDate,refund_due_date:"2026-10-06",
+        refund_amount:24218,refund_status:"pending",
+        deposit:26000,meter_previous:3117,meter_current:3441,
+        electricity_usage:324,power_rate:5.5,electricity_fee:1782,
+        note:"押金 26,000 元－已結清電費 1,782 元＝應退 24,218 元；本期 3441－上期 3117＝324 度，324×5.5 元＝1,782 元"
+      });
+    }
+    ops.vacancies=ops.vacancies||[];
+    if(!ops.vacancies.some(x=>x.room===pingdeRoom)){
+      ops.vacancies.push({room:pingdeRoom,address:roomAddress,source:"退租轉空房",since:checkoutDate,updated_at:checkoutDate,status:"vacant"});
+    }
+    ops.rented=(ops.rented||[]).filter(x=>x.room!==pingdeRoom);
+    ops.weekly_accounts=ops.weekly_accounts||[];
+    if(!ops.weekly_accounts.some(x=>x.id===REFUND_ID)){
+      ops.weekly_accounts.push({
+        id:REFUND_ID,kind:"refund",party:"平德401房客",property_label:pingdeRoom,
+        description:"退租退款｜押金 26,000 元－結清電費 1,782 元",
+        amount:24218,due_date:"2026-10-06",settlement_date:"2026-10-02",status:"pending"
+      });
+    }
+    finance.accounts=finance.accounts||[];
+    let refundBank=finance.accounts.find(x=>x.id===REFUND_ID);
+    if(!refundBank){
+      refundBank={id:REFUND_ID,bank_code:"013",bank_account:""};
+      finance.accounts.push(refundBank);
+    }
+    refundBank.bank_code="013";
+    refundBank.bank_account=await readRefundAccount(key);
+    ops.updated_at="2026-10-02T19:25:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
@@ -86,5 +147,5 @@
     try{return await loadWithKey(key)}catch(e){await HouseTrusted.forgetVaultKey();return null}
   }
   async function forget(){await HouseTrusted.forgetVaultKey()}
-  window.HouseSecureApp={unlock,auto,forget,loadWithKey};
+  window.HouseSecureApp={unlock,auto,forget,loadWithKey,saveRefundAccount};
 })();
