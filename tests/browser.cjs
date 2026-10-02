@@ -106,6 +106,54 @@ async function main(){
     const trustedDevice=fs.readFileSync(path.join(root,'trusted-device.js'),'utf8');
     assert.equal(trustedDevice.includes("Array.isArray(s)?s.join(''):s"),true,'decryptor must support chunked encrypted payloads');
 
+    await p.goto(origin+'/checkout.html');
+    await p.waitForLoadState('networkidle');
+    const refundCheck=await p.evaluate(async()=>{
+      const oldDecrypt=HouseTrusted.decryptVaultWithKey;
+      HouseTrusted.decryptVaultWithKey=async(blob,key)=>{
+        if(blob===HOUSE_OPS_SECURE)return {
+          vacancies:[],rented:[{room:"平德401",address:"測試地址"}],
+          checkouts:[],weekly_accounts:[]
+        };
+        if(blob===HOUSE_FINANCE_SECURE)return {accounts:[]};
+        if(blob===HOUSE_VAULT)return {properties:[]};
+        if(blob===window.HOUSE_OPS_DELTA_SECURE||blob===window.HOUSE_VENDOR_PAYABLES_SECURE)return {};
+        return oldDecrypt(blob,key);
+      };
+      const key=await crypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+      const s=await HouseSecureApp.loadWithKey(key);
+      render(s);
+      const checkout=s.ops.checkouts.find(x=>x.room==="平德401");
+      const weekly=s.ops.weekly_accounts.find(x=>x.id==="refund-pingde-401-20261002");
+      const before={
+        checkout:checkout&&{
+          date:checkout.checkout_date,due:checkout.refund_due_date,
+          amount:checkout.refund_amount,usage:checkout.electricity_usage,
+          electricity_fee:checkout.electricity_fee,status:checkout.refund_status
+        },
+        pending:weekly&&{amount:weekly.amount,due:weekly.due_date,status:weekly.status},
+        vacancy:s.ops.vacancies.some(x=>x.room==="平德401"),
+        noLongerRented:s.ops.rented.every(x=>x.room!=="平德401"),
+        saveButton:document.querySelectorAll('[data-save-account]').length===1
+      };
+      const testAccount=Array.from({length:12},(_,i)=>String((i+1)%10)).join("");
+      await HouseSecureApp.saveRefundAccount(s,"refund-pingde-401-20261002",testAccount);
+      const persisted=localStorage.getItem("house_ops_refund_account_v1:refund-pingde-401-20261002");
+      const s2=await HouseSecureApp.loadWithKey(key);
+      const decrypted=s2.finance.accounts.find(x=>x.id==="refund-pingde-401-20261002");
+      const result={...before,encrypted:!!persisted&&!persisted.includes(testAccount),roundtrip:decrypted?.bank_account===testAccount,bank_code:decrypted?.bank_code};
+      localStorage.removeItem("house_ops_refund_account_v1:refund-pingde-401-20261002");
+      return result;
+    });
+    assert.deepEqual(refundCheck.checkout,{date:"2026-10-02",due:"2026-10-06",amount:24218,usage:324,electricity_fee:1782,status:"pending"},'Pingde 401 checkout amounts and dates must match handover details');
+    assert.deepEqual(refundCheck.pending,{amount:24218,due:"2026-10-06",status:"pending"},'weekly accounting must include pending Pingde 401 refund');
+    assert.equal(refundCheck.vacancy,true,'Pingde 401 must return to vacancies');
+    assert.equal(refundCheck.noLongerRented,true,'Pingde 401 must not remain in rented list');
+    assert.equal(refundCheck.saveButton,true,'checkout must offer secure account entry after unlock');
+    assert.equal(refundCheck.encrypted,true,'browser must persist bank account as AES-GCM ciphertext only');
+    assert.equal(refundCheck.roundtrip,true,'saved bank account must decrypt on next authenticated load');
+    assert.equal(refundCheck.bank_code,"013",'refund must retain user-provided bank code');
+
     await p.goto(origin+'/mobile-login.html');
     await p.waitForURL(origin+'/index.html');
     assert.equal(await p.locator('input[type="password"]').count(),1,'legacy mobile entry must land on locked dashboard');
