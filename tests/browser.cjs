@@ -63,6 +63,10 @@ async function main(){
     assert.equal(secureApp.includes('rent:12500'),true,'latest rented room must retain monthly rent');
     assert.equal(secureApp.includes('power_rate:5.5'),true,'latest rented room must retain electricity rate');
     assert.equal(secureApp.includes('findIndex(r=>r.room==="北屯8B")'),true,'rented room removal must target the room by name');
+    assert.equal(secureApp.includes('findIndex(r=>r.room==="一中4A")'),true,'Yizhong 4A must be located by room name when rented');
+    assert.equal(secureApp.includes('ops.vacancies.splice(yizhong4A,1)'),true,'Yizhong 4A must be removed from vacancy list');
+    assert.equal(secureApp.includes('some(r=>r.room==="一中4A")'),true,'Yizhong 4A must not be duplicated in recently rented');
+    assert.equal(secureApp.includes('rent:11000,power_rate:5,updated_at:"2026-10-02",status:"rented"'),true,'Yizhong 4A retains original pricing after rental');
     for(const expected of [
       '"北屯8C":{rent:11000,power_rate:5.5}',
       '"陝西703":{rent:8500,power_rate:5.5}',
