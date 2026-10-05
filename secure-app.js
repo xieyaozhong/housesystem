@@ -2,6 +2,28 @@
   'use strict';
   const REFUND_ID="refund-pingde-401-20261002";
   const REFUND_STORAGE_KEY="house_ops_refund_account_v1:"+REFUND_ID;
+  const LOCAL_FINANCE_PREFIX="house_ops_finance_account_v1:";
+  async function readFinanceAccount(key,id){
+    try{
+      const saved=localStorage.getItem(LOCAL_FINANCE_PREFIX+id);
+      if(!saved)return "";
+      const decoded=await HouseTrusted.decryptVaultWithKey(JSON.parse(saved),key);
+      return decoded.id===id&&/^\d{6,20}$/.test(decoded.account)?decoded.account:"";
+    }catch(e){console.warn("Local finance account unavailable",e);return ""}
+  }
+  async function saveFinanceAccount(session,id,account){
+    if(!session?.key||!id)throw new Error("帳務或解鎖資訊有誤");
+    const cleaned=String(account||"").replace(/[\s-]/g,"");
+    if(!/^\d{6,20}$/.test(cleaned))throw new Error("請輸入正確的數字銀行帳號");
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const body=new TextEncoder().encode(JSON.stringify({id,account:cleaned}));
+    const encrypted=await crypto.subtle.encrypt({name:"AES-GCM",iv},session.key,body);
+    const b64=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes)));
+    localStorage.setItem(LOCAL_FINANCE_PREFIX+id,JSON.stringify({v:1,iv:b64(iv),ct:b64(encrypted)}));
+    const row=(session.finance.accounts||[]).find(x=>x.id===id);
+    if(row)row.bank_account=cleaned;
+    return true;
+  }
   async function readRefundAccount(key){
     try{
       const saved=localStorage.getItem(REFUND_STORAGE_KEY);
@@ -11,17 +33,8 @@
     }catch(e){console.warn("Local refund bank account unavailable",e);return ""}
   }
   async function saveRefundAccount(session,id,account){
-    if(id!==REFUND_ID||!session?.key)throw new Error("退款紀錄或解鎖資訊有誤");
-    const cleaned=String(account||"").replace(/[\s-]/g,"");
-    if(!/^\d{6,20}$/.test(cleaned))throw new Error("請輸入正確的數字銀行帳號");
-    const iv=crypto.getRandomValues(new Uint8Array(12));
-    const body=new TextEncoder().encode(JSON.stringify({id,account:cleaned}));
-    const encrypted=await crypto.subtle.encrypt({name:"AES-GCM",iv},session.key,body);
-    const b64=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes)));
-    localStorage.setItem(REFUND_STORAGE_KEY,JSON.stringify({v:1,iv:b64(iv),ct:b64(encrypted)}));
-    const row=(session.finance.accounts||[]).find(x=>x.id===id);
-    if(row)row.bank_account=cleaned;
-    return true;
+    if(id!==REFUND_ID)throw new Error("退款紀錄有誤");
+    return saveFinanceAccount(session,id,account);
   }
   async function loadWithKey(key){
     const [ops,finance,vault]=await Promise.all([
@@ -132,7 +145,26 @@
     }
     refundBank.bank_code="013";
     refundBank.bank_account=await readRefundAccount(key);
-    ops.updated_at="2026-10-02T19:25:00+08:00";
+
+    const vendorId="vendor-zhengguofeng-zhongqing11-1b-20261009";
+    if(!ops.weekly_accounts.some(x=>x.id===vendorId)){
+      ops.weekly_accounts.push({
+        id:vendorId,kind:"vendor",party:"鄭國峰（水電）",property_label:"中清11-1B",
+        description:"馬桶水管破裂",amount:1000,settlement_date:"2026-10-09",
+        status:"pending",receipt_url:"https://drive.google.com/file/d/1lGNLCaQnukaifoZ1dG-OUPB7ijU-uwJG/view?usp=drivesdk"
+      });
+    }
+    let vendorBank=finance.accounts.find(x=>x.id===vendorId);
+    if(!vendorBank){
+      vendorBank={id:vendorId,bank_code:"808",bank_name:"玉山",bank_account:"",secure_local:true};
+      finance.accounts.push(vendorBank);
+    }
+    vendorBank.bank_code="808";
+    vendorBank.bank_name="玉山";
+    vendorBank.secure_local=true;
+    vendorBank.bank_account=await readFinanceAccount(key,vendorId);
+
+    ops.updated_at="2026-10-05T11:34:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
@@ -147,5 +179,5 @@
     try{return await loadWithKey(key)}catch(e){await HouseTrusted.forgetVaultKey();return null}
   }
   async function forget(){await HouseTrusted.forgetVaultKey()}
-  window.HouseSecureApp={unlock,auto,forget,loadWithKey,saveRefundAccount};
+  window.HouseSecureApp={unlock,auto,forget,loadWithKey,saveRefundAccount,saveFinanceAccount};
 })();
