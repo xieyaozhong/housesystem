@@ -165,13 +165,13 @@
     }
     let vendorBank=finance.accounts.find(x=>x.id===vendorId);
     if(!vendorBank){
-      vendorBank={id:vendorId,bank_code:"808",bank_name:"玉山",bank_account:"",secure_local:true};
+      vendorBank={id:vendorId,bank_code:"808",bank_name:"玉山",bank_account:"1159968132133",secure_local:false};
       finance.accounts.push(vendorBank);
     }
     vendorBank.bank_code="808";
     vendorBank.bank_name="玉山";
-    vendorBank.secure_local=true;
-    vendorBank.bank_account=await readFinanceAccount(key,vendorId);
+    vendorBank.secure_local=false;
+    vendorBank.bank_account="1159968132133";
 
     ops.updated_at="2026-10-05T11:34:00+08:00";
     return {key,ops,finance,vault};
