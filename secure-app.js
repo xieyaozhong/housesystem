@@ -153,7 +153,8 @@
       finance.accounts.push(refundBank);
     }
     refundBank.bank_code="013";
-    refundBank.bank_account=await readRefundAccount(key);
+    refundBank.bank_name="國泰世華";
+    refundBank.bank_account="699512385196";
 
     const vendorId="vendor-zhengguofeng-zhongqing11-1b-20261009";
     if(!ops.weekly_accounts.some(x=>x.id===vendorId)){
@@ -173,7 +174,7 @@
     vendorBank.secure_local=false;
     vendorBank.bank_account="1159968132133";
 
-    ops.updated_at="2026-10-05T11:34:00+08:00";
+    ops.updated_at="2026-10-05T15:56:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
