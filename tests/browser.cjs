@@ -45,6 +45,9 @@ async function main(){
     assert.equal(pettySource.includes('馬卡'),true,'management reserve data must include the default manager');
     assert.equal(pettySource.includes('梅亭503'),true,'management reserve data must include the latest advance property');
     assert.equal(pettySource.includes('amount:2000'),true,'management reserve data must include the latest advance amount');
+    assert.equal(pettySource.includes('台電代繳'),true,'management reserve data must include the Taipower advance');
+    assert.equal(pettySource.includes('amount:439'),true,'Taipower advance amount must be 439');
+    assert.equal(pettySource.includes('1rcdEEcDjtF7ftsHzebozE3DABtO6QIuE'),true,'Taipower advance must retain its receipt link');
 
     const build=fs.readFileSync(path.join(root,'scripts/build.mjs'),'utf8');
     assert.equal(build.includes("'ops-secure.js'"),true,'Pages build must include encrypted operations payload');
