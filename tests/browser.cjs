@@ -103,7 +103,19 @@ async function main(){
     assert.equal(deltaSource.includes('119sTb-9jLMksVtHHAEQEA4K05jomlHl4'),false,'encrypted delta must not expose the prior receipt file ID in plaintext');
     assert.equal(secureApp.includes('Object.assign(current,row)'),true,'secure delta must be able to update an existing accounting record');
     assert.equal(build.includes("'ops-delta-secure.js'"),true,'Pages build must include encrypted operations delta');
-    const trustedDevice=fs.readFileSync(path.join(root,'trusted-device.js'),'utf8');
+    assert.equal(secureApp.includes('vendor-zhengguofeng-zhongqing11-1b-20261009'),true,'latest plumbing vendor payable must be registered');
+    assert.equal(secureApp.includes('鄭國峰（水電）'),true,'latest vendor name must be present after unlock');
+    assert.equal(secureApp.includes('property_label:"中清11-1B"'),true,'latest vendor payable must target Zhongqing 11-1B');
+    assert.equal(secureApp.includes('description:"馬桶水管破裂"'),true,'latest vendor payable must include repair item');
+    assert.equal(secureApp.includes('amount:1000,settlement_date:"2026-10-09"'),true,'latest vendor payable must retain amount and Friday settlement date');
+    assert.equal(secureApp.includes('1lGNLCaQnukaifoZ1dG-OUPB7ijU-uwJG'),true,'latest vendor payable must retain its receipt link');
+    for(const source of [secureApp,weekly,build]){
+      assert.equal(source.includes('1159968132133'),false,'vendor bank account must never be committed in plaintext');
+    }
+    assert.equal(secureApp.includes('saveFinanceAccount'),true,'secure loader must support AES-GCM local finance account storage');
+    assert.equal(weekly.includes('data-save-finance'),true,'weekly accounting must offer secure bank account entry when needed');
+    assert.equal(weekly.includes('末四碼 2133'),true,'secure account field should help identify the intended vendor account without exposing it');
+        const trustedDevice=fs.readFileSync(path.join(root,'trusted-device.js'),'utf8');
     assert.equal(trustedDevice.includes("Array.isArray(s)?s.join(''):s"),true,'decryptor must support chunked encrypted payloads');
 
     await p.goto(origin+'/checkout.html');
