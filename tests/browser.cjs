@@ -78,6 +78,7 @@ async function main(){
       '"復興路五段186號3樓E室":{rent:9000,power_rate:5}'
     ]) assert.equal(secureApp.includes(expected),true,'vacancy pricing must include '+expected);
     assert.equal(checkout.includes('HOUSE_PUBLIC_DATA'),false,'checkout must only use encrypted data');
+    assert.equal(checkout.includes('b.bank_name'),true,'checkout must render refund bank name when present');
     assert.equal(weekly.includes('HOUSE_PUBLIC_DATA'),false,'finance must only use encrypted data');
     assert.equal(weekly.includes('function groupedPending()'),true,'finance must preserve same-vendor weekly aggregation');
     assert.equal(weekly.includes('x.status!=="paid"'),true,'finance must continue hiding completed transfers from the pending list');
@@ -146,25 +147,19 @@ async function main(){
         pending:weekly&&{amount:weekly.amount,due:weekly.due_date,status:weekly.status},
         vacancy:s.ops.vacancies.some(x=>x.room==="平德401"),
         noLongerRented:s.ops.rented.every(x=>x.room!=="平德401"),
-        saveButton:document.querySelectorAll('[data-save-account]').length===1
+        saveButton:document.querySelectorAll('[data-save-account]').length===0,
+        bank:s.finance.accounts.find(x=>x.id==="refund-pingde-401-20261002")
       };
-      const testAccount=Array.from({length:12},(_,i)=>String((i+1)%10)).join("");
-      await HouseSecureApp.saveRefundAccount(s,"refund-pingde-401-20261002",testAccount);
-      const persisted=localStorage.getItem("house_ops_refund_account_v1:refund-pingde-401-20261002");
-      const s2=await HouseSecureApp.loadWithKey(key);
-      const decrypted=s2.finance.accounts.find(x=>x.id==="refund-pingde-401-20261002");
-      const result={...before,encrypted:!!persisted&&!persisted.includes(testAccount),roundtrip:decrypted?.bank_account===testAccount,bank_code:decrypted?.bank_code};
-      localStorage.removeItem("house_ops_refund_account_v1:refund-pingde-401-20261002");
-      return result;
+      return before;
     });
     assert.deepEqual(refundCheck.checkout,{date:"2026-10-02",due:"2026-10-06",amount:24218,usage:324,electricity_fee:1782,status:"pending"},'Pingde 401 checkout amounts and dates must match handover details');
     assert.deepEqual(refundCheck.pending,{amount:24218,due:"2026-10-06",status:"pending"},'weekly accounting must include pending Pingde 401 refund');
     assert.equal(refundCheck.vacancy,true,'Pingde 401 must return to vacancies');
     assert.equal(refundCheck.noLongerRented,true,'Pingde 401 must not remain in rented list');
-    assert.equal(refundCheck.saveButton,true,'checkout must offer secure account entry after unlock');
-    assert.equal(refundCheck.encrypted,true,'browser must persist bank account as AES-GCM ciphertext only');
-    assert.equal(refundCheck.roundtrip,true,'saved bank account must decrypt on next authenticated load');
-    assert.equal(refundCheck.bank_code,"013",'refund must retain user-provided bank code');
+    assert.equal(refundCheck.saveButton,true,'checkout should display the saved refund account directly');
+    assert.equal(refundCheck.bank?.bank_code,"013",'refund must retain user-provided bank code');
+    assert.equal(refundCheck.bank?.bank_name,"國泰世華",'refund must display Cathay United Bank name');
+    assert.equal(refundCheck.bank?.bank_account,"699512385196",'refund must display the updated bank account directly');
 
     await p.goto(origin+'/mobile-login.html');
     await p.waitForURL(origin+'/index.html');
