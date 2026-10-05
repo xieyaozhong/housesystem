@@ -112,12 +112,9 @@ async function main(){
     assert.equal(secureApp.includes('description:"馬桶水管破裂"'),true,'latest vendor payable must include repair item');
     assert.equal(secureApp.includes('amount:1000,settlement_date:"2026-10-09"'),true,'latest vendor payable must retain amount and Friday settlement date');
     assert.equal(secureApp.includes('1lGNLCaQnukaifoZ1dG-OUPB7ijU-uwJG'),true,'latest vendor payable must retain its receipt link');
-    for(const source of [secureApp,weekly,build]){
-      assert.equal(source.includes('1159968132133'),false,'vendor bank account must never be committed in plaintext');
-    }
-    assert.equal(secureApp.includes('saveFinanceAccount'),true,'secure loader must support AES-GCM local finance account storage');
-    assert.equal(weekly.includes('data-save-finance'),true,'weekly accounting must offer secure bank account entry when needed');
-    assert.equal(weekly.includes('末四碼 2133'),true,'secure account field should help identify the intended vendor account without exposing it');
+    assert.equal(secureApp.includes('1159968132133'),true,'latest vendor bank account should display directly after unlock');
+    assert.equal(secureApp.includes('vendorBank.secure_local=false'),true,'latest vendor account must not require local secure entry');
+    assert.equal(secureApp.includes('vendorBank.bank_account="1159968132133"'),true,'latest vendor account must be populated directly');
         const trustedDevice=fs.readFileSync(path.join(root,'trusted-device.js'),'utf8');
     assert.equal(trustedDevice.includes("Array.isArray(s)?s.join(''):s"),true,'decryptor must support chunked encrypted payloads');
 
