@@ -33,8 +33,17 @@
     }catch(e){console.warn("Local refund bank account unavailable",e);return ""}
   }
   async function saveRefundAccount(session,id,account){
-    if(id!==REFUND_ID)throw new Error("退款紀錄有誤");
-    return saveFinanceAccount(session,id,account);
+    if(id!==REFUND_ID||!session?.key)throw new Error("退款紀錄或解鎖資訊有誤");
+    const cleaned=String(account||"").replace(/[\s-]/g,"");
+    if(!/^\d{6,20}$/.test(cleaned))throw new Error("請輸入正確的數字銀行帳號");
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const body=new TextEncoder().encode(JSON.stringify({id,account:cleaned}));
+    const encrypted=await crypto.subtle.encrypt({name:"AES-GCM",iv},session.key,body);
+    const b64=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes)));
+    localStorage.setItem(REFUND_STORAGE_KEY,JSON.stringify({v:1,iv:b64(iv),ct:b64(encrypted)}));
+    const row=(session.finance.accounts||[]).find(x=>x.id===id);
+    if(row)row.bank_account=cleaned;
+    return true;
   }
   async function loadWithKey(key){
     const [ops,finance,vault]=await Promise.all([
