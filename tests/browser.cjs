@@ -116,6 +116,9 @@ async function main(){
     assert.equal(secureApp.includes('1159968132133'),true,'latest vendor bank account should display directly after unlock');
     assert.equal(secureApp.includes('vendorBank.secure_local=false'),true,'latest vendor account must not require local secure entry');
     assert.equal(secureApp.includes('vendorBank.bank_account="1159968132133"'),true,'latest vendor account must be populated directly');
+    assert.equal(secureApp.includes('Number(x.amount)===3000&&x.settlement_date==="2026-10-02"'),true,'paid plumbing invoice must be identified without exposing vendor plaintext');
+    assert.equal(secureApp.includes('settledPlumbing.status="paid"'),true,'paid plumbing invoice must be removed from pending payments');
+    assert.equal(secureApp.includes('settledPlumbing.paid_date="2026-10-06"'),true,'paid plumbing invoice must retain settlement date');
         const trustedDevice=fs.readFileSync(path.join(root,'trusted-device.js'),'utf8');
     assert.equal(trustedDevice.includes("Array.isArray(s)?s.join(''):s"),true,'decryptor must support chunked encrypted payloads');
 
