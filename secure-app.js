@@ -163,6 +163,16 @@
         amount:24218,due_date:"2026-10-06",settlement_date:"2026-10-02",status:"pending"
       });
     }
+    const pingde401Checkout=ops.checkouts.find(x=>x.room===pingdeRoom&&x.checkout_date===checkoutDate);
+    if(pingde401Checkout){
+      pingde401Checkout.refund_status="paid";
+      pingde401Checkout.refund_paid_date="2026-10-06";
+    }
+    const pingde401Refund=ops.weekly_accounts.find(x=>x.id===REFUND_ID);
+    if(pingde401Refund){
+      pingde401Refund.status="paid";
+      pingde401Refund.paid_date="2026-10-06";
+    }
     finance.accounts=finance.accounts||[];
     let refundBank=finance.accounts.find(x=>x.id===REFUND_ID);
     if(!refundBank){
