@@ -91,6 +91,13 @@
       ops.weekly_accounts[1].status="paid";
       ops.weekly_accounts[1].paid_date="2026-09-30";
     }
+    const settledPlumbing=(ops?.weekly_accounts||[]).find(x=>
+      x.kind==="vendor"&&x.status!=="paid"&&Number(x.amount)===3000&&x.settlement_date==="2026-10-02"
+    );
+    if(settledPlumbing){
+      settledPlumbing.status="paid";
+      settledPlumbing.paid_date="2026-10-06";
+    }
     const vacancyPricing={
       "一中4A":{rent:11000,power_rate:5},
       "北屯8C":{rent:11000,power_rate:5.5},
@@ -174,7 +181,7 @@
     vendorBank.secure_local=false;
     vendorBank.bank_account="1159968132133";
 
-    ops.updated_at="2026-10-05T15:56:00+08:00";
+    ops.updated_at="2026-10-06T10:46:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
