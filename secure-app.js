@@ -91,6 +91,16 @@
       ops.weekly_accounts[1].status="paid";
       ops.weekly_accounts[1].paid_date="2026-09-30";
     }
+    const mingde5CCheckout=(ops?.checkouts||[]).find(x=>x.room==="明德5C");
+    if(mingde5CCheckout){
+      mingde5CCheckout.refund_status="paid";
+      mingde5CCheckout.refund_paid_date="2026-10-06";
+    }
+    const mingde5CRefund=(ops?.weekly_accounts||[]).find(x=>x.kind==="refund"&&x.property_label==="明德5C");
+    if(mingde5CRefund){
+      mingde5CRefund.status="paid";
+      mingde5CRefund.paid_date="2026-10-06";
+    }
     const settledPlumbing=(ops?.weekly_accounts||[]).find(x=>
       x.kind==="vendor"&&x.status!=="paid"&&Number(x.amount)===3000&&x.settlement_date==="2026-10-02"
     );
@@ -181,7 +191,7 @@
     vendorBank.secure_local=false;
     vendorBank.bank_account="1159968132133";
 
-    ops.updated_at="2026-10-06T10:46:00+08:00";
+    ops.updated_at="2026-10-06T18:57:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
