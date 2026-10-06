@@ -160,14 +160,19 @@ async function main(){
       };
       return before;
     });
-    assert.deepEqual(refundCheck.checkout,{date:"2026-10-02",due:"2026-10-06",amount:24218,usage:324,electricity_fee:1782,status:"pending"},'Pingde 401 checkout amounts and dates must match handover details');
-    assert.deepEqual(refundCheck.pending,{amount:24218,due:"2026-10-06",status:"pending"},'weekly accounting must include pending Pingde 401 refund');
+    assert.deepEqual(refundCheck.checkout,{date:"2026-10-02",due:"2026-10-06",amount:24218,usage:324,electricity_fee:1782,status:"paid"},'Pingde 401 checkout must retain amounts and show completed refund');
+    assert.deepEqual(refundCheck.pending,{amount:24218,due:"2026-10-06",status:"paid"},'weekly accounting must retain Pingde 401 refund history as paid');
     assert.equal(refundCheck.vacancy,true,'Pingde 401 must return to vacancies');
     assert.equal(refundCheck.noLongerRented,true,'Pingde 401 must not remain in rented list');
     assert.equal(refundCheck.saveButton,true,'checkout should display the saved refund account directly');
     assert.equal(refundCheck.bank?.bank_code,"013",'refund must retain user-provided bank code');
     assert.equal(refundCheck.bank?.bank_name,"國泰世華",'refund must display Cathay United Bank name');
     assert.equal(refundCheck.bank?.bank_account,"699512385196",'refund must display the updated bank account directly');
+
+    assert.equal(secureApp.includes('pingde401Checkout.refund_status="paid"'),true,'Pingde 401 checkout must be marked refunded');
+    assert.equal(secureApp.includes('pingde401Checkout.refund_paid_date="2026-10-06"'),true,'Pingde 401 checkout must retain completion date');
+    assert.equal(secureApp.includes('pingde401Refund.status="paid"'),true,'Pingde 401 weekly refund must be removed from pending list');
+    assert.equal(secureApp.includes('pingde401Refund.paid_date="2026-10-06"'),true,'Pingde 401 weekly refund must retain paid date');
 
     await p.goto(origin+'/mobile-login.html');
     await p.waitForURL(origin+'/index.html');
