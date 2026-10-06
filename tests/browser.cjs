@@ -119,6 +119,11 @@ async function main(){
     assert.equal(secureApp.includes('Number(x.amount)===3000&&x.settlement_date==="2026-10-02"'),true,'paid plumbing invoice must be identified without exposing vendor plaintext');
     assert.equal(secureApp.includes('settledPlumbing.status="paid"'),true,'paid plumbing invoice must be removed from pending payments');
     assert.equal(secureApp.includes('settledPlumbing.paid_date="2026-10-06"'),true,'paid plumbing invoice must retain settlement date');
+    assert.equal(secureApp.includes('x=>x.room==="明德5C"'),true,'Mingde 5C checkout must be targeted by room name');
+    assert.equal(secureApp.includes('mingde5CCheckout.refund_status="paid"'),true,'Mingde 5C checkout must be marked refunded');
+    assert.equal(secureApp.includes('mingde5CCheckout.refund_paid_date="2026-10-06"'),true,'Mingde 5C checkout must retain refund completion date');
+    assert.equal(secureApp.includes('x.kind==="refund"&&x.property_label==="明德5C"'),true,'Mingde 5C weekly refund must be targeted');
+    assert.equal(secureApp.includes('mingde5CRefund.status="paid"'),true,'Mingde 5C weekly refund must be removed from pending list');
         const trustedDevice=fs.readFileSync(path.join(root,'trusted-device.js'),'utf8');
     assert.equal(trustedDevice.includes("Array.isArray(s)?s.join(''):s"),true,'decryptor must support chunked encrypted payloads');
 
