@@ -201,7 +201,24 @@
     vendorBank.secure_local=false;
     vendorBank.bank_account="1159968132133";
 
-    ops.updated_at="2026-10-06T18:57:00+08:00";
+    const lampId="vendor-zhengguofeng-yizhong7b-lamp-20261009";
+    if(!ops.weekly_accounts.some(x=>x.id===lampId)){
+      ops.weekly_accounts.push({
+        id:lampId,kind:"vendor",party:"鄭國峰（水電）",property_label:"一中7B",
+        description:"電燈更換",amount:500,settlement_date:"2026-10-09",
+        status:"pending",receipt_url:"https://drive.google.com/file/d/13Mbk5PnOG_Rmj78Cw-b_r05E6711d-lQ/view?usp=drivesdk"
+      });
+    }
+    let lampBank=finance.accounts.find(x=>x.id===lampId);
+    if(!lampBank){
+      lampBank={id:lampId,bank_code:vendorBank.bank_code,bank_name:vendorBank.bank_name,bank_account:vendorBank.bank_account};
+      finance.accounts.push(lampBank);
+    }
+    lampBank.bank_code=vendorBank.bank_code;
+    lampBank.bank_name=vendorBank.bank_name;
+    lampBank.bank_account=vendorBank.bank_account;
+
+    ops.updated_at="2026-10-08T09:33:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
