@@ -116,6 +116,12 @@ async function main(){
     assert.equal(secureApp.includes('1159968132133'),true,'latest vendor bank account should display directly after unlock');
     assert.equal(secureApp.includes('vendorBank.secure_local=false'),true,'latest vendor account must not require local secure entry');
     assert.equal(secureApp.includes('vendorBank.bank_account="1159968132133"'),true,'latest vendor account must be populated directly');
+    assert.equal(secureApp.includes('vendor-zhengguofeng-yizhong7b-lamp-20261009'),true,'Yizhong 7B lighting repair must have a unique record ID');
+    assert.equal(secureApp.includes('property_label:"一中7B"'),true,'lighting repair must target Yizhong 7B');
+    assert.equal(secureApp.includes('description:"電燈更換",amount:500,settlement_date:"2026-10-09"'),true,'lighting repair must be 500 due on October 9');
+    assert.equal(secureApp.includes('13Mbk5PnOG_Rmj78Cw-b_r05E6711d-lQ'),true,'Yizhong 7B receipt must be attached');
+    assert.equal(secureApp.includes('lampBank.bank_account=vendorBank.bank_account'),true,'lighting repair must reuse the matching vendor bank account');
+
     assert.equal(secureApp.includes('Number(x.amount)===3000&&x.settlement_date==="2026-10-02"'),true,'paid plumbing invoice must be identified without exposing vendor plaintext');
     assert.equal(secureApp.includes('settledPlumbing.status="paid"'),true,'paid plumbing invoice must be removed from pending payments');
     assert.equal(secureApp.includes('settledPlumbing.paid_date="2026-10-06"'),true,'paid plumbing invoice must retain settlement date');
@@ -173,6 +179,36 @@ async function main(){
     assert.equal(secureApp.includes('pingde401Checkout.refund_paid_date="2026-10-06"'),true,'Pingde 401 checkout must retain completion date');
     assert.equal(secureApp.includes('pingde401Refund.status="paid"'),true,'Pingde 401 weekly refund must be removed from pending list');
     assert.equal(secureApp.includes('pingde401Refund.paid_date="2026-10-06"'),true,'Pingde 401 weekly refund must retain paid date');
+
+    await p.goto(origin+'/weekly-accounting.html');
+    await p.waitForLoadState('networkidle');
+    const lightingCheck=await p.evaluate(async()=>{
+      HouseTrusted.decryptVaultWithKey=async(blob)=>{
+        if(blob===HOUSE_OPS_SECURE)return {weekly_accounts:[],checkouts:[],vacancies:[],rented:[]};
+        if(blob===HOUSE_FINANCE_SECURE)return {accounts:[]};
+        if(blob===HOUSE_VAULT)return {properties:[]};
+        return {};
+      };
+      const key=await crypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+      const session=await HouseSecureApp.loadWithKey(key);
+      await render(session);
+      const pair=session.ops.weekly_accounts.filter(x=>x.party==="鄭國峰（水電）");
+      const visible=DISPLAY.filter(x=>x.party==="鄭國峰（水電）");
+      const payees=visible.length?visible[0]._items:[];
+      const bankRows=session.finance.accounts.filter(x=>payees.some(p=>p.id===x.id));
+      return {
+        items:pair.length,grouped:visible.length,
+        total:visible[0]?.amount,
+        rooms:visible[0]?.property_label,
+        receipts:document.querySelectorAll('#tb button[data-receipt-url]').length,
+        matchingBank:bankRows.length===2&&bankRows[0].bank_account===bankRows[1].bank_account,
+        allPending:pair.every(x=>x.status==="pending")
+      };
+    });
+    assert.deepEqual(lightingCheck,{
+      items:2,grouped:1,total:1500,rooms:"中清11-1B、一中7B",
+      receipts:2,matchingBank:true,allPending:true
+    },'same-week same-vendor repairs must aggregate to 1,500 while preserving both receipts and bank accounts');
 
     await p.goto(origin+'/mobile-login.html');
     await p.waitForURL(origin+'/index.html');
