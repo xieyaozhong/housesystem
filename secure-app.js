@@ -218,7 +218,45 @@
     lampBank.bank_name=vendorBank.bank_name;
     lampBank.bank_account=vendorBank.bank_account;
 
-    ops.updated_at="2026-10-08T09:33:00+08:00";
+    const pingshunRoom="平順403",pingshunDate="2026-10-09",pingshunRefundId="refund-pingshun403-20261009";
+    const pingshunAddress=(ops.vacancies||[]).find(x=>x.room===pingshunRoom)?.address
+      ||(ops.rented||[]).find(x=>x.room===pingshunRoom)?.address
+      ||(vault.properties||[]).find(x=>String(x.code||"").includes("平順")||String(x.address||"").includes("平順"))?.address||"";
+    ops.checkouts=ops.checkouts||[];
+    if(!ops.checkouts.some(x=>x.room===pingshunRoom&&x.checkout_date===pingshunDate)){
+      ops.checkouts.push({
+        id:"checkout-pingshun403-20261009",room:pingshunRoom,address:pingshunAddress,
+        checkout_date:pingshunDate,refund_due_date:"2026-10-13",
+        refund_amount:23709,refund_status:"pending",deposit:24000,
+        meter_previous:14329,meter_current:14382,electricity_usage:53,power_rate:5.5,
+        electricity_fee:291,electricity_exact:291.5,
+        note:"本期 14382－上期 14329＝53 度；53×5.5 元＝291.5 元，依提供的結清金額扣 291 元（差額 0.5 元待確認）；押金 24,000－291＝應退 23,709 元"
+      });
+    }
+    ops.vacancies=ops.vacancies||[];
+    if(!ops.vacancies.some(x=>x.room===pingshunRoom)){
+      ops.vacancies.push({room:pingshunRoom,address:pingshunAddress,source:"退租轉空房",since:pingshunDate,updated_at:pingshunDate,status:"vacant"});
+    }
+    ops.rented=(ops.rented||[]).filter(x=>x.room!==pingshunRoom);
+    ops.weekly_accounts=ops.weekly_accounts||[];
+    if(!ops.weekly_accounts.some(x=>x.id===pingshunRefundId)){
+      ops.weekly_accounts.push({
+        id:pingshunRefundId,kind:"refund",party:"平順403房客",property_label:pingshunRoom,
+        description:"退租退款｜押金 24,000 元－結清電費 291 元（原始計算為 291.5 元）",
+        amount:23709,due_date:"2026-10-13",settlement_date:"2026-10-09",status:"pending"
+      });
+    }
+    finance.accounts=finance.accounts||[];
+    let pingshunBank=finance.accounts.find(x=>x.id===pingshunRefundId);
+    if(!pingshunBank){
+      pingshunBank={id:pingshunRefundId,bank_code:"013",bank_name:"國泰世華",bank_account:"",secure_local:true};
+      finance.accounts.push(pingshunBank);
+    }
+    pingshunBank.bank_code="013";
+    pingshunBank.bank_name="國泰世華";
+    pingshunBank.secure_local=true;
+    pingshunBank.bank_account=await readFinanceAccount(key,pingshunRefundId);
+    ops.updated_at="2026-10-09T17:02:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
