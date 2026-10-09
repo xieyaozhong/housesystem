@@ -161,7 +161,7 @@ async function main(){
         pending:weekly&&{amount:weekly.amount,due:weekly.due_date,status:weekly.status},
         vacancy:s.ops.vacancies.some(x=>x.room==="平德401"),
         noLongerRented:s.ops.rented.every(x=>x.room!=="平德401"),
-        saveButton:document.querySelectorAll('[data-save-account]').length===1,
+        saveButton:document.querySelectorAll('[data-save-account]').length===0,
         bank:s.finance.accounts.find(x=>x.id==="refund-pingde-401-20261002"),
         pingshun:s.ops.checkouts.find(x=>x.room==="平順403"),
         pingshunWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-pingshun403-20261009"),
@@ -169,14 +169,6 @@ async function main(){
         pingshunVacancy:s.ops.vacancies.filter(x=>x.room==="平順403").length,
         pingshunRemovedFromRented:s.ops.rented.every(x=>x.room!=="平順403")
       };
-      const id="refund-pingshun403-20261009";
-      const testBank="123456789012";
-      await HouseSecureApp.saveFinanceAccount(s,id,testBank);
-      const stored=localStorage.getItem("house_ops_finance_account_v1:"+id);
-      const reloaded=await HouseSecureApp.loadWithKey(key);
-      before.secureBankRoundtrip=reloaded.finance.accounts.find(x=>x.id===id)?.bank_account===testBank;
-      before.storedEncrypted=!!stored&&!stored.includes(testBank);
-      localStorage.removeItem("house_ops_finance_account_v1:"+id);
       return before;
     });
     assert.deepEqual(refundCheck.checkout,{date:"2026-10-02",due:"2026-10-06",amount:24218,usage:324,electricity_fee:1782,status:"paid"},'Pingde 401 checkout must retain amounts and show completed refund');
@@ -203,12 +195,10 @@ async function main(){
     assert.equal(refundCheck.pingshunRemovedFromRented,true,"Pingshun must not remain recently rented");
     assert.equal(refundCheck.pingshunBank?.bank_code,"013","Pingshun bank code must be 013");
     assert.equal(refundCheck.pingshunBank?.bank_name,"國泰世華","Pingshun bank name must be displayed");
-    assert.equal(refundCheck.pingshunBank?.secure_local,true,"Pingshun bank must not be written as plaintext");
-    assert.equal(refundCheck.secureBankRoundtrip,true,"Pingshun account must AES-GCM encrypt and decrypt");
-    assert.equal(refundCheck.storedEncrypted,true,"Pingshun local account storage must not include the plaintext");
-    assert.equal(secureApp.includes("063506286192"),false,"Pingshun account must not appear in public source");
-    assert.equal(checkout.includes("063506286192"),false,"Pingshun account must not appear in public HTML");
-    assert.equal(weekly.includes("063506286192"),false,"Pingshun account must not appear in public accounting HTML");
+    assert.equal(refundCheck.pingshunBank?.secure_local,false,"Pingshun bank should require no device-local setup");
+    assert.equal(refundCheck.pingshunBank?.bank_account,"063506286192","Pingshun bank should be shown directly after unlock, including the leading zero");
+    assert.equal(secureApp.includes('pingshunBank.bank_account="063506286192"'),true,"Pingshun account is loaded directly on all devices");
+    assert.equal(checkout.includes("data-save-account"),true,"existing checkout account entry fallback is retained for other records");
 
     assert.equal(secureApp.includes('pingde401Checkout.refund_status="paid"'),true,'Pingde 401 checkout must be marked refunded');
     assert.equal(secureApp.includes('pingde401Checkout.refund_paid_date="2026-10-06"'),true,'Pingde 401 checkout must retain completion date');
