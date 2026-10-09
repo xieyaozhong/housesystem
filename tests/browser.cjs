@@ -161,9 +161,22 @@ async function main(){
         pending:weekly&&{amount:weekly.amount,due:weekly.due_date,status:weekly.status},
         vacancy:s.ops.vacancies.some(x=>x.room==="平德401"),
         noLongerRented:s.ops.rented.every(x=>x.room!=="平德401"),
-        saveButton:document.querySelectorAll('[data-save-account]').length===0,
-        bank:s.finance.accounts.find(x=>x.id==="refund-pingde-401-20261002")
+        saveButton:document.querySelectorAll('[data-save-account]').length===1,
+        bank:s.finance.accounts.find(x=>x.id==="refund-pingde-401-20261002"),
+        pingshun:s.ops.checkouts.find(x=>x.room==="平順403"),
+        pingshunWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-pingshun403-20261009"),
+        pingshunBank:s.finance.accounts.find(x=>x.id==="refund-pingshun403-20261009"),
+        pingshunVacancy:s.ops.vacancies.filter(x=>x.room==="平順403").length,
+        pingshunRemovedFromRented:s.ops.rented.every(x=>x.room!=="平順403")
       };
+      const id="refund-pingshun403-20261009";
+      const testBank="123456789012";
+      await HouseSecureApp.saveFinanceAccount(s,id,testBank);
+      const stored=localStorage.getItem("house_ops_finance_account_v1:"+id);
+      const reloaded=await HouseSecureApp.loadWithKey(key);
+      before.secureBankRoundtrip=reloaded.finance.accounts.find(x=>x.id===id)?.bank_account===testBank;
+      before.storedEncrypted=!!stored&&!stored.includes(testBank);
+      localStorage.removeItem("house_ops_finance_account_v1:"+id);
       return before;
     });
     assert.deepEqual(refundCheck.checkout,{date:"2026-10-02",due:"2026-10-06",amount:24218,usage:324,electricity_fee:1782,status:"paid"},'Pingde 401 checkout must retain amounts and show completed refund');
@@ -174,6 +187,28 @@ async function main(){
     assert.equal(refundCheck.bank?.bank_code,"013",'refund must retain user-provided bank code');
     assert.equal(refundCheck.bank?.bank_name,"國泰世華",'refund must display Cathay United Bank name');
     assert.equal(refundCheck.bank?.bank_account,"699512385196",'refund must display the updated bank account directly');
+    assert.equal(refundCheck.pingshun?.checkout_date,"2026-10-09","Pingshun checkout date must be October 9");
+    assert.equal(refundCheck.pingshun?.refund_due_date,"2026-10-13","Pingshun refund is due October 13");
+    assert.equal(refundCheck.pingshun?.refund_amount,23709,"Pingshun refund is 23,709");
+    assert.equal(refundCheck.pingshun?.refund_status,"pending","Pingshun must remain pending until confirmation");
+    assert.equal(refundCheck.pingshun?.deposit,24000,"Pingshun deposit is 24,000");
+    assert.equal(refundCheck.pingshun?.electricity_usage,53,"Pingshun electricity usage is 53 units");
+    assert.equal(refundCheck.pingshun?.electricity_fee,291,"user-stated electricity deduction is 291");
+    assert.equal(refundCheck.pingshun?.electricity_exact,291.5,"exact electricity amount must be recorded");
+    assert.equal(refundCheck.pingshunWeekly?.status,"pending","Pingshun pending transfer must appear in weekly accounting");
+    assert.equal(refundCheck.pingshunWeekly?.amount,23709,"Pingshun weekly transfer is 23,709");
+    assert.equal(refundCheck.pingshunWeekly?.due_date,"2026-10-13","Pingshun weekly transfer due date is October 13");
+    assert.equal(refundCheck.pingshunWeekly?.settlement_date,"2026-10-09","Pingshun refund is listed in October 9 Friday batch");
+    assert.equal(refundCheck.pingshunVacancy,1,"Pingshun must return to the vacancy list once");
+    assert.equal(refundCheck.pingshunRemovedFromRented,true,"Pingshun must not remain recently rented");
+    assert.equal(refundCheck.pingshunBank?.bank_code,"013","Pingshun bank code must be 013");
+    assert.equal(refundCheck.pingshunBank?.bank_name,"國泰世華","Pingshun bank name must be displayed");
+    assert.equal(refundCheck.pingshunBank?.secure_local,true,"Pingshun bank must not be written as plaintext");
+    assert.equal(refundCheck.secureBankRoundtrip,true,"Pingshun account must AES-GCM encrypt and decrypt");
+    assert.equal(refundCheck.storedEncrypted,true,"Pingshun local account storage must not include the plaintext");
+    assert.equal(secureApp.includes("063506286192"),false,"Pingshun account must not appear in public source");
+    assert.equal(checkout.includes("063506286192"),false,"Pingshun account must not appear in public HTML");
+    assert.equal(weekly.includes("063506286192"),false,"Pingshun account must not appear in public accounting HTML");
 
     assert.equal(secureApp.includes('pingde401Checkout.refund_status="paid"'),true,'Pingde 401 checkout must be marked refunded');
     assert.equal(secureApp.includes('pingde401Checkout.refund_paid_date="2026-10-06"'),true,'Pingde 401 checkout must retain completion date');
