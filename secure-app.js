@@ -254,8 +254,8 @@
     }
     pingshunBank.bank_code="013";
     pingshunBank.bank_name="國泰世華";
-    pingshunBank.secure_local=true;
-    pingshunBank.bank_account=await readFinanceAccount(key,pingshunRefundId);
+    pingshunBank.secure_local=false;
+    pingshunBank.bank_account="063506286192";
     ops.updated_at="2026-10-09T17:02:00+08:00";
     return {key,ops,finance,vault};
   }
