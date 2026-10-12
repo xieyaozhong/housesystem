@@ -139,8 +139,13 @@ async function main(){
       const oldDecrypt=HouseTrusted.decryptVaultWithKey;
       HouseTrusted.decryptVaultWithKey=async(blob,key)=>{
         if(blob===HOUSE_OPS_SECURE)return {
-          vacancies:[],rented:[{room:"平德401",address:"測試地址"}],
-          checkouts:[],weekly_accounts:[]
+          vacancies:[{room:"新退租A",address:"示範地址",rent:9000,status:"vacant",source:"原空房"}],
+          rented:[{room:"平德401",address:"測試地址"},{room:"已重新出租B",address:"另一地址",updated_at:"2026-10-11",status:"rented"}],
+          checkouts:[
+            {room:"新退租A",checkout_date:"2026-09-01",deposit:24000,power_rate:5},
+            {room:"新退租A",checkout_date:"2026-10-11",deposit:30000,power_rate:5.5},
+            {room:"已重新出租B",checkout_date:"2026-09-09",deposit:26000,power_rate:5}
+          ],weekly_accounts:[]
         };
         if(blob===HOUSE_FINANCE_SECURE)return {accounts:[]};
         if(blob===HOUSE_VAULT)return {properties:[]};
@@ -174,7 +179,14 @@ async function main(){
         taiyuanVacancy:s.ops.vacancies.filter(x=>x.room==="太原D").length,
         taiyuanNotRented:s.ops.rented.every(x=>x.room!=="太原D"),
         taiyuanAccountEntry:document.querySelector('[data-account-id="refund-taiyuan-d-20261009"]')!==null,
-        taiyuanAccountHint:document.querySelector('input[aria-label="太原D退款帳號"]')?.placeholder||""
+        taiyuanAccountHint:document.querySelector('input[aria-label="太原D退款帳號"]')?.placeholder||"",
+        pingdeVacancy:s.ops.vacancies.find(v=>v.room==="平德401"),
+        pingshunVacancyItem:s.ops.vacancies.find(v=>v.room==="平順403"),
+        taiyuanVacancyItem:s.ops.vacancies.find(v=>v.room==="太原D"),
+        autoPricedVacancy:s.ops.vacancies.find(v=>v.room==="新退租A"),
+        autoPricedVacancyCount:s.ops.vacancies.filter(v=>v.room==="新退租A").length,
+        historicalRentalKept:s.ops.rented.some(v=>v.room==="已重新出租B"),
+        historicalRentalNotVacant:s.ops.vacancies.every(v=>v.room!=="已重新出租B")
 
       };
       const accountId="refund-taiyuan-d-20261009",testBank="0000111122220310";
@@ -231,6 +243,21 @@ async function main(){
     assert.equal(refundCheck.taiyuanWeekly?.due_date,"2026-10-13","Taiyuan D weekly refund deadline must be October 13");
     assert.equal(refundCheck.taiyuanWeekly?.settlement_date,"2026-10-09","Taiyuan D weekly batch date must be October 9");
     assert.equal(refundCheck.taiyuanVacancy,1,"Taiyuan D must appear exactly once in vacancies");
+    assert.equal(refundCheck.pingdeVacancy?.rent,13000,"Pingde 401 vacancy monthly rent must be half of the 26,000 deposit");
+    assert.equal(refundCheck.pingdeVacancy?.power_rate,5.5,"Pingde 401 vacancy must retain checkout electricity rate");
+    assert.equal(refundCheck.pingshunVacancyItem?.rent,12000,"Pingshun 403 vacancy monthly rent must be half of the 24,000 deposit");
+    assert.equal(refundCheck.pingshunVacancyItem?.power_rate,5.5,"Pingshun 403 vacancy must retain checkout electricity rate");
+    assert.equal(refundCheck.taiyuanVacancyItem?.rent,13000,"Taiyuan D vacancy monthly rent must be half of the 26,000 deposit");
+    assert.equal(refundCheck.taiyuanVacancyItem?.power_rate,5,"Taiyuan D vacancy must retain checkout electricity rate");
+    assert.equal(refundCheck.taiyuanVacancyItem?.source,"退租轉空房","Taiyuan D must be flagged as a checkout-based vacancy");
+    assert.equal(refundCheck.autoPricedVacancy?.rent,15000,"latest checkout deposit must override older rents for future checkouts");
+    assert.equal(refundCheck.autoPricedVacancy?.power_rate,5.5,"future checkout must set the vacancy electricity rate");
+    assert.equal(refundCheck.autoPricedVacancy?.since,"2026-10-11","new vacancy must use checkout date");
+    assert.equal(refundCheck.autoPricedVacancyCount,1,"future checkout must not duplicate existing vacancies");
+    assert.equal(refundCheck.historicalRentalKept,true,"a re-rented room newer than its checkout must stay rented");
+    assert.equal(refundCheck.historicalRentalNotVacant,true,"historical checkout must not vacate a subsequently re-rented room");
+    assert.equal(secureApp.includes('const latestCheckouts=new Map()'),true,"generic checkout to vacancy mapping must be maintained");
+    assert.equal(secureApp.includes('deposit/2'),true,"vacancy rent must be half of original deposit, not the refunded amount");
     assert.equal(refundCheck.taiyuanNotRented,true,"Taiyuan D must no longer be rented");
     assert.equal(refundCheck.taiyuanBank?.bank_code,"822","Taiyuan D bank code must be 822");
     assert.equal(refundCheck.taiyuanBank?.bank_name,"中國信託","Taiyuan D bank name must be CTBC");
