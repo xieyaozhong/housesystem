@@ -256,7 +256,47 @@
     pingshunBank.bank_name="國泰世華";
     pingshunBank.secure_local=false;
     pingshunBank.bank_account="063506286192";
-    ops.updated_at="2026-10-09T17:02:00+08:00";
+    const taiyuanRoom="太原D",taiyuanDate="2026-10-09",taiyuanRefundId="refund-taiyuan-d-20261009";
+    const taiyuanAddress=(ops.vacancies||[]).find(x=>x.room===taiyuanRoom)?.address
+      ||(ops.rented||[]).find(x=>x.room===taiyuanRoom)?.address
+      ||(vault.properties||[]).find(x=>String(x.code||"").includes("太原")||String(x.address||"").includes("太原"))?.address||"";
+    ops.checkouts=ops.checkouts||[];
+    if(!ops.checkouts.some(x=>x.room===taiyuanRoom&&x.checkout_date===taiyuanDate)){
+      ops.checkouts.push({
+        id:"checkout-taiyuan-d-20261009",room:taiyuanRoom,address:taiyuanAddress,
+        checkout_date:taiyuanDate,refund_due_date:"2026-10-13",
+        refund_amount:23515,refund_status:"pending",deposit:26000,
+        meter_previous:12191,meter_current:12688,electricity_usage:497,power_rate:5,
+        electricity_fee:2485,
+        note:"本期電 12688－上期電 12191＝497 度；497×5 元＝2,485 元（已結清）；押金 26,000－2,485＝應退 23,515 元"
+      });
+    }
+    ops.vacancies=ops.vacancies||[];
+    if(!ops.vacancies.some(x=>x.room===taiyuanRoom)){
+      ops.vacancies.push({room:taiyuanRoom,address:taiyuanAddress,source:"退租轉空房",since:taiyuanDate,updated_at:taiyuanDate,status:"vacant"});
+    }
+    ops.rented=(ops.rented||[]).filter(x=>x.room!==taiyuanRoom);
+    ops.weekly_accounts=ops.weekly_accounts||[];
+    if(!ops.weekly_accounts.some(x=>x.id===taiyuanRefundId)){
+      ops.weekly_accounts.push({
+        id:taiyuanRefundId,kind:"refund",party:"太原D房客",property_label:taiyuanRoom,
+        description:"退租退款｜押金 26,000 元－結清電費 2,485 元",
+        amount:23515,due_date:"2026-10-13",settlement_date:"2026-10-09",status:"pending"
+      });
+    }
+    finance.accounts=finance.accounts||[];
+    let taiyuanBank=finance.accounts.find(x=>x.id===taiyuanRefundId);
+    if(!taiyuanBank){
+      taiyuanBank={id:taiyuanRefundId,bank_code:"822",bank_name:"中國信託",bank_account:"",bank_account_last4:"0310",secure_local:true};
+      finance.accounts.push(taiyuanBank);
+    }
+    taiyuanBank.bank_code="822";
+    taiyuanBank.bank_name="中國信託";
+    taiyuanBank.bank_account_last4="0310";
+    taiyuanBank.secure_local=true;
+    taiyuanBank.bank_account=await readFinanceAccount(key,taiyuanRefundId);
+
+    ops.updated_at="2026-10-12T11:13:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
