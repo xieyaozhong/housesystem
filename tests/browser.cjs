@@ -25,7 +25,7 @@ async function main(){
       assert.equal(await p.locator('input[type="password"]').count(),1,name+' must require the unified management password');
       assert.equal(await p.locator('#lock').isVisible(),true,name+' must start locked on a new device');
       const body=await p.textContent('body');
-      for(const secret of ['明德5C','明德6D','一中4A','01016800045858','20301800995588','01910010974190']){
+      for(const secret of ['明德5C','明德6D','一中4A','01016800045858','20301800995588','01910010974190','288540544712']){
         assert.equal(body.includes(secret),false,name+' must not render operational or banking data before unlock');
       }
       assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,name+' must fit mobile width');
@@ -186,7 +186,14 @@ async function main(){
         autoPricedVacancy:s.ops.vacancies.find(v=>v.room==="新退租A"),
         autoPricedVacancyCount:s.ops.vacancies.filter(v=>v.room==="新退租A").length,
         historicalRentalKept:s.ops.rented.some(v=>v.room==="已重新出租B"),
-        historicalRentalNotVacant:s.ops.vacancies.every(v=>v.room!=="已重新出租B")
+        historicalRentalNotVacant:s.ops.vacancies.every(v=>v.room!=="已重新出租B"),
+        xuefuCheckout:s.ops.checkouts.find(x=>x.room==="學府702"),
+        xuefuWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-xuefu702-20261008"),
+        xuefuBank:s.finance.accounts.find(x=>x.id==="refund-xuefu702-20261008"),
+        xuefuVacancy:s.ops.vacancies.find(x=>x.room==="學府702"),
+        xuefuVacancyCount:s.ops.vacancies.filter(x=>x.room==="學府702").length,
+        xuefuRented:s.ops.rented.some(x=>x.room==="學府702"),
+        xuefuRendered:document.querySelector("#tb")?.textContent.includes("288540544712")
 
       };
       const accountId="refund-taiyuan-d-20261009",testBank="0000111122220310";
@@ -256,6 +263,31 @@ async function main(){
     assert.equal(refundCheck.autoPricedVacancyCount,1,"future checkout must not duplicate existing vacancies");
     assert.equal(refundCheck.historicalRentalKept,true,"a re-rented room newer than its checkout must stay rented");
     assert.equal(refundCheck.historicalRentalNotVacant,true,"historical checkout must not vacate a subsequently re-rented room");
+    assert.equal(refundCheck.xuefuCheckout?.checkout_date,"2026-10-08","Xuefu 702 handover occurred October 8");
+    assert.equal(refundCheck.xuefuCheckout?.refund_due_date,"2026-10-13","Xuefu 702 planned refund is October 13");
+    assert.equal(refundCheck.xuefuCheckout?.refund_amount,19000,"Xuefu 702 refund must be 19,000");
+    assert.equal(refundCheck.xuefuCheckout?.refund_status,"pending","Xuefu 702 must stay pending until a confirmed payment");
+    assert.equal(refundCheck.xuefuCheckout?.utilities_status,"settled_proof_pending","Xuefu 702 utilities settled but evidence pending");
+    assert.equal(refundCheck.xuefuCheckout?.receipt_status,"pending","Xuefu 702 utility proof remains outstanding");
+    assert.equal(refundCheck.xuefuCheckout?.note.includes("待租客傳送繳費證明"),true,"Xuefu 702 checkout note must request proof");
+    assert.equal(refundCheck.xuefuCheckout?.deposit,undefined,"unknown deposit must not be invented from refund amount");
+    assert.equal(refundCheck.xuefuWeekly?.status,"pending","Xuefu 702 must appear as a pending transfer");
+    assert.equal(refundCheck.xuefuWeekly?.amount,19000,"Xuefu 702 weekly transfer must be 19,000");
+    assert.equal(refundCheck.xuefuWeekly?.due_date,"2026-10-13","Xuefu 702 weekly transfer is due October 13");
+    assert.equal(refundCheck.xuefuWeekly?.description.includes("待租客提供繳費證明"),true,"pending utility receipt must be visible in weekly accounting");
+    assert.equal(refundCheck.xuefuBank?.bank_code,"822","Xuefu 702 bank must be CTBC code 822");
+    assert.equal(refundCheck.xuefuBank?.bank_name,"中國信託","Xuefu 702 bank must be named");
+    assert.equal(refundCheck.xuefuBank?.bank_account,"288540544712","Xuefu 702 bank account must display directly");
+    assert.equal(refundCheck.xuefuBank?.secure_local,false,"Xuefu 702 must not need local entry on each device");
+    assert.equal(refundCheck.xuefuRendered,true,"Xuefu 702 bank account must display on checkout page after unlock");
+    assert.equal(refundCheck.xuefuVacancyCount,1,"Xuefu 702 must appear exactly once among vacancies");
+    assert.equal(refundCheck.xuefuVacancy?.status,"vacant","Xuefu 702 must be marked vacant");
+    assert.equal(refundCheck.xuefuVacancy?.source,"退租轉空房","Xuefu 702 vacancy must originate from checkout");
+    assert.equal(refundCheck.xuefuVacancy?.rent,undefined,"Xuefu rent cannot be inferred from unknown deposit");
+    assert.equal(refundCheck.xuefuVacancy?.rent_pending,true,"Xuefu vacancy must show rent pending original deposit");
+    assert.equal(refundCheck.xuefuRented,false,"Xuefu 702 must no longer be rented");
+    assert.equal(vacancy.includes("月租待補原押金"),true,"vacancy cards must explain missing deposit");
+    assert.equal(secureApp.includes('xuefuBank.bank_account="288540544712"'),true,"Xuefu 702 direct bank account is shared across device loads");
     assert.equal(secureApp.includes('const latestCheckouts=new Map()'),true,"generic checkout to vacancy mapping must be maintained");
     assert.equal(secureApp.includes('deposit/2'),true,"vacancy rent must be half of original deposit, not the refunded amount");
     assert.equal(refundCheck.taiyuanNotRented,true,"Taiyuan D must no longer be rented");
