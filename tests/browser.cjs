@@ -161,14 +161,29 @@ async function main(){
         pending:weekly&&{amount:weekly.amount,due:weekly.due_date,status:weekly.status},
         vacancy:s.ops.vacancies.some(x=>x.room==="平德401"),
         noLongerRented:s.ops.rented.every(x=>x.room!=="平德401"),
-        saveButton:document.querySelectorAll('[data-save-account]').length===0,
+        saveButton:document.querySelectorAll('[data-save-account]').length===1,
         bank:s.finance.accounts.find(x=>x.id==="refund-pingde-401-20261002"),
         pingshun:s.ops.checkouts.find(x=>x.room==="平順403"),
         pingshunWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-pingshun403-20261009"),
         pingshunBank:s.finance.accounts.find(x=>x.id==="refund-pingshun403-20261009"),
         pingshunVacancy:s.ops.vacancies.filter(x=>x.room==="平順403").length,
-        pingshunRemovedFromRented:s.ops.rented.every(x=>x.room!=="平順403")
+        pingshunRemovedFromRented:s.ops.rented.every(x=>x.room!=="平順403"),
+        taiyuan:s.ops.checkouts.find(x=>x.room==="太原D"),
+        taiyuanWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-taiyuan-d-20261009"),
+        taiyuanBank:{...(s.finance.accounts.find(x=>x.id==="refund-taiyuan-d-20261009")||{})},
+        taiyuanVacancy:s.ops.vacancies.filter(x=>x.room==="太原D").length,
+        taiyuanNotRented:s.ops.rented.every(x=>x.room!=="太原D"),
+        taiyuanAccountEntry:document.querySelector('[data-account-id="refund-taiyuan-d-20261009"]')!==null,
+        taiyuanAccountHint:document.querySelector('input[aria-label="太原D退款帳號"]')?.placeholder||""
+
       };
+      const accountId="refund-taiyuan-d-20261009",testBank="0000111122220310";
+      await HouseSecureApp.saveFinanceAccount(s,accountId,testBank);
+      const encrypted=localStorage.getItem("house_ops_finance_account_v1:"+accountId);
+      const reloaded=await HouseSecureApp.loadWithKey(key);
+      before.taiyuanEncrypted=!!encrypted&&!encrypted.includes(testBank);
+      before.taiyuanRoundtrip=reloaded.finance.accounts.find(x=>x.id===accountId)?.bank_account===testBank;
+      localStorage.removeItem("house_ops_finance_account_v1:"+accountId);
       return before;
     });
     assert.deepEqual(refundCheck.checkout,{date:"2026-10-02",due:"2026-10-06",amount:24218,usage:324,electricity_fee:1782,status:"paid"},'Pingde 401 checkout must retain amounts and show completed refund');
@@ -199,6 +214,35 @@ async function main(){
     assert.equal(refundCheck.pingshunBank?.bank_account,"063506286192","Pingshun bank should be shown directly after unlock, including the leading zero");
     assert.equal(secureApp.includes('pingshunBank.bank_account="063506286192"'),true,"Pingshun account is loaded directly on all devices");
     assert.equal(checkout.includes("data-save-account"),true,"existing checkout account entry fallback is retained for other records");
+    assert.equal(refundCheck.taiyuan?.room,"太原D","Taiyuan D must be a checkout");
+    assert.equal(refundCheck.taiyuan?.checkout_date,"2026-10-09","Taiyuan D checkout was on October 9");
+    assert.equal(refundCheck.taiyuan?.refund_due_date,"2026-10-13","Taiyuan D refund is scheduled for October 13");
+    assert.equal(refundCheck.taiyuan?.refund_status,"pending","Taiyuan D must remain pending until an actual refund confirmation");
+    assert.equal(refundCheck.taiyuan?.refund_paid_date,undefined,"Taiyuan D must not have a completed refund date");
+    assert.equal(refundCheck.taiyuan?.refund_amount,23515,"Taiyuan D refund is 23,515");
+    assert.equal(refundCheck.taiyuan?.deposit,26000,"Taiyuan D deposit is 26,000");
+    assert.equal(refundCheck.taiyuan?.meter_previous,12191,"Taiyuan D previous electricity reading must match handover");
+    assert.equal(refundCheck.taiyuan?.meter_current,12688,"Taiyuan D current electricity reading must match handover");
+    assert.equal(refundCheck.taiyuan?.electricity_usage,497,"Taiyuan D electricity use is 497");
+    assert.equal(refundCheck.taiyuan?.power_rate,5,"Taiyuan D electricity rate is 5");
+    assert.equal(refundCheck.taiyuan?.electricity_fee,2485,"Taiyuan D electricity fee is 2,485");
+    assert.equal(refundCheck.taiyuanWeekly?.amount,23515,"Taiyuan D weekly pending refund amount must be 23,515");
+    assert.equal(refundCheck.taiyuanWeekly?.status,"pending","Taiyuan D weekly refund must remain pending");
+    assert.equal(refundCheck.taiyuanWeekly?.due_date,"2026-10-13","Taiyuan D weekly refund deadline must be October 13");
+    assert.equal(refundCheck.taiyuanWeekly?.settlement_date,"2026-10-09","Taiyuan D weekly batch date must be October 9");
+    assert.equal(refundCheck.taiyuanVacancy,1,"Taiyuan D must appear exactly once in vacancies");
+    assert.equal(refundCheck.taiyuanNotRented,true,"Taiyuan D must no longer be rented");
+    assert.equal(refundCheck.taiyuanBank?.bank_code,"822","Taiyuan D bank code must be 822");
+    assert.equal(refundCheck.taiyuanBank?.bank_name,"中國信託","Taiyuan D bank name must be CTBC");
+    assert.equal(refundCheck.taiyuanBank?.bank_account_last4,"0310","Taiyuan D account hint must preserve last four digits");
+    assert.equal(refundCheck.taiyuanBank?.secure_local,true,"Taiyuan D account must be entered securely, not included in the public repository");
+    assert.equal(refundCheck.taiyuanBank?.bank_account,"","Taiyuan D full bank account is not plaintext in source");
+    assert.equal(refundCheck.taiyuanAccountEntry,true,"Taiyuan D must offer an encrypted bank account input");
+    assert.equal(refundCheck.taiyuanAccountHint.includes("0310"),true,"Taiyuan D must show the matching bank account suffix");
+    assert.equal(refundCheck.taiyuanEncrypted,true,"Taiyuan D bank account must persist as encrypted ciphertext");
+    assert.equal(refundCheck.taiyuanRoundtrip,true,"Taiyuan D saved bank account must decrypt after fresh load");
+    assert.equal(secureApp.includes('taiyuanBank.bank_account=await readFinanceAccount(key,taiyuanRefundId)'),true,"Taiyuan D account must be loaded from encrypted local storage");
+    assert.equal(/\b\d{16}\b/.test(secureApp),false,"Public loader must not contain any 16-digit plaintext bank accounts");
 
     assert.equal(secureApp.includes('pingde401Checkout.refund_status="paid"'),true,'Pingde 401 checkout must be marked refunded');
     assert.equal(secureApp.includes('pingde401Checkout.refund_paid_date="2026-10-06"'),true,'Pingde 401 checkout must retain completion date');
