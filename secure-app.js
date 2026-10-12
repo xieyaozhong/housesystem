@@ -293,8 +293,8 @@
     taiyuanBank.bank_code="822";
     taiyuanBank.bank_name="中國信託";
     taiyuanBank.bank_account_last4="0310";
-    taiyuanBank.secure_local=true;
-    taiyuanBank.bank_account=await readFinanceAccount(key,taiyuanRefundId);
+    taiyuanBank.secure_local=false;
+    taiyuanBank.bank_account="0000473541080310";
 
     const xuefuRoom="學府702",xuefuDate="2026-10-08",xuefuRefundId="refund-xuefu702-20261008";
     const xuefuAddress=(ops.vacancies||[]).find(x=>x.room===xuefuRoom)?.address
