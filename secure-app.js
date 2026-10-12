@@ -126,6 +126,15 @@
       ops.vacancies.splice(beitun8B,1);
       ops.rented=[...(ops.rented||[]),rentedRoom];
     }
+    const minsheng303=(ops?.vacancies||[]).findIndex(r=>r.room==="民生303");
+    if(minsheng303>=0){
+      const rentedRoom={...ops.vacancies[minsheng303],rent:13500,power_rate:5.5,updated_at:"2026-10-12",status:"rented"};
+      ops.vacancies.splice(minsheng303,1);
+      ops.rented=ops.rented||[];
+      const existing=ops.rented.find(r=>r.room==="民生303");
+      if(existing)Object.assign(existing,rentedRoom);
+      else ops.rented.push(rentedRoom);
+    }
     const yizhong4A=(ops?.vacancies||[]).findIndex(r=>r.room==="一中4A");
     if(yizhong4A>=0){
       const rentedRoom={...ops.vacancies[yizhong4A],rent:11000,power_rate:5,updated_at:"2026-10-02",status:"rented"};
@@ -366,7 +375,7 @@
       ops.rented=ops.rented.filter(r=>r.room!==room);
     }
 
-    ops.updated_at="2026-10-12T16:05:00+08:00";
+    ops.updated_at="2026-10-12";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
