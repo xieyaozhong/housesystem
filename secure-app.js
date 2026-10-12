@@ -296,6 +296,40 @@
     taiyuanBank.secure_local=true;
     taiyuanBank.bank_account=await readFinanceAccount(key,taiyuanRefundId);
 
+    const xuefuRoom="學府702",xuefuDate="2026-10-08",xuefuRefundId="refund-xuefu702-20261008";
+    const xuefuAddress=(ops.vacancies||[]).find(x=>x.room===xuefuRoom)?.address
+      ||(ops.rented||[]).find(x=>x.room===xuefuRoom)?.address
+      ||(vault.properties||[]).find(x=>String(x.code||"").includes("學府")||String(x.address||"").includes("學府"))?.address||"";
+    ops.checkouts=ops.checkouts||[];
+    if(!ops.checkouts.some(x=>x.room===xuefuRoom&&x.checkout_date===xuefuDate)){
+      ops.checkouts.push({
+        id:"checkout-xuefu702-20261008",room:xuefuRoom,address:xuefuAddress,
+        checkout_date:xuefuDate,refund_due_date:"2026-10-13",
+        refund_amount:19000,refund_status:"pending",
+        utilities_status:"settled_proof_pending",receipt_status:"pending",
+        note:"水電已結清（依點交資訊）；待租客傳送繳費證明。原押金及月租尚未提供，需補登以依押金一半確認空房租金"
+      });
+    }
+    ops.weekly_accounts=ops.weekly_accounts||[];
+    if(!ops.weekly_accounts.some(x=>x.id===xuefuRefundId)){
+      ops.weekly_accounts.push({
+        id:xuefuRefundId,kind:"refund",party:"學府702房客",property_label:xuefuRoom,
+        description:"退租退款｜水電已結清，待租客提供繳費證明",
+        amount:19000,due_date:"2026-10-13",settlement_date:"2026-10-09",
+        status:"pending",receipt_status:"pending"
+      });
+    }
+    finance.accounts=finance.accounts||[];
+    let xuefuBank=finance.accounts.find(x=>x.id===xuefuRefundId);
+    if(!xuefuBank){
+      xuefuBank={id:xuefuRefundId,bank_code:"822",bank_name:"中國信託",bank_account:""};
+      finance.accounts.push(xuefuBank);
+    }
+    xuefuBank.bank_code="822";
+    xuefuBank.bank_name="中國信託";
+    xuefuBank.secure_local=false;
+    xuefuBank.bank_account="288540544712";
+
     // Apply the same vacancy rule to every completed checkout, including future additions.
     // Only infer rent when the original deposit is known; never use the refund amount.
     const latestCheckouts=new Map();
@@ -326,7 +360,7 @@
       ops.rented=ops.rented.filter(r=>r.room!==room);
     }
 
-    ops.updated_at="2026-10-12T11:13:00+08:00";
+    ops.updated_at="2026-10-12T12:40:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
