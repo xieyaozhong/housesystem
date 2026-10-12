@@ -139,7 +139,7 @@ async function main(){
       const oldDecrypt=HouseTrusted.decryptVaultWithKey;
       HouseTrusted.decryptVaultWithKey=async(blob,key)=>{
         if(blob===HOUSE_OPS_SECURE)return {
-          vacancies:[{room:"新退租A",address:"示範地址",rent:9000,status:"vacant",source:"原空房"}],
+          vacancies:[{room:"新退租A",address:"示範地址",rent:9000,status:"vacant",source:"原空房"},{room:"民生303",address:"測試民生地址",source:"管理空房",status:"vacant"}],
           rented:[{room:"平德401",address:"測試地址"},{room:"已重新出租B",address:"另一地址",updated_at:"2026-10-11",status:"rented"}],
           checkouts:[
             {room:"新退租A",checkout_date:"2026-09-01",deposit:24000,power_rate:5},
@@ -187,6 +187,9 @@ async function main(){
         autoPricedVacancyCount:s.ops.vacancies.filter(v=>v.room==="新退租A").length,
         historicalRentalKept:s.ops.rented.some(v=>v.room==="已重新出租B"),
         historicalRentalNotVacant:s.ops.vacancies.every(v=>v.room!=="已重新出租B"),
+        minshengRented:s.ops.rented.find(r=>r.room==="民生303"),
+        minshengRentedCount:s.ops.rented.filter(r=>r.room==="民生303").length,
+        minshengVacant:s.ops.vacancies.some(v=>v.room==="民生303"),
         xuefuCheckout:s.ops.checkouts.find(x=>x.room==="學府702"),
         xuefuWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-xuefu702-20261008"),
         xuefuBank:s.finance.accounts.find(x=>x.id==="refund-xuefu702-20261008"),
@@ -256,6 +259,14 @@ async function main(){
     assert.equal(refundCheck.autoPricedVacancyCount,1,"future checkout must not duplicate existing vacancies");
     assert.equal(refundCheck.historicalRentalKept,true,"a re-rented room newer than its checkout must stay rented");
     assert.equal(refundCheck.historicalRentalNotVacant,true,"historical checkout must not vacate a subsequently re-rented room");
+    assert.equal(refundCheck.minshengVacant,false,"Minsheng 303 must not appear as a vacancy after rental");
+    assert.equal(refundCheck.minshengRentedCount,1,"Minsheng 303 must appear exactly once in rented rooms");
+    assert.equal(refundCheck.minshengRented?.rent,13500,"Minsheng 303 must preserve the monthly rent of 13,500");
+    assert.equal(refundCheck.minshengRented?.power_rate,5.5,"Minsheng 303 electricity rate remains 5.5 per unit");
+    assert.equal(refundCheck.minshengRented?.updated_at,"2026-10-12","Minsheng 303 rental date must be October 12");
+    assert.equal(refundCheck.minshengRented?.status,"rented","Minsheng 303 must be marked rented");
+    assert.equal(secureApp.includes('findIndex(r=>r.room==="民生303")'),true,"Minsheng 303 rental must target its own room");
+    assert.equal(secureApp.includes('ops.vacancies.splice(minsheng303,1)'),true,"Minsheng 303 must be removed from the vacancy list");
     assert.equal(refundCheck.xuefuCheckout?.checkout_date,"2026-10-08","Xuefu 702 handover occurred October 8");
     assert.equal(refundCheck.xuefuCheckout?.refund_due_date,"2026-10-13","Xuefu 702 planned refund is October 13");
     assert.equal(refundCheck.xuefuCheckout?.refund_amount,19000,"Xuefu 702 refund must be 19,000");
