@@ -166,7 +166,7 @@ async function main(){
         pending:weekly&&{amount:weekly.amount,due:weekly.due_date,status:weekly.status},
         vacancy:s.ops.vacancies.some(x=>x.room==="平德401"),
         noLongerRented:s.ops.rented.every(x=>x.room!=="平德401"),
-        saveButton:document.querySelectorAll('[data-save-account]').length===1,
+        saveButton:document.querySelectorAll('[data-save-account]').length===0,
         bank:s.finance.accounts.find(x=>x.id==="refund-pingde-401-20261002"),
         pingshun:s.ops.checkouts.find(x=>x.room==="平順403"),
         pingshunWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-pingshun403-20261009"),
@@ -179,7 +179,7 @@ async function main(){
         taiyuanVacancy:s.ops.vacancies.filter(x=>x.room==="太原D").length,
         taiyuanNotRented:s.ops.rented.every(x=>x.room!=="太原D"),
         taiyuanAccountEntry:document.querySelector('[data-account-id="refund-taiyuan-d-20261009"]')!==null,
-        taiyuanAccountHint:document.querySelector('input[aria-label="太原D退款帳號"]')?.placeholder||"",
+        taiyuanAccountDisplayed:document.querySelector("#tb")?.textContent.includes("0000473541080310")||false,
         pingdeVacancy:s.ops.vacancies.find(v=>v.room==="平德401"),
         pingshunVacancyItem:s.ops.vacancies.find(v=>v.room==="平順403"),
         taiyuanVacancyItem:s.ops.vacancies.find(v=>v.room==="太原D"),
@@ -196,13 +196,6 @@ async function main(){
         xuefuRendered:document.querySelector("#tb")?.textContent.includes("288540544712")
 
       };
-      const accountId="refund-taiyuan-d-20261009",testBank="0000111122220310";
-      await HouseSecureApp.saveFinanceAccount(s,accountId,testBank);
-      const encrypted=localStorage.getItem("house_ops_finance_account_v1:"+accountId);
-      const reloaded=await HouseSecureApp.loadWithKey(key);
-      before.taiyuanEncrypted=!!encrypted&&!encrypted.includes(testBank);
-      before.taiyuanRoundtrip=reloaded.finance.accounts.find(x=>x.id===accountId)?.bank_account===testBank;
-      localStorage.removeItem("house_ops_finance_account_v1:"+accountId);
       return before;
     });
     assert.deepEqual(refundCheck.checkout,{date:"2026-10-02",due:"2026-10-06",amount:24218,usage:324,electricity_fee:1782,status:"paid"},'Pingde 401 checkout must retain amounts and show completed refund');
@@ -296,14 +289,11 @@ async function main(){
     assert.equal(refundCheck.taiyuanBank?.bank_code,"822","Taiyuan D bank code must be 822");
     assert.equal(refundCheck.taiyuanBank?.bank_name,"中國信託","Taiyuan D bank name must be CTBC");
     assert.equal(refundCheck.taiyuanBank?.bank_account_last4,"0310","Taiyuan D account hint must preserve last four digits");
-    assert.equal(refundCheck.taiyuanBank?.secure_local,true,"Taiyuan D account must be entered securely, not included in the public repository");
-    assert.equal(refundCheck.taiyuanBank?.bank_account,"","Taiyuan D full bank account is not plaintext in source");
-    assert.equal(refundCheck.taiyuanAccountEntry,true,"Taiyuan D must offer an encrypted bank account input");
-    assert.equal(refundCheck.taiyuanAccountHint.includes("0310"),true,"Taiyuan D must show the matching bank account suffix");
-    assert.equal(refundCheck.taiyuanEncrypted,true,"Taiyuan D bank account must persist as encrypted ciphertext");
-    assert.equal(refundCheck.taiyuanRoundtrip,true,"Taiyuan D saved bank account must decrypt after fresh load");
-    assert.equal(secureApp.includes('taiyuanBank.bank_account=await readFinanceAccount(key,taiyuanRefundId)'),true,"Taiyuan D account must be loaded from encrypted local storage");
-    assert.equal(/\b\d{16}\b/.test(secureApp),false,"Public loader must not contain any 16-digit plaintext bank accounts");
+    assert.equal(refundCheck.taiyuanBank?.secure_local,false,"Taiyuan D should show the account on all devices without local setup");
+    assert.equal(refundCheck.taiyuanBank?.bank_account,"0000473541080310","Taiyuan D full bank account must be shown with its leading zeros");
+    assert.equal(refundCheck.taiyuanAccountEntry,false,"Taiyuan D must not show a manual account entry form");
+    assert.equal(refundCheck.taiyuanAccountDisplayed,true,"Taiyuan D complete bank account must be visible in checkout after unlock");
+    assert.equal(secureApp.includes('taiyuanBank.bank_account="0000473541080310"'),true,"Taiyuan D bank account must be populated directly on every device");
 
     assert.equal(secureApp.includes('pingde401Checkout.refund_status="paid"'),true,'Pingde 401 checkout must be marked refunded');
     assert.equal(secureApp.includes('pingde401Checkout.refund_paid_date="2026-10-06"'),true,'Pingde 401 checkout must retain completion date');
