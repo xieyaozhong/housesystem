@@ -270,7 +270,9 @@ async function main(){
     assert.equal(refundCheck.xuefuCheckout?.utilities_status,"settled_proof_pending","Xuefu 702 utilities settled but evidence pending");
     assert.equal(refundCheck.xuefuCheckout?.receipt_status,"pending","Xuefu 702 utility proof remains outstanding");
     assert.equal(refundCheck.xuefuCheckout?.note.includes("待租客傳送繳費證明"),true,"Xuefu 702 checkout note must request proof");
-    assert.equal(refundCheck.xuefuCheckout?.deposit,undefined,"unknown deposit must not be invented from refund amount");
+    assert.equal(refundCheck.xuefuCheckout?.note.includes("台水、台電已結清"),true,"Xuefu 702 must keep settled utility status");
+    assert.equal(refundCheck.xuefuCheckout?.note.includes("月租 9,500 元"),true,"Xuefu 702 checkout notes should reflect the confirmed vacancy rent");
+    assert.equal(refundCheck.xuefuCheckout?.deposit,19000,"Xuefu 702 original deposit is 19,000");
     assert.equal(refundCheck.xuefuWeekly?.status,"pending","Xuefu 702 must appear as a pending transfer");
     assert.equal(refundCheck.xuefuWeekly?.amount,19000,"Xuefu 702 weekly transfer must be 19,000");
     assert.equal(refundCheck.xuefuWeekly?.due_date,"2026-10-13","Xuefu 702 weekly transfer is due October 13");
@@ -283,8 +285,8 @@ async function main(){
     assert.equal(refundCheck.xuefuVacancyCount,1,"Xuefu 702 must appear exactly once among vacancies");
     assert.equal(refundCheck.xuefuVacancy?.status,"vacant","Xuefu 702 must be marked vacant");
     assert.equal(refundCheck.xuefuVacancy?.source,"退租轉空房","Xuefu 702 vacancy must originate from checkout");
-    assert.equal(refundCheck.xuefuVacancy?.rent,undefined,"Xuefu rent cannot be inferred from unknown deposit");
-    assert.equal(refundCheck.xuefuVacancy?.rent_pending,true,"Xuefu vacancy must show rent pending original deposit");
+    assert.equal(refundCheck.xuefuVacancy?.rent,9500,"Xuefu vacancy monthly rent must equal half the confirmed 19,000 deposit");
+    assert.equal(refundCheck.xuefuVacancy?.rent_pending,false,"Xuefu vacancy rent must no longer be pending deposit information");
     assert.equal(refundCheck.xuefuRented,false,"Xuefu 702 must no longer be rented");
     assert.equal(vacancy.includes("月租待補原押金"),true,"vacancy cards must explain missing deposit");
     assert.equal(secureApp.includes('xuefuBank.bank_account="288540544712"'),true,"Xuefu 702 direct bank account is shared across device loads");
