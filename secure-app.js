@@ -296,6 +296,36 @@
     taiyuanBank.secure_local=true;
     taiyuanBank.bank_account=await readFinanceAccount(key,taiyuanRefundId);
 
+    // Apply the same vacancy rule to every completed checkout, including future additions.
+    // Only infer rent when the original deposit is known; never use the refund amount.
+    const latestCheckouts=new Map();
+    for(const checkout of ops.checkouts||[]){
+      if(!checkout?.room||!checkout.checkout_date)continue;
+      const previous=latestCheckouts.get(checkout.room);
+      if(!previous||String(checkout.checkout_date)>String(previous.checkout_date))latestCheckouts.set(checkout.room,checkout);
+    }
+    ops.vacancies=ops.vacancies||[];
+    ops.rented=ops.rented||[];
+    for(const checkout of latestCheckouts.values()){
+      const room=checkout.room,checkoutDate=String(checkout.checkout_date);
+      const rentedLater=ops.rented.some(r=>r.room===room&&String(r.updated_at||r.since||"")>checkoutDate);
+      if(rentedLater)continue;
+      const roomVacancy=ops.vacancies.find(v=>v.room===room);
+      const roomRental=ops.rented.find(r=>r.room===room);
+      const property=(vault.properties||[]).find(p=>p.code===room||String(p.code||"").includes(room)||String(p.address||"").includes(room));
+      const address=checkout.address||roomVacancy?.address||roomRental?.address||property?.address||"";
+      const deposit=Number(checkout.deposit);
+      const rent=checkout.deposit!==undefined&&checkout.deposit!==null&&Number.isFinite(deposit)&&deposit>0?deposit/2:null;
+      const rate=Number(checkout.power_rate);
+      const electricityRate=checkout.power_rate!==undefined&&checkout.power_rate!==null&&Number.isFinite(rate)&&rate>0?rate:null;
+      const vacancy={room,address,source:"退租轉空房",since:checkoutDate,updated_at:checkoutDate,status:"vacant"};
+      if(rent!==null)vacancy.rent=rent;
+      if(electricityRate!==null)vacancy.power_rate=electricityRate;
+      if(roomVacancy)Object.assign(roomVacancy,vacancy);
+      else ops.vacancies.push(vacancy);
+      ops.rented=ops.rented.filter(r=>r.room!==room);
+    }
+
     ops.updated_at="2026-10-12T11:13:00+08:00";
     return {key,ops,finance,vault};
   }
