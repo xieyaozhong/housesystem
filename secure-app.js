@@ -353,7 +353,8 @@
       const rate=Number(checkout.power_rate);
       const electricityRate=checkout.power_rate!==undefined&&checkout.power_rate!==null&&Number.isFinite(rate)&&rate>0?rate:null;
       const vacancy={room,address,source:"退租轉空房",since:checkoutDate,updated_at:checkoutDate,status:"vacant"};
-      if(rent!==null)vacancy.rent=rent;
+      if(rent!==null){vacancy.rent=rent;vacancy.rent_pending=false}
+      else if(roomVacancy?.rent==null)vacancy.rent_pending=true;
       if(electricityRate!==null)vacancy.power_rate=electricityRate;
       if(roomVacancy)Object.assign(roomVacancy,vacancy);
       else ops.vacancies.push(vacancy);
