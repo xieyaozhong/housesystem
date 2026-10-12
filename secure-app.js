@@ -310,6 +310,11 @@
         note:"水電已結清（依點交資訊）；待租客傳送繳費證明。原押金及月租尚未提供，需補登以依押金一半確認空房租金"
       });
     }
+    const xuefuCheckout=ops.checkouts.find(x=>x.room===xuefuRoom&&x.checkout_date===xuefuDate);
+    if(xuefuCheckout){
+      xuefuCheckout.deposit=19000;
+      xuefuCheckout.note="台水、台電已結清，待租客傳送繳費證明；押金 19,000 元，應退 19,000 元；退租轉空房月租 9,500 元";
+    }
     ops.weekly_accounts=ops.weekly_accounts||[];
     if(!ops.weekly_accounts.some(x=>x.id===xuefuRefundId)){
       ops.weekly_accounts.push({
@@ -361,7 +366,7 @@
       ops.rented=ops.rented.filter(r=>r.room!==room);
     }
 
-    ops.updated_at="2026-10-12T12:40:00+08:00";
+    ops.updated_at="2026-10-12T16:05:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
