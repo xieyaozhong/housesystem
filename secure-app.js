@@ -344,6 +344,32 @@
     xuefuBank.secure_local=false;
     xuefuBank.bank_account="288540544712";
 
+    const xuzhitengRepairId="vendor-xuzhiteng-jingcheng301-drain-20261013";
+    ops.weekly_accounts=ops.weekly_accounts||[];
+    if(!ops.weekly_accounts.some(x=>x.id===xuzhitengRepairId)){
+      ops.weekly_accounts.push({
+        id:xuzhitengRepairId,kind:"vendor",party:"徐志騰（包通）",property_label:"精誠301",
+        description:"通浴室管道",amount:1500,settlement_date:"2026-10-16",
+        status:"pending",receipt_url:"https://drive.google.com/file/d/1zsb3p98LNFK4nSNrnvCsxp6UE74qQSkT/view?usp=drivesdk"
+      });
+    }
+    // Reuse Xu Zhiteng's existing, decrypted vendor account. Do not publish its bank number.
+    finance.accounts=finance.accounts||[];
+    const priorXuAccount=ops.weekly_accounts
+      .filter(x=>x.id!==xuzhitengRepairId&&x.kind==="vendor"&&String(x.party||"").includes("徐志騰"))
+      .map(x=>finance.accounts.find(a=>a.id===x.id))
+      .find(a=>a&&String(a.bank_account||"").trim());
+    let xuRepairBank=finance.accounts.find(x=>x.id===xuzhitengRepairId);
+    if(!xuRepairBank){
+      xuRepairBank={id:xuzhitengRepairId,bank_code:"",bank_name:"",bank_account:""};
+      finance.accounts.push(xuRepairBank);
+    }
+    if(priorXuAccount){
+      xuRepairBank.bank_code=priorXuAccount.bank_code||"";
+      xuRepairBank.bank_name=priorXuAccount.bank_name||"";
+      xuRepairBank.bank_account=priorXuAccount.bank_account;
+    }
+
     // Apply the same vacancy rule to every completed checkout, including future additions.
     // Only infer rent when the original deposit is known; never use the refund amount.
     const latestCheckouts=new Map();
@@ -375,7 +401,7 @@
       ops.rented=ops.rented.filter(r=>r.room!==room);
     }
 
-    ops.updated_at="2026-10-12";
+    ops.updated_at="2026-10-13T19:23:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
