@@ -212,12 +212,14 @@ async function main(){
     assert.equal(refundCheck.pingshun?.checkout_date,"2026-10-09","Pingshun checkout date must be October 9");
     assert.equal(refundCheck.pingshun?.refund_due_date,"2026-10-13","Pingshun refund is due October 13");
     assert.equal(refundCheck.pingshun?.refund_amount,23709,"Pingshun refund is 23,709");
-    assert.equal(refundCheck.pingshun?.refund_status,"pending","Pingshun must remain pending until confirmation");
+    assert.equal(refundCheck.pingshun?.refund_status,"paid","Pingshun refund is confirmed paid");
+    assert.equal(refundCheck.pingshun?.refund_paid_date,"2026-10-13","Pingshun refund paid date is October 13");
     assert.equal(refundCheck.pingshun?.deposit,24000,"Pingshun deposit is 24,000");
     assert.equal(refundCheck.pingshun?.electricity_usage,53,"Pingshun electricity usage is 53 units");
     assert.equal(refundCheck.pingshun?.electricity_fee,291,"user-stated electricity deduction is 291");
     assert.equal(refundCheck.pingshun?.electricity_exact,291.5,"exact electricity amount must be recorded");
-    assert.equal(refundCheck.pingshunWeekly?.status,"pending","Pingshun pending transfer must appear in weekly accounting");
+    assert.equal(refundCheck.pingshunWeekly?.status,"paid","Pingshun completed transfer must be removed from the pending list");
+    assert.equal(refundCheck.pingshunWeekly?.paid_date,"2026-10-13","Pingshun accounting must retain paid date");
     assert.equal(refundCheck.pingshunWeekly?.amount,23709,"Pingshun weekly transfer is 23,709");
     assert.equal(refundCheck.pingshunWeekly?.due_date,"2026-10-13","Pingshun weekly transfer due date is October 13");
     assert.equal(refundCheck.pingshunWeekly?.settlement_date,"2026-10-09","Pingshun refund is listed in October 9 Friday batch");
@@ -228,6 +230,10 @@ async function main(){
     assert.equal(refundCheck.pingshunBank?.secure_local,false,"Pingshun bank should require no device-local setup");
     assert.equal(refundCheck.pingshunBank?.bank_account,"063506286192","Pingshun bank should be shown directly after unlock, including the leading zero");
     assert.equal(secureApp.includes('pingshunBank.bank_account="063506286192"'),true,"Pingshun account is loaded directly on all devices");
+    assert.equal(secureApp.includes('pingshunCheckout.refund_status="paid"'),true,"Pingshun checkout must be marked paid");
+    assert.equal(secureApp.includes('pingshunCheckout.refund_paid_date="2026-10-13"'),true,"Pingshun checkout must retain refund completion date");
+    assert.equal(secureApp.includes('pingshunRefund.status="paid"'),true,"Pingshun refund must not appear in pending weekly accounting");
+    assert.equal(secureApp.includes('pingshunRefund.paid_date="2026-10-13"'),true,"Pingshun weekly refund must retain payment date");
     assert.equal(checkout.includes("data-save-account"),true,"existing checkout account entry fallback is retained for other records");
     assert.equal(refundCheck.taiyuan?.room,"太原D","Taiyuan D must be a checkout");
     assert.equal(refundCheck.taiyuan?.checkout_date,"2026-10-09","Taiyuan D checkout was on October 9");
