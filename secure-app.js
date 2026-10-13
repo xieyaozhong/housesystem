@@ -255,6 +255,16 @@
         amount:23709,due_date:"2026-10-13",settlement_date:"2026-10-09",status:"pending"
       });
     }
+    const pingshunCheckout=ops.checkouts.find(x=>x.room===pingshunRoom&&x.checkout_date===pingshunDate);
+    if(pingshunCheckout){
+      pingshunCheckout.refund_status="paid";
+      pingshunCheckout.refund_paid_date="2026-10-13";
+    }
+    const pingshunRefund=ops.weekly_accounts.find(x=>x.id===pingshunRefundId);
+    if(pingshunRefund){
+      pingshunRefund.status="paid";
+      pingshunRefund.paid_date="2026-10-13";
+    }
     finance.accounts=finance.accounts||[];
     let pingshunBank=finance.accounts.find(x=>x.id===pingshunRefundId);
     if(!pingshunBank){
