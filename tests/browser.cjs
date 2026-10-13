@@ -315,8 +315,13 @@ async function main(){
     await p.waitForLoadState('networkidle');
     const lightingCheck=await p.evaluate(async()=>{
       HouseTrusted.decryptVaultWithKey=async(blob)=>{
-        if(blob===HOUSE_OPS_SECURE)return {weekly_accounts:[],checkouts:[],vacancies:[],rented:[]};
-        if(blob===HOUSE_FINANCE_SECURE)return {accounts:[]};
+        if(blob===HOUSE_OPS_SECURE)return {weekly_accounts:[{
+          id:"old-xu-bank-source",kind:"vendor",party:"徐志騰（通水管）",
+          property_label:"平德201",amount:3000,settlement_date:"2026-10-02",status:"pending"
+        }],checkouts:[],vacancies:[],rented:[]};
+        if(blob===HOUSE_FINANCE_SECURE)return {accounts:[{
+          id:"old-xu-bank-source",bank_code:"TEST",bank_name:"測試銀行",bank_account:"ENCRYPTED_VAULT_ACCOUNT"
+        }]};
         if(blob===HOUSE_VAULT)return {properties:[]};
         return {};
       };
@@ -327,18 +332,30 @@ async function main(){
       const visible=DISPLAY.filter(x=>x.party==="鄭國峰（水電）");
       const payees=visible.length?visible[0]._items:[];
       const bankRows=session.finance.accounts.filter(x=>payees.some(p=>p.id===x.id));
+      const repair=session.ops.weekly_accounts.find(x=>x.id==="vendor-xuzhiteng-jingcheng301-drain-20261013");
+      const repairAccount=session.finance.accounts.find(x=>x.id===repair?.id);
+      const previous=session.ops.weekly_accounts.find(x=>x.id==="old-xu-bank-source");
       return {
         items:pair.length,grouped:visible.length,
         total:visible[0]?.amount,
         rooms:visible[0]?.property_label,
         receipts:document.querySelectorAll('#tb button[data-receipt-url]').length,
         matchingBank:bankRows.length===2&&bankRows[0].bank_account===bankRows[1].bank_account,
-        allPending:pair.every(x=>x.status==="pending")
+        allPending:pair.every(x=>x.status==="pending"),
+        xuRepair:repair&&{party:repair.party,room:repair.property_label,item:repair.description,
+          amount:repair.amount,date:repair.settlement_date,status:repair.status,receipt:repair.receipt_url},
+        priorXuSettled:previous?.status==="paid",
+        xuBankCopied:repairAccount?.bank_account==="ENCRYPTED_VAULT_ACCOUNT"&&repairAccount?.bank_code==="TEST",
+        xuRowUnique:session.ops.weekly_accounts.filter(x=>x.id===repair?.id).length===1
       };
     });
     assert.deepEqual(lightingCheck,{
       items:2,grouped:1,total:1500,rooms:"中清11-1B、一中7B",
-      receipts:3,matchingBank:true,allPending:true
+      receipts:3,matchingBank:true,allPending:true,
+      xuRepair:{party:"徐志騰（包通）",room:"精誠301",item:"通浴室管道",
+        amount:1500,date:"2026-10-16",status:"pending",
+        receipt:"https://drive.google.com/file/d/1zsb3p98LNFK4nSNrnvCsxp6UE74qQSkT/view?usp=drivesdk"},
+      priorXuSettled:true,xuBankCopied:true,xuRowUnique:true
     },'same-week same-vendor repairs must aggregate to 1,500 while preserving both receipts and bank accounts');
 
     await p.goto(origin+'/mobile-login.html');
