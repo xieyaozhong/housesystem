@@ -303,6 +303,16 @@
         amount:23515,due_date:"2026-10-13",settlement_date:"2026-10-09",status:"pending"
       });
     }
+    const taiyuanCheckout=ops.checkouts.find(x=>x.room===taiyuanRoom&&x.checkout_date===taiyuanDate);
+    if(taiyuanCheckout){
+      taiyuanCheckout.refund_status="paid";
+      taiyuanCheckout.refund_paid_date="2026-10-13";
+    }
+    const taiyuanRefund=ops.weekly_accounts.find(x=>x.id===taiyuanRefundId&&x.kind==="refund");
+    if(taiyuanRefund){
+      taiyuanRefund.status="paid";
+      taiyuanRefund.paid_date="2026-10-13";
+    }
     finance.accounts=finance.accounts||[];
     let taiyuanBank=finance.accounts.find(x=>x.id===taiyuanRefundId);
     if(!taiyuanBank){
@@ -342,6 +352,16 @@
         amount:19000,due_date:"2026-10-13",settlement_date:"2026-10-09",
         status:"pending",receipt_status:"pending"
       });
+    }
+    const xuefuPaidCheckout=ops.checkouts.find(x=>x.room===xuefuRoom&&x.checkout_date===xuefuDate);
+    if(xuefuPaidCheckout){
+      xuefuPaidCheckout.refund_status="paid";
+      xuefuPaidCheckout.refund_paid_date="2026-10-13";
+    }
+    const xuefuRefund=ops.weekly_accounts.find(x=>x.id===xuefuRefundId&&x.kind==="refund");
+    if(xuefuRefund){
+      xuefuRefund.status="paid";
+      xuefuRefund.paid_date="2026-10-13";
     }
     finance.accounts=finance.accounts||[];
     let xuefuBank=finance.accounts.find(x=>x.id===xuefuRefundId);
@@ -411,7 +431,7 @@
       ops.rented=ops.rented.filter(r=>r.room!==room);
     }
 
-    ops.updated_at="2026-10-13T19:23:00+08:00";
+    ops.updated_at="2026-10-13T22:03:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
