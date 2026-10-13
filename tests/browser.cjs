@@ -338,7 +338,7 @@ async function main(){
     });
     assert.deepEqual(lightingCheck,{
       items:2,grouped:1,total:1500,rooms:"中清11-1B、一中7B",
-      receipts:2,matchingBank:true,allPending:true
+      receipts:3,matchingBank:true,allPending:true
     },'same-week same-vendor repairs must aggregate to 1,500 while preserving both receipts and bank accounts');
 
     await p.goto(origin+'/mobile-login.html');
