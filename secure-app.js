@@ -402,7 +402,7 @@
 
     // 2026-10-13 checkout: retain full bank numbers only in encrypted local device storage.
     const zhongqingRoom="中清11-3A",zhongqingDate="2026-10-13",zhongqingRefundId="refund-zhongqing11-3a-20261013";
-    const zhongqingKey=value=>String(value||"").replace(/[\\s\\-_號]/g,"").toUpperCase();
+    const zhongqingKey=value=>String(value||"").replace(/[\s\-號_]/g,"").toUpperCase();
     const isZhongqing3A=row=>zhongqingKey(row?.room||row?.code)===zhongqingKey(zhongqingRoom);
     const zhongqingAddress=(ops.vacancies||[]).find(isZhongqing3A)?.address
       ||(ops.rented||[]).find(isZhongqing3A)?.address
