@@ -166,7 +166,7 @@ async function main(){
         pending:weekly&&{amount:weekly.amount,due:weekly.due_date,status:weekly.status},
         vacancy:s.ops.vacancies.some(x=>x.room==="平德401"),
         noLongerRented:s.ops.rented.every(x=>x.room!=="平德401"),
-        saveButton:document.querySelectorAll('[data-save-account]').length===0,
+        saveButton:document.querySelector('[data-save-account][data-account-id="refund-pingde-401-20261002"]')===null,
         bank:s.finance.accounts.find(x=>x.id==="refund-pingde-401-20261002"),
         pingshun:s.ops.checkouts.find(x=>x.room==="平順403"),
         pingshunWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-pingshun403-20261009"),
@@ -196,7 +196,12 @@ async function main(){
         xuefuVacancy:s.ops.vacancies.find(x=>x.room==="學府702"),
         xuefuVacancyCount:s.ops.vacancies.filter(x=>x.room==="學府702").length,
         xuefuRented:s.ops.rented.some(x=>x.room==="學府702"),
-        xuefuRendered:document.querySelector("#tb")?.textContent.includes("288540544712")
+        xuefuRendered:document.querySelector("#tb")?.textContent.includes("288540544712"),
+        zhongqingCheckout:s.ops.checkouts.find(x=>x.room==="中清11-3A"),
+        zhongqingWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-zhongqing11-3a-20261013"),
+        zhongqingVacancy:s.ops.vacancies.find(x=>x.room==="中清11-3A"),
+        zhongqingBank:s.finance.accounts.find(x=>x.id==="refund-zhongqing11-3a-20261013"),
+        zhongqingEntry:document.querySelector('[data-account-id="refund-zhongqing11-3a-20261013"]')!==null
 
       };
       return before;
@@ -207,6 +212,21 @@ async function main(){
     assert.equal(refundCheck.noLongerRented,true,'Pingde 401 must not remain in rented list');
     assert.equal(refundCheck.saveButton,true,'checkout should display the saved refund account directly');
     assert.equal(refundCheck.bank?.bank_code,"013",'refund must retain user-provided bank code');
+    assert.equal(refundCheck.zhongqingCheckout?.checkout_date,"2026-10-13","Zhongqing 11-3A handover date must be October 13");
+    assert.equal(refundCheck.zhongqingCheckout?.refund_due_date,"2026-10-20","Zhongqing refund must be due October 20");
+    assert.equal(refundCheck.zhongqingCheckout?.refund_amount,36489,"Zhongqing deposit refund must be 36,489");
+    assert.equal(refundCheck.zhongqingCheckout?.electricity_usage,93,"Zhongqing power usage must be 93 units");
+    assert.equal(refundCheck.zhongqingCheckout?.electricity_fee,511,"Zhongqing user-confirmed electricity fee must be 511");
+    assert.equal(refundCheck.zhongqingCheckout?.electricity_exact,511.5,"Zhongqing calculated power fee must retain 0.5 discrepancy");
+    assert.equal(refundCheck.zhongqingCheckout?.refund_status,"pending","Zhongqing refund must remain pending until transfer");
+    assert.equal(refundCheck.zhongqingWeekly?.amount,36489,"Zhongqing weekly accounting must match refund");
+    assert.equal(refundCheck.zhongqingWeekly?.status,"pending","Zhongqing weekly refund must remain pending");
+    assert.equal(refundCheck.zhongqingVacancy?.rent,18500,"Zhongqing vacancy rent must equal half of original deposit");
+    assert.equal(refundCheck.zhongqingVacancy?.power_rate,5.5,"Zhongqing vacancy electricity rate must stay at 5.5");
+    assert.equal(refundCheck.zhongqingVacancy?.source,"退租轉空房","Zhongqing must be a checkout-based vacancy");
+    assert.equal(refundCheck.zhongqingBank?.bank_code,"812","Zhongqing refund bank code must be 812");
+    assert.equal(refundCheck.zhongqingBank?.secure_local,true,"Zhongqing bank account must require local encrypted entry");
+    assert.equal(refundCheck.zhongqingEntry,true,"Zhongqing refund account can be securely entered after unlock");
     assert.equal(refundCheck.bank?.bank_name,"國泰世華",'refund must display Cathay United Bank name');
     assert.equal(refundCheck.bank?.bank_account,"699512385196",'refund must display the updated bank account directly');
     assert.equal(refundCheck.pingshun?.checkout_date,"2026-10-09","Pingshun checkout date must be October 9");
@@ -346,18 +366,19 @@ async function main(){
       await render(session);
       const pair=session.ops.weekly_accounts.filter(x=>x.party==="鄭國峰（水電）");
       const visible=DISPLAY.filter(x=>x.party==="鄭國峰（水電）");
-      const payees=visible.length?visible[0]._items:[];
+      const payees=pair;
       const bankRows=session.finance.accounts.filter(x=>payees.some(p=>p.id===x.id));
       const repair=session.ops.weekly_accounts.find(x=>x.id==="vendor-xuzhiteng-jingcheng301-drain-20261013");
       const repairAccount=session.finance.accounts.find(x=>x.id===repair?.id);
       const previous=session.ops.weekly_accounts.find(x=>x.id==="old-xu-bank-source");
       return {
         items:pair.length,grouped:visible.length,
-        total:visible[0]?.amount,
-        rooms:visible[0]?.property_label,
+        total:pair.reduce((sum,x)=>sum+Number(x.amount||0),0),
+        rooms:pair.map(x=>x.property_label).join("、"),
         receipts:document.querySelectorAll('#tb button[data-receipt-url]').length,
         matchingBank:bankRows.length===2&&bankRows[0].bank_account===bankRows[1].bank_account,
-        allPending:pair.every(x=>x.status==="pending"),
+        allPaid:pair.every(x=>x.status==="paid"&&x.paid_date==="2026-10-13"),
+        zhongqingPending:DISPLAY.some(x=>x.id==="refund-zhongqing11-3a-20261013"),
         xuRepair:repair&&{party:repair.party,room:repair.property_label,item:repair.description,
           amount:repair.amount,date:repair.settlement_date,status:repair.status,receipt:repair.receipt_url},
         priorXuSettled:previous?.status==="paid",
@@ -366,13 +387,13 @@ async function main(){
       };
     });
     assert.deepEqual(lightingCheck,{
-      items:2,grouped:1,total:1500,rooms:"中清11-1B、一中7B",
-      receipts:3,matchingBank:true,allPending:true,
+      items:2,grouped:0,total:1500,rooms:"中清11-1B、一中7B",
+      receipts:1,matchingBank:true,allPaid:true,zhongqingPending:true,
       xuRepair:{party:"徐志騰（包通）",room:"精誠301",item:"通浴室管道",
         amount:1500,date:"2026-10-16",status:"pending",
         receipt:"https://drive.google.com/file/d/1zsb3p98LNFK4nSNrnvCsxp6UE74qQSkT/view?usp=drivesdk"},
       priorXuSettled:true,xuBankCopied:true,xuRowUnique:true
-    },'same-week same-vendor repairs must aggregate to 1,500 while preserving both receipts and bank accounts');
+    },'completed Zheng Guofeng transfers must no longer appear in pending and bank details remain linked');
 
     await p.goto(origin+'/mobile-login.html');
     await p.waitForURL(origin+'/index.html');
