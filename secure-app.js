@@ -400,6 +400,47 @@
       xuRepairBank.bank_account=priorXuAccount.bank_account;
     }
 
+    // 2026-10-13 checkout: retain full bank numbers only in encrypted local device storage.
+    const zhongqingRoom="中清11-3A",zhongqingDate="2026-10-13",zhongqingRefundId="refund-zhongqing11-3a-20261013";
+    const zhongqingKey=value=>String(value||"").replace(/[\\s\\-_號]/g,"").toUpperCase();
+    const isZhongqing3A=row=>zhongqingKey(row?.room||row?.code)===zhongqingKey(zhongqingRoom);
+    const zhongqingAddress=(ops.vacancies||[]).find(isZhongqing3A)?.address
+      ||(ops.rented||[]).find(isZhongqing3A)?.address
+      ||(vault.properties||[]).find(p=>isZhongqing3A(p))?.address
+      ||(vault.properties||[]).find(p=>String(p.code||"").includes("中清11"))?.address||"";
+    ops.checkouts=ops.checkouts||[];
+    const zhongqingCheckout={
+      id:"checkout-zhongqing11-3a-20261013",room:zhongqingRoom,address:zhongqingAddress,
+      checkout_date:zhongqingDate,refund_due_date:"2026-10-20",
+      refund_amount:36489,refund_status:"pending",deposit:37000,
+      meter_previous:36913,meter_current:37006,electricity_usage:93,power_rate:5.5,
+      electricity_fee:511,electricity_exact:511.5,
+      note:"本期電 37006－上期電 36913＝93 度；93×5.5 元＝511.5 元，依提供的結清電費扣 511 元（差額 0.5 元）；押金 37,000－511＝應退 36,489 元；預計 2026/10/20 退款"
+    };
+    const oldZhongqing=ops.checkouts.find(x=>isZhongqing3A(x)&&x.checkout_date===zhongqingDate);
+    if(oldZhongqing)Object.assign(oldZhongqing,zhongqingCheckout);
+    else ops.checkouts.push(zhongqingCheckout);
+    ops.weekly_accounts=ops.weekly_accounts||[];
+    const zhongqingRefund={
+      id:zhongqingRefundId,kind:"refund",party:"中清11-3A房客",property_label:zhongqingRoom,
+      description:"退租退款｜押金 37,000 元－已結清電費 511 元（精確計算 511.5 元）",
+      amount:36489,due_date:"2026-10-20",settlement_date:zhongqingDate,status:"pending"
+    };
+    const oldZhongqingRefund=ops.weekly_accounts.find(x=>x.id===zhongqingRefundId);
+    if(oldZhongqingRefund)Object.assign(oldZhongqingRefund,zhongqingRefund);
+    else ops.weekly_accounts.push(zhongqingRefund);
+    finance.accounts=finance.accounts||[];
+    let zhongqingBank=finance.accounts.find(x=>x.id===zhongqingRefundId);
+    if(!zhongqingBank){
+      zhongqingBank={id:zhongqingRefundId,bank_account:""};
+      finance.accounts.push(zhongqingBank);
+    }
+    zhongqingBank.bank_code="812";
+    zhongqingBank.bank_name="台新銀行";
+    zhongqingBank.bank_account_last4="3384";
+    zhongqingBank.secure_local=true;
+    zhongqingBank.bank_account=await readFinanceAccount(key,zhongqingRefundId);
+
     // Apply the same vacancy rule to every completed checkout, including future additions.
     // Only infer rent when the original deposit is known; never use the refund amount.
     const latestCheckouts=new Map();
@@ -431,7 +472,7 @@
       ops.rented=ops.rented.filter(r=>r.room!==room);
     }
 
-    ops.updated_at="2026-10-13T22:03:00+08:00";
+    ops.updated_at="2026-10-13T22:13:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
