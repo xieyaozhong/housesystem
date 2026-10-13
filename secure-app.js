@@ -227,6 +227,15 @@
     lampBank.bank_name=vendorBank.bank_name;
     lampBank.bank_account=vendorBank.bank_account;
 
+    // 鄭國峰（水電）2026-10-09 兩筆維修款，已於 2026-10-13 匯款。
+    for(const paidVendorId of [vendorId,lampId]){
+      const paidVendor=(ops.weekly_accounts||[]).find(x=>x.id===paidVendorId&&x.kind==="vendor");
+      if(paidVendor){
+        paidVendor.status="paid";
+        paidVendor.paid_date="2026-10-13";
+      }
+    }
+
     const pingshunRoom="平順403",pingshunDate="2026-10-09",pingshunRefundId="refund-pingshun403-20261009";
     const pingshunAddress=(ops.vacancies||[]).find(x=>x.room===pingshunRoom)?.address
       ||(ops.rented||[]).find(x=>x.room===pingshunRoom)?.address
