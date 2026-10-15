@@ -21,7 +21,12 @@
     const b64=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes)));
     localStorage.setItem(LOCAL_FINANCE_PREFIX+id,JSON.stringify({v:1,iv:b64(iv),ct:b64(encrypted)}));
     const row=(session.finance.accounts||[]).find(x=>x.id===id);
-    if(row)row.bank_account=cleaned;
+    if(row){
+      const storageId=row.account_storage_id||row.id;
+      for(const candidate of session.finance.accounts||[]){
+        if((candidate.account_storage_id||candidate.id)===storageId)candidate.bank_account=cleaned;
+      }
+    }
     return true;
   }
   async function readRefundAccount(key){
@@ -409,6 +414,41 @@
       xuRepairBank.bank_account=priorXuAccount.bank_account;
     }
 
+
+    // 2026-10-15 一代家電: 3 separate pending invoices in the 2026-10-16 Friday batch.
+    // The shared complete bank account must never be embedded in this public Pages source.
+    const yidaiAccountId="vendor-yidai-wuchang5c-aircon-20261015";
+    const yidaiAccount=await readFinanceAccount(key,yidaiAccountId);
+    const yidaiInvoices=[
+      {id:yidaiAccountId,property_label:"五常5C",description:"冷氣更換",amount:23500,
+       receipt_url:"https://drive.google.com/file/d/1ND-kZjVmNIXugxADVGhsz_JaXr-o2dKB/view?usp=drivesdk"},
+      {id:"vendor-yidai-wuquanwu202-aircon-20261015",property_label:"五權五202",description:"冷氣更換",amount:23500,
+       receipt_url:"https://drive.google.com/file/d/1tVI-QFxfjYQEQGM8ILDGlYj0UBjkLBPK/view?usp=drivesdk"},
+      {id:"vendor-yidai-shizhengaiyue-tv-20261015",property_label:"市政愛悅",description:"裝電視",amount:11000,
+       receipt_url:"https://drive.google.com/file/d/1Tq7sFav0-_rux5S5cZzpx_ElxONlvb3q/view?usp=drivesdk"}
+    ];
+    ops.weekly_accounts=ops.weekly_accounts||[];
+    finance.accounts=finance.accounts||[];
+    for(const [index,invoice] of yidaiInvoices.entries()){
+      const existingInvoice=ops.weekly_accounts.find(x=>x.id===invoice.id);
+      if(!existingInvoice){
+        ops.weekly_accounts.push({
+          ...invoice,kind:"vendor",party:"一代家電",settlement_date:"2026-10-16",status:"pending"
+        });
+      }
+      let bank=finance.accounts.find(x=>x.id===invoice.id);
+      if(!bank){
+        bank={id:invoice.id,bank_account:""};
+        finance.accounts.push(bank);
+      }
+      bank.bank_code="808";
+      bank.bank_name="玉山銀行";
+      bank.bank_account_last4="2171";
+      bank.account_storage_id=yidaiAccountId;
+      bank.secure_local=index===0;
+      if(yidaiAccount)bank.bank_account=yidaiAccount;
+    }
+
     // 2026-10-13 checkout: retain full bank numbers only in encrypted local device storage.
     const zhongqingRoom="中清11-3A",zhongqingDate="2026-10-13",zhongqingRefundId="refund-zhongqing11-3a-20261013";
     const zhongqingKey=value=>String(value||"").replace(/[\s\-號_]/g,"").toUpperCase();
@@ -481,7 +521,7 @@
       ops.rented=ops.rented.filter(r=>r.room!==room);
     }
 
-    ops.updated_at="2026-10-13T22:13:00+08:00";
+    ops.updated_at="2026-10-15T15:46:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
