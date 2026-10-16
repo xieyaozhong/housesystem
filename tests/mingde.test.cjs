@@ -9,17 +9,15 @@ const expect={
   "明德3B":{date:"2026-10-02",amount:3710,due:"2026-10-20",meter:378,fee:1890,last4:"3791"}
 };
 function session(rented=[]){return{key:{},ops:{checkouts:[],weekly_accounts:[],vacancies:[],rented},finance:{accounts:[]},vault:{properties:[]}}}
-function load(s, vault){
+function load(s, saved){
   const app={unlock:async()=>s,auto:async()=>s,loadWithKey:async()=>s};
-  const context={window:{HouseSecureApp:app,HOUSE_MINGDE_BANK_VAULT:vault||null},localStorage:{getItem:()=>null},
-    HouseTrusted:{decryptVaultWithKey:async blob=>{
-      if(blob===vault)return{v:1,accounts:{
-        "refund-mingde-2d-20261015":"999999993491",
-        "refund-mingde-3b-20261002":"888888883791"
-      }};
-      throw Error("Unexpected decrypt");
-    }}};
+  const context={window:{HouseSecureApp:app,HouseCore:{readConfig:()=>null}},
+    localStorage:{getItem:key=>saved?.[key]||null},
+    HouseTrusted:{decryptVaultWithKey:async blob=>blob},
+    console:{warn:()=>{}}};
   vm.runInNewContext(patch,context,{filename:"mingde-checkouts.js"});
+  const cloud=fs.readFileSync(path.resolve(__dirname,"../mingde-finance-cloud.js"),"utf8");
+  vm.runInNewContext(cloud,context,{filename:"mingde-finance-cloud.js"});
   return app;
 }
 test("two separate Mingde refunds, vacant rooms, and encrypted bank placeholders",async()=>{
@@ -65,11 +63,26 @@ test("a later rental does not get cleared by historical Mingde 3B checkout",asyn
   assert.equal(s.ops.vacancies.some(x=>x.room==="明德3B"),false);
   assert.equal(s.ops.checkouts.some(x=>x.room==="明德3B"),true);
 });
-test("encrypted shared vault auto-populates both Mingde bank accounts",async()=>{
+test("locally encrypted bank numbers remain visible after unlock without a sync code",async()=>{
   const s=session();
-  const fixture={v:1,iv:"encrypted-iv",ct:"encrypted-ciphertext"};
-  await load(s,fixture).loadWithKey({});
-  const rows=s.finance.accounts;
-  assert.equal(rows.find(x=>x.id==="refund-mingde-2d-20261015")?.bank_account,"999999993491");
-  assert.equal(rows.find(x=>x.id==="refund-mingde-3b-20261002")?.bank_account,"888888883791");
+  const saved={
+    "house_ops_finance_account_v1:refund-mingde-2d-20261015":JSON.stringify({id:"refund-mingde-2d-20261015",account:"999999993491"}),
+    "house_ops_finance_account_v1:refund-mingde-3b-20261002":JSON.stringify({id:"refund-mingde-3b-20261002",account:"888888883791"})
+  };
+  await load(s,saved).unlock();
+  const banks=s.finance.accounts;
+  assert.equal(banks.find(x=>x.id==="refund-mingde-2d-20261015")?.bank_account,"999999993491");
+  assert.equal(banks.find(x=>x.id==="refund-mingde-3b-20261002")?.bank_account,"888888883791");
+});
+test("sync-code interface removed while authenticated Firestore sync remains",()=>{
+  const html=fs.readFileSync(path.resolve(__dirname,"../checkout.html"),"utf8");
+  const accounts=fs.readFileSync(path.resolve(__dirname,"../mingde-finance-cloud.js"),"utf8");
+  assert.equal(html.includes("mingdeBankPanel"),false);
+  assert.equal(html.includes("加密同步碼"),false);
+  assert.equal(html.includes("mingde-bank-vault.js"),false);
+  assert.equal(html.includes("mingde-finance-cloud.js"),true);
+  assert.equal(accounts.includes("getDocFromServer"),true);
+  assert.equal(accounts.includes("runTransaction"),true);
+  assert.equal(accounts.includes("AES-GCM"),true);
+  assert.equal(accounts.includes("HouseCore?.readConfig()"),true);
 });
