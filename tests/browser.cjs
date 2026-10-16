@@ -375,6 +375,12 @@ async function main(){
       const yidaiRows=session.ops.weekly_accounts.filter(x=>x.party==="一代家電");
       const yidaiDisplayed=DISPLAY.filter(x=>x.party==="一代家電");
       const yidaiBankRows=session.finance.accounts.filter(x=>yidaiRows.some(row=>row.id===x.id));
+      const yidaiDirectBank=bankFor(yidaiDisplayed[0]);
+      const xuDirectBank=bankFor(DISPLAY.find(x=>x.id==="vendor-xuzhiteng-jingcheng301-drain-20261013"));
+      const yidaiDirectCopyReady=[...document.querySelectorAll('#tb button[data-copy="account"]')].some(button=>{
+        const row=DISPLAY[Number(button.dataset.i)];
+        return row?.party==="一代家電"&&!button.disabled;
+      });
       const yidaiSecureEntry=document.querySelector('[data-finance-id="vendor-yidai-wuchang5c-aircon-20261015"]')!==null;
       const yidaiReceiptButtons=[...document.querySelectorAll('#tb button[data-receipt-url]')].filter(b=>yidaiRows.some(x=>x.receipt_url===b.dataset.receiptUrl)).length;
       const yidaiAccountsInitiallyEmpty=yidaiBankRows.every(x=>!x.bank_account);
@@ -411,6 +417,9 @@ async function main(){
         yidaiAccountIds:yidaiBankRows.every(x=>x.account_storage_id==="vendor-yidai-wuchang5c-aircon-20261015"),
         yidaiSecureCount:yidaiBankRows.filter(x=>x.secure_local).length,
         yidaiSecureEntry,
+        yidaiDirectBank,
+        xuDirectBank,
+        yidaiDirectCopyReady,
         yidaiAccountsInitiallyEmpty,
         yidaiSharedAfterSave,yidaiAccountCopyEnabled,yidaiEncryptedStored
       };
@@ -426,7 +435,10 @@ async function main(){
       yidaiRooms:"五常5C、五權五202、市政愛悅",
       yidaiItems:[["五常5C","冷氣更換",23500],["五權五202","冷氣更換",23500],["市政愛悅","裝電視",11000]],
       yidaiPending:true,yidaiReceipts:3,yidaiBankCode:true,yidaiAccountIds:true,yidaiSecureCount:1,
-      yidaiSecureEntry:true,yidaiAccountsInitiallyEmpty:true,
+      yidaiSecureEntry:false,
+      yidaiDirectBank:{bank_code:"808",bank_name:"玉山銀行",bank_account:"0222440022171"},
+      xuDirectBank:{bank_code:"053",bank_name:"台中銀行（北太平分行）",bank_account:"025200180300"},
+      yidaiDirectCopyReady:true,yidaiAccountsInitiallyEmpty:true,
       yidaiSharedAfterSave:true,yidaiAccountCopyEnabled:true,yidaiEncryptedStored:true
     },'completed Zheng Guofeng transfers must no longer appear in pending and bank details remain linked');
 
