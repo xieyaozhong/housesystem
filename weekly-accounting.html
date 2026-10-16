@@ -7,6 +7,14 @@
 const $=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])),M=n=>"$"+Math.round(Number(n)||0).toLocaleString("zh-TW"),vendorKey=s=>String(s??"").trim().replace(/\s+/g,"").toLowerCase();let S=null,DISPLAY=[];
 function groupedPending(){const pending=S.ops.weekly_accounts.filter(x=>x.status!=="paid"),groups=new Map(),out=[];for(const r of pending){if(r.kind!=="vendor"){out.push({...r,_grouped:false});continue}const nk=vendorKey(r.party),k=(r.settlement_date||"")+"|"+(nk||("id:"+r.id));if(!groups.has(k))groups.set(k,{...r,_grouped:true,_items:[],amount:0});const g=groups.get(k);g._items.push(r);g.amount+=Number(r.amount)||0}for(const g of groups.values()){g.property_label=[...new Set(g._items.map(x=>x.property_label).filter(Boolean))].join("、");g.description=g._items.length===1?(g._items[0].description||"維修款"):("共 "+g._items.length+" 筆｜"+g._items.map(x=>[x.property_label,x.description].filter(Boolean).join("：")).filter(Boolean).join("；"));g.due_date=g._items.map(x=>x.due_date).filter(Boolean).sort()[0]||"";out.push(g)}return out.sort((x,y)=>String(x.settlement_date).localeCompare(String(y.settlement_date))||String(x.party||"").localeCompare(String(y.party||"")))}
 function bankFor(r){
+  // Only unsettled vendor payments are listed. Confirmed shared vendor bank details
+  // are displayed directly, including grouped invoices, with their leading zeros.
+  if(r.kind==="vendor"&&r.status!=="paid"){
+    const vendor=vendorKey(r.party);
+    if(vendor==="一代家電")return{bank_code:"808",bank_name:"玉山銀行",bank_account:"0222440022171"};
+    if(vendor.startsWith("徐志騰"))return{bank_code:"053",bank_name:"台中銀行（北太平分行）",bank_account:"025200180300"};
+    if(vendor.startsWith("鄭國峰"))return{bank_code:"808",bank_name:"玉山銀行",bank_account:"1159968132133"};
+  }
   if(r.kind==="refund"&&r.status!=="paid"){
     if(r.property_label==="明德2D")return{bank_code:"013",bank_name:"國泰世華",bank_account:"111506413491"};
     if(r.property_label==="明德3B")return{bank_code:"013",bank_name:"國泰世華",bank_account:"699516053791"};
