@@ -1,6 +1,7 @@
 const test=require("node:test");
 const assert=require("node:assert/strict");
 const vm=require("node:vm");
+const {TextEncoder,TextDecoder}=require("node:util");
 const fs=require("node:fs");
 const path=require("node:path");
 const patch=fs.readFileSync(path.resolve(__dirname,"../mingde-checkouts.js"),"utf8");
@@ -11,7 +12,7 @@ const expect={
 function session(rented=[]){return{key:{},ops:{checkouts:[],weekly_accounts:[],vacancies:[],rented},finance:{accounts:[]},vault:{properties:[]}}}
 function load(s, saved){
   const app={unlock:async()=>s,auto:async()=>s,loadWithKey:async()=>s};
-  const context={window:{HouseSecureApp:app,HouseCore:{readConfig:()=>null}},
+  const context={TextEncoder,TextDecoder,window:{HouseSecureApp:app,HouseCore:{readConfig:()=>null}},
     localStorage:{getItem:key=>saved?.[key]||null},
     HouseTrusted:{decryptVaultWithKey:async blob=>blob},
     console:{warn:()=>{}}};
