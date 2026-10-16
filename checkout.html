@@ -1,10 +1,62 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>家總管｜退租紀錄</title><link rel="stylesheet" href="public-style.css"><link rel="stylesheet" href="secure-style.css"></head><body>
 <div class="lock" id="lock"><div class="lockbox"><div class="ey">MOVE OUT SECURE</div><h2>退租紀錄登入</h2><p>輸入管理密碼後查看完整退款、銀行與計算資訊</p><div class="lockrow"><input id="pw" class="secure-input" type="password" autocomplete="current-password" placeholder="管理密碼"><button id="unlock" class="unlock-btn">解鎖</button></div><div id="err" class="lockerr"></div></div></div>
 <div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS · SECURE</small></div><nav class="nav"><a href="vacancy.html">空房系統</a><a class="on" href="checkout.html">退租紀錄</a><a href="weekly-accounting.html">每週帳務</a></nav><div class="foot"><button id="forget" class="secure-btn" style="width:100%">鎖定此裝置</button><a href="index.html">← 系統首頁</a></div></aside>
-<main class="main"><header class="top"><div><div class="ey">FULL MOVE-OUT RECORDS</div><h1>退租紀錄</h1><div class="sub">內部完整資料｜包含已完成退款的金額、日期、計算與銀行資訊</div></div><div class="chip" id="updated">● 已加密</div></header><section class="stats"><div class="st"><span>退租紀錄</span><b id="sAll">0</b></div><div class="st"><span>待退款</span><b id="sPending">0</b></div><div class="st"><span>已退款</span><b id="sPaid">0</b></div><div class="st"><span>待退總額</span><b id="sMoney">$0</b></div></section><section class="panel"><h2>退租完整明細</h2><div class="tbl"><table><thead><tr><th>狀態</th><th>房間</th><th>地址</th><th>點交日</th><th>應退金額</th><th>預計退款日</th><th>完成日</th><th>銀行代號</th><th>完整帳號</th><th>計算／備註</th></tr></thead><tbody id="tb"></tbody></table></div></section></main></div><script src="secure-data.js"></script><script src="trusted-device.js"></script><script src="ops-secure.js"></script><script src="finance-secure.js"></script><script src="secure-app.js"></script><script src="mingde-checkouts.js"></script><script>
+<main class="main"><header class="top"><div><div class="ey">FULL MOVE-OUT RECORDS</div><h1>退租紀錄</h1><div class="sub">內部完整資料｜包含已完成退款的金額、日期、計算與銀行資訊</div></div><div class="chip" id="updated">● 已加密</div></header><section class="stats"><div class="st"><span>退租紀錄</span><b id="sAll">0</b></div><div class="st"><span>待退款</span><b id="sPending">0</b></div><div class="st"><span>已退款</span><b id="sPaid">0</b></div><div class="st"><span>待退總額</span><b id="sMoney">$0</b></div></section><section class="panel" id="mingdeBankPanel"><h2>明德兩筆退款帳號｜加密同步</h2>
+<p class="sub">解鎖後可直接查看已儲存的完整帳號。要讓其他裝置也能免輸入，請在這裡產生加密同步碼，提供給系統管理員加入加密資料檔，切勿分享管理密碼</p>
+<div class="lockrow" style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0">
+<label class="sub" style="flex:1;min-width:200px">明德2D（末四碼 3491）<input id="mingdeBank2D" class="secure-input" style="display:block;width:100%" autocomplete="off" inputmode="numeric" spellcheck="false" placeholder="銀行帳號"></label>
+<label class="sub" style="flex:1;min-width:200px">明德3B（末四碼 3791）<input id="mingdeBank3B" class="secure-input" style="display:block;width:100%" autocomplete="off" inputmode="numeric" spellcheck="false" placeholder="銀行帳號"></label></div>
+<div class="lockrow"><button id="mingdeSeal" class="unlock-btn" type="button">儲存兩筆並產生加密同步碼</button><button id="mingdeCopySeal" class="secure-btn" type="button" hidden>複製同步碼</button></div>
+<p id="mingdeSealHint" class="sub" role="status">請先解鎖管理員帳號</p>
+<textarea id="mingdeSealResult" class="secure-input" style="width:100%;margin-top:8px" readonly rows="4" hidden aria-label="加密同步碼"></textarea>
+</section><section class="panel"><h2>退租完整明細</h2><div class="tbl"><table><thead><tr><th>狀態</th><th>房間</th><th>地址</th><th>點交日</th><th>應退金額</th><th>預計退款日</th><th>完成日</th><th>銀行代號</th><th>完整帳號</th><th>計算／備註</th></tr></thead><tbody id="tb"></tbody></table></div></section></main></div><script src="secure-data.js"></script><script src="trusted-device.js"></script><script src="ops-secure.js"></script><script src="finance-secure.js"></script><script src="secure-app.js"></script><script src="mingde-bank-vault.js"></script><script src="mingde-checkouts.js"></script><script>
 const $=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m])),M=n=>"$"+Math.round(Number(n)||0).toLocaleString("zh-TW");
 let ACTIVE_SESSION=null;
-function render(S){ACTIVE_SESSION=S;const o=S.ops,fin=new Map((S.finance.accounts||[]).map(x=>[x.id,x]));$("#lock").style.display="none";const a=o.checkouts;$("#sAll").textContent=a.length;$("#sPending").textContent=a.filter(x=>x.refund_status!=="paid").length;$("#sPaid").textContent=a.filter(x=>x.refund_status==="paid").length;$("#sMoney").textContent=M(a.filter(x=>x.refund_status!=="paid").reduce((s,x)=>s+(Number(x.refund_amount)||0),0));$("#updated").textContent="● 更新 "+new Date(o.updated_at).toLocaleString("zh-TW");$("#tb").innerHTML=a.map(r=>{const w=o.weekly_accounts.find(x=>x.kind==="refund"&&x.property_label===r.room),b=fin.get(w?.id)||{};return `<tr><td><span class="badge ${r.refund_status==="paid"?"paid":"pending"}">${r.refund_status==="paid"?"已退款":"待退款"}</span></td><td><b>${E(r.room)}</b></td><td>${E(r.address)}</td><td>${E(r.checkout_date)}</td><td class="money">${M(r.refund_amount)}</td><td>${E(r.refund_due_date||"—")}</td><td>${E(r.refund_paid_date||"—")}</td><td class="account">${E(b.bank_code||"—")}${b.bank_name?"（"+E(b.bank_name)+"）":""}</td><td class="account">${b.bank_account?E(b.bank_account):b.secure_local&&w?.id?'<div class="lockrow"><input type="text" inputmode="numeric" autocomplete="off" class="secure-input" data-refund-account placeholder="安全輸入退款帳號'+(b.bank_account_last4?'（末四碼 '+E(b.bank_account_last4)+'）':'')+'" aria-label="'+E(r.room)+'退款帳號"><button type="button" class="unlock-btn" data-save-account data-account-id="'+E(w.id)+'">加密儲存</button></div>':"—"}</td><td>${E(r.note||"—")}</td></tr>`}).join("")}
+
+const MINGDE_BANK_ROWS=[
+  {id:"refund-mingde-2d-20261015",suffix:"3491",selector:"#mingdeBank2D"},
+  {id:"refund-mingde-3b-20261002",suffix:"3791",selector:"#mingdeBank3B"}
+];
+function syncMingdeInputs(s){
+  const map=new Map((s.finance.accounts||[]).map(x=>[x.id,x]));
+  for(const entry of MINGDE_BANK_ROWS)$(entry.selector).value=map.get(entry.id)?.bank_account||"";
+  $("#mingdeSealHint").textContent=MINGDE_BANK_ROWS.every(x=>map.get(x.id)?.bank_account)
+   ?"兩筆銀行帳號已載入，可於退租表格與每週帳務直接查看"
+   :"請輸入尚未儲存的完整帳號，以便產生加密同步碼";
+}
+async function sealMingdeAccounts(){
+  if(!ACTIVE_SESSION?.key)throw Error("請先解鎖");
+  const accounts={};
+  for(const entry of MINGDE_BANK_ROWS){
+    const value=$(entry.selector).value.replace(/[\s-]/g,"");
+    if(!/^\d{6,20}$/.test(value)||!value.endsWith(entry.suffix))
+      throw Error("帳號格式有誤，請確認末四碼 "+entry.suffix);
+    accounts[entry.id]=value;
+  }
+  for(const [id,number] of Object.entries(accounts))
+    await HouseSecureApp.saveFinanceAccount(ACTIVE_SESSION,id,number);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const payload=new TextEncoder().encode(JSON.stringify({v:1,accounts}));
+  const encrypted=await crypto.subtle.encrypt({name:"AES-GCM",iv},ACTIVE_SESSION.key,payload);
+  const b64=data=>btoa(String.fromCharCode(...new Uint8Array(data)));
+  const encryptedCode=JSON.stringify({v:1,iv:b64(iv),ct:b64(encrypted)});
+  render(ACTIVE_SESSION);
+  $("#mingdeSealResult").value=encryptedCode;
+  $("#mingdeSealResult").hidden=false;
+  $("#mingdeCopySeal").hidden=false;
+  $("#mingdeSealHint").textContent="已加密儲存兩筆帳號。複製同步碼並貼回原本的 ChatGPT 對話，就能將它加入公開網站的加密資料檔";
+}
+$("#mingdeSeal").onclick=async()=>{
+  try{await sealMingdeAccounts()}
+  catch(err){$("#mingdeSealHint").textContent=err?.message||"儲存失敗"}
+};
+$("#mingdeCopySeal").onclick=async()=>{
+  const field=$("#mingdeSealResult");
+  try{await navigator.clipboard.writeText(field.value);$("#mingdeSealHint").textContent="加密同步碼已複製"}
+  catch(_){field.focus();field.select();$("#mingdeSealHint").textContent="請複製已選取的加密同步碼"}
+};
+
+function render(S){ACTIVE_SESSION=S;const o=S.ops,fin=new Map((S.finance.accounts||[]).map(x=>[x.id,x]));$("#lock").style.display="none";const a=o.checkouts;$("#sAll").textContent=a.length;$("#sPending").textContent=a.filter(x=>x.refund_status!=="paid").length;$("#sPaid").textContent=a.filter(x=>x.refund_status==="paid").length;$("#sMoney").textContent=M(a.filter(x=>x.refund_status!=="paid").reduce((s,x)=>s+(Number(x.refund_amount)||0),0));$("#updated").textContent="● 更新 "+new Date(o.updated_at).toLocaleString("zh-TW");$("#tb").innerHTML=a.map(r=>{const w=o.weekly_accounts.find(x=>x.kind==="refund"&&x.property_label===r.room),b=fin.get(w?.id)||{};return `<tr><td><span class="badge ${r.refund_status==="paid"?"paid":"pending"}">${r.refund_status==="paid"?"已退款":"待退款"}</span></td><td><b>${E(r.room)}</b></td><td>${E(r.address)}</td><td>${E(r.checkout_date)}</td><td class="money">${M(r.refund_amount)}</td><td>${E(r.refund_due_date||"—")}</td><td>${E(r.refund_paid_date||"—")}</td><td class="account">${E(b.bank_code||"—")}${b.bank_name?"（"+E(b.bank_name)+"）":""}</td><td class="account">${b.bank_account?E(b.bank_account):b.secure_local&&w?.id?'<div class="lockrow"><input type="text" inputmode="numeric" autocomplete="off" class="secure-input" data-refund-account placeholder="安全輸入退款帳號'+(b.bank_account_last4?'（末四碼 '+E(b.bank_account_last4)+'）':'')+'" aria-label="'+E(r.room)+'退款帳號"><button type="button" class="unlock-btn" data-save-account data-account-id="'+E(w.id)+'">加密儲存</button></div>':"—"}</td><td>${E(r.note||"—")}</td></tr>`}).join("");syncMingdeInputs(S)}
 $("#tb").addEventListener("click",async e=>{
   const btn=e.target.closest("button[data-save-account]");
   if(!btn||!ACTIVE_SESSION)return;

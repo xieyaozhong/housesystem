@@ -28,6 +28,14 @@
     ops.rented ||= [];
     finance.accounts ||= [];
     const storagePrefix="house_ops_finance_account_v1:";
+    let encryptedBankAccounts={};
+    if(window.HOUSE_MINGDE_BANK_VAULT){
+      try{
+        const imported=await HouseTrusted.decryptVaultWithKey(window.HOUSE_MINGDE_BANK_VAULT,key);
+        if(imported?.v===1&&imported.accounts&&typeof imported.accounts==="object")
+          encryptedBankAccounts=imported.accounts;
+      }catch(e){console.warn("Encrypted Mingde bank data unavailable",e)}
+    }
     for(const entry of updates){
       const room=entry.room,date=entry.checkout_date;
       const slug=room==="明德2D"?"mingde-2d":"mingde-3b";
@@ -64,6 +72,9 @@
           if(decoded.id===id&&/^\d{6,20}$/.test(decoded.account))bank.bank_account=decoded.account;
         }
       }catch(_){ /* Bank account can be saved after unlock. */ }
+      const sharedAccount=String(encryptedBankAccounts[id]||"");
+      if(!bank.bank_account&&/^\d{6,20}$/.test(sharedAccount)&&sharedAccount.endsWith(entry.bank_account_last4))
+        bank.bank_account=sharedAccount;
       const rentedLater=ops.rented.some(x=>x.room===room&&String(x.updated_at||x.since||"")>date);
       if(!rentedLater){
         const vacancy={

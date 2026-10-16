@@ -9,10 +9,16 @@ const expect={
   "明德3B":{date:"2026-10-02",amount:3710,due:"2026-10-20",meter:378,fee:1890,last4:"3791"}
 };
 function session(rented=[]){return{key:{},ops:{checkouts:[],weekly_accounts:[],vacancies:[],rented},finance:{accounts:[]},vault:{properties:[]}}}
-function load(s){
+function load(s, vault){
   const app={unlock:async()=>s,auto:async()=>s,loadWithKey:async()=>s};
-  const context={window:{HouseSecureApp:app},localStorage:{getItem:()=>null},
-    HouseTrusted:{decryptVaultWithKey:async()=>{throw Error("Unexpected decrypt")}}};
+  const context={window:{HouseSecureApp:app,HOUSE_MINGDE_BANK_VAULT:vault||null},localStorage:{getItem:()=>null},
+    HouseTrusted:{decryptVaultWithKey:async blob=>{
+      if(blob===vault)return{v:1,accounts:{
+        "refund-mingde-2d-20261015":"999999993491",
+        "refund-mingde-3b-20261002":"888888883791"
+      }};
+      throw Error("Unexpected decrypt");
+    }}};
   vm.runInNewContext(patch,context,{filename:"mingde-checkouts.js"});
   return app;
 }
@@ -58,4 +64,12 @@ test("a later rental does not get cleared by historical Mingde 3B checkout",asyn
   assert.equal(s.ops.rented.some(x=>x.room==="明德3B"),true);
   assert.equal(s.ops.vacancies.some(x=>x.room==="明德3B"),false);
   assert.equal(s.ops.checkouts.some(x=>x.room==="明德3B"),true);
+});
+test("encrypted shared vault auto-populates both Mingde bank accounts",async()=>{
+  const s=session();
+  const fixture={v:1,iv:"encrypted-iv",ct:"encrypted-ciphertext"};
+  await load(s,fixture).loadWithKey({});
+  const rows=s.finance.accounts;
+  assert.equal(rows.find(x=>x.id==="refund-mingde-2d-20261015")?.bank_account,"999999993491");
+  assert.equal(rows.find(x=>x.id==="refund-mingde-3b-20261002")?.bank_account,"888888883791");
 });

@@ -1,0 +1,1 @@
+window.HOUSE_MINGDE_BANK_VAULT=null;
