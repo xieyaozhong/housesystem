@@ -1,6 +1,7 @@
 window.HOUSE_PETTY_CASH_DATA={
-  updated_at:"2026-10-19T15:25:00+08:00",
+  updated_at:"2026-10-20T16:27:00+08:00",
   entries:[
+    {id:"petty-fund-maka-20261020-1474",date:"2026-10-20",manager:"馬卡",kind:"fund",item:"零用金入帳",amount:1474,receipt_label:"無",status:"active"},
     {id:"advance-maka-jinxinjie-water-20261019",date:"2026-10-19",manager:"馬卡",kind:"advance",item:"錦新街水費",amount:1474,receipt_url:"https://drive.google.com/file/d/1hiD5U-5mlkSX0UGe62OssBeEGGonPMd7/view?usp=drivesdk",status:"active"},
     {id:"petty-fund-maka-20261016",date:"2026-10-16",manager:"馬卡",kind:"fund",item:"零用金入帳",amount:3000,receipt_label:"無",status:"active"},
     {id:"petty-fund-maka-20261001",date:"2026-10-01",manager:"馬卡",kind:"fund",item:"零用金",amount:3000,receipt_label:"無",status:"active"},
