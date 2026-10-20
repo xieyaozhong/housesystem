@@ -97,3 +97,58 @@ test("paid refund accounts are omitted from current public weekly payment page",
  }
  assert.equal(weekly.includes('S.ops.weekly_accounts.filter(x=>x.status!=="paid")'),true);
 });
+
+const newCheckoutScript=fs.readFileSync(path.resolve(__dirname,"../zhongqing1a-checkout.js"),"utf8");
+function loadZhongqing1A(s){
+  const app={unlock:async()=>s,auto:async()=>s,loadWithKey:async()=>s};
+  vm.runInNewContext(newCheckoutScript,{window:{HouseSecureApp:app}});
+  return app;
+}
+test("Zhongqing 1A has an independent Oct 20 checkout and Oct 27 pending refund",async()=>{
+  const s=session();
+  const app=loadZhongqing1A(s);
+  await app.loadWithKey();
+  const c=s.ops.checkouts.find(x=>x.room==="中清1A");
+  assert.equal(c.checkout_date,"2026-10-20");
+  assert.equal(c.refund_due_date,"2026-10-27");
+  assert.equal(c.refund_status,"pending");
+  assert.equal(c.deposit,28000);
+  assert.equal(c.overpaid_rent,9334);
+  assert.equal(c.penalty_fee,11200);
+  assert.equal(c.meter_current-c.meter_previous,64);
+  assert.equal(c.electricity_fee,352);
+  assert.equal(c.deposit+c.overpaid_rent-c.penalty_fee-c.electricity_fee,25782);
+  assert.equal(c.refund_amount,25782);
+  const w=s.ops.weekly_accounts.find(x=>x.id==="refund-zhongqing1a-20261020");
+  assert.equal(w.amount,25782);
+  assert.equal(w.status,"pending");
+  assert.equal(w.due_date,"2026-10-27");
+  const b=s.finance.accounts.find(x=>x.id===w.id);
+  assert.equal(b.bank_code,"812");
+  assert.equal(b.bank_name,"台新銀行");
+  assert.equal(b.bank_account_last4,"5883");
+  assert.equal(s.ops.vacancies.find(x=>x.room==="中清1A")?.rent,14000);
+  await app.unlock();
+  assert.equal(s.ops.checkouts.filter(x=>x.room==="中清1A").length,1);
+  assert.equal(s.ops.weekly_accounts.filter(x=>x.id===w.id).length,1);
+});
+test("Zhongqing 1A paid state remains paid on subsequent unlock",async()=>{
+  const s=session();
+  s.ops.checkouts.push({id:"checkout-zhongqing1a-20261020",room:"中清1A",checkout_date:"2026-10-20",refund_status:"paid",refund_paid_date:"2026-10-27"});
+  s.ops.weekly_accounts.push({id:"refund-zhongqing1a-20261020",status:"paid",paid_date:"2026-10-27"});
+  await loadZhongqing1A(s).unlock();
+  assert.equal(s.ops.checkouts[0].refund_status,"paid");
+  assert.equal(s.ops.checkouts[0].refund_paid_date,"2026-10-27");
+  assert.equal(s.ops.weekly_accounts[0].status,"paid");
+  assert.equal(s.ops.weekly_accounts[0].paid_date,"2026-10-27");
+  assert.equal(s.finance.accounts[0].bank_account,"");
+});
+test("Zhongqing 1A payment pages include its direct account only while pending",()=>{
+  const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
+  const checkout=fs.readFileSync(path.resolve(__dirname,"../checkout.html"),"utf8");
+  assert.ok(weekly.includes('r.property_label==="中清1A"'));
+  assert.ok(weekly.includes('bank_code:"812",bank_name:"台新銀行"'));
+  assert.ok(checkout.includes('r.room==="中清1A"'));
+  assert.ok(weekly.includes('r.status!=="paid"'));
+  assert.ok(checkout.includes('r.refund_status!=="paid"'));
+});
