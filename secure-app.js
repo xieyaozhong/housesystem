@@ -461,7 +461,7 @@
     const zhongqingCheckout={
       id:"checkout-zhongqing11-3a-20261013",room:zhongqingRoom,address:zhongqingAddress,
       checkout_date:zhongqingDate,refund_due_date:"2026-10-20",
-      refund_amount:36489,refund_status:"pending",deposit:37000,
+      refund_amount:36489,refund_status:"paid",refund_paid_date:"2026-10-20",deposit:37000,
       meter_previous:36913,meter_current:37006,electricity_usage:93,power_rate:5.5,
       electricity_fee:511,electricity_exact:511.5,
       note:"本期電 37006－上期電 36913＝93 度；93×5.5 元＝511.5 元，依提供的結清電費扣 511 元（差額 0.5 元）；押金 37,000－511＝應退 36,489 元；預計 2026/10/20 退款"
@@ -473,7 +473,7 @@
     const zhongqingRefund={
       id:zhongqingRefundId,kind:"refund",party:"中清11-3A房客",property_label:zhongqingRoom,
       description:"退租退款｜押金 37,000 元－已結清電費 511 元（精確計算 511.5 元）",
-      amount:36489,due_date:"2026-10-20",settlement_date:zhongqingDate,status:"pending"
+      amount:36489,due_date:"2026-10-20",settlement_date:zhongqingDate,status:"paid",paid_date:"2026-10-20"
     };
     const oldZhongqingRefund=ops.weekly_accounts.find(x=>x.id===zhongqingRefundId);
     if(oldZhongqingRefund)Object.assign(oldZhongqingRefund,zhongqingRefund);
@@ -487,8 +487,10 @@
     zhongqingBank.bank_code="812";
     zhongqingBank.bank_name="台新銀行";
     zhongqingBank.bank_account_last4="3384";
-    zhongqingBank.secure_local=true;
-    zhongqingBank.bank_account=await readFinanceAccount(key,zhongqingRefundId);
+    zhongqingBank.secure_local=false;
+    zhongqingBank.bank_account="";
+    // The transfer is complete; delete any device-local copy of the payee account.
+    try{localStorage.removeItem(LOCAL_FINANCE_PREFIX+zhongqingRefundId)}catch(_){}
 
     // Apply the same vacancy rule to every completed checkout, including future additions.
     // Only infer rent when the original deposit is known; never use the refund amount.
@@ -521,7 +523,7 @@
       ops.rented=ops.rented.filter(r=>r.room!==room);
     }
 
-    ops.updated_at="2026-10-15T15:46:00+08:00";
+    ops.updated_at="2026-10-20T12:02:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){

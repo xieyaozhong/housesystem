@@ -13,12 +13,16 @@
   let sdkPromise;
   const accountOK=(id,value)=>typeof value==="string"&&
     /^\d{6,20}$/.test(value)&&IDS.includes(id)&&value.endsWith(LAST4[IDS.indexOf(id)]);
+  function settled(session,id){
+    return (session.ops.weekly_accounts||[]).some(row=>row.id===id&&row.status==="paid")||
+      (session.ops.checkouts||[]).some(row=>row.id===id.replace(/^refund-/,"checkout-")&&row.refund_status==="paid");
+  }
   function locallyAvailable(session){
     const rows=session.finance.accounts||[];
     const accounts={};
     for(const id of IDS){
       const val=rows.find(r=>r.id===id)?.bank_account;
-      if(accountOK(id,val))accounts[id]=val;
+      if(!settled(session,id)&&accountOK(id,val))accounts[id]=val;
     }
     return accounts;
   }
@@ -71,7 +75,7 @@
   }
   function mergeIntoSession(session,accounts){
     for(const row of session.finance.accounts||[]){
-      if(IDS.includes(row.id)&&accountOK(row.id,accounts[row.id]))row.bank_account=accounts[row.id];
+      if(IDS.includes(row.id)&&!settled(session,row.id)&&accountOK(row.id,accounts[row.id]))row.bank_account=accounts[row.id];
     }
   }
   async function push(session,sourceAccounts){
@@ -91,6 +95,21 @@
     });
     return true;
   }
+  async function purgeSettled(session,paidIds){
+    if(!paidIds.length)return;
+    const services=await backend();
+    if(!services)return;
+    const {F,db}=services,ref=F.doc(db,COLLECTION,DOC_ID);
+    await F.runTransaction(db,async tx=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists())return;
+      const previous=await decryptAccounts(snap.data(),session.key);
+      const remaining=Object.fromEntries(Object.entries(previous).filter(([id])=>!paidIds.includes(id)));
+      if(Object.keys(previous).length===Object.keys(remaining).length)return;
+      if(!Object.keys(remaining).length)tx.delete(ref);
+      else tx.set(ref,{...await encryptAccounts(remaining,session.key),updatedAt:F.serverTimestamp()});
+    });
+  }
   async function apply(session){
     if(!session?.key||!session?.finance)return session;
     let service;
@@ -100,7 +119,9 @@
     if(!service)return session;
     const {F,db}=service,ref=F.doc(db,COLLECTION,DOC_ID);
     const local=locallyAvailable(session);
+    const paidIds=IDS.filter(id=>settled(session,id));
     try{
+      await purgeSettled(session,paidIds);
       const snapshot=await F.getDocFromServer(ref);
       if(snapshot.exists()){
         const remote=await decryptAccounts(snapshot.data(),session.key);
@@ -120,6 +141,7 @@
   }
   const originalSave=api.saveFinanceAccount;
   api.saveFinanceAccount=async function(session,id,number){
+    if(IDS.includes(id)&&settled(session,id))throw Error("已退款的帳號不再接受儲存");
     const result=await originalSave.call(this,session,id,number);
     if(IDS.includes(id)){
       try{await push(session,{[id]:String(number).replace(/[\s-]/g,"")})}

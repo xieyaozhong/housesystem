@@ -219,15 +219,18 @@ async function main(){
     assert.equal(refundCheck.zhongqingCheckout?.electricity_usage,93,"Zhongqing power usage must be 93 units");
     assert.equal(refundCheck.zhongqingCheckout?.electricity_fee,511,"Zhongqing user-confirmed electricity fee must be 511");
     assert.equal(refundCheck.zhongqingCheckout?.electricity_exact,511.5,"Zhongqing calculated power fee must retain 0.5 discrepancy");
-    assert.equal(refundCheck.zhongqingCheckout?.refund_status,"pending","Zhongqing refund must remain pending until transfer");
+    assert.equal(refundCheck.zhongqingCheckout?.refund_status,"paid","Zhongqing refund is paid");
+    assert.equal(refundCheck.zhongqingCheckout?.refund_paid_date,"2026-10-20","Zhongqing paid date is recorded");
     assert.equal(refundCheck.zhongqingWeekly?.amount,36489,"Zhongqing weekly accounting must match refund");
-    assert.equal(refundCheck.zhongqingWeekly?.status,"pending","Zhongqing weekly refund must remain pending");
+    assert.equal(refundCheck.zhongqingWeekly?.status,"paid","Zhongqing weekly refund is paid");
+    assert.equal(refundCheck.zhongqingWeekly?.paid_date,"2026-10-20","Zhongqing weekly payment date is recorded");
     assert.equal(refundCheck.zhongqingVacancy?.rent,18500,"Zhongqing vacancy rent must equal half of original deposit");
     assert.equal(refundCheck.zhongqingVacancy?.power_rate,5.5,"Zhongqing vacancy electricity rate must stay at 5.5");
     assert.equal(refundCheck.zhongqingVacancy?.source,"退租轉空房","Zhongqing must be a checkout-based vacancy");
     assert.equal(refundCheck.zhongqingBank?.bank_code,"812","Zhongqing refund bank code must be 812");
-    assert.equal(refundCheck.zhongqingBank?.secure_local,true,"Zhongqing bank account must require local encrypted entry");
-    assert.equal(refundCheck.zhongqingEntry,true,"Zhongqing refund account can be securely entered after unlock");
+    assert.equal(refundCheck.zhongqingBank?.secure_local,false,"Zhongqing paid refund account does not require entry");
+    assert.equal(refundCheck.zhongqingBank?.bank_account,"","Paid Zhongqing account is cleared");
+    assert.equal(refundCheck.zhongqingEntry,false,"Zhongqing refund account entry is removed after payment");
     assert.equal(refundCheck.bank?.bank_name,"國泰世華",'refund must display Cathay United Bank name');
     assert.equal(refundCheck.bank?.bank_account,"699512385196",'refund must display the updated bank account directly');
     assert.equal(refundCheck.pingshun?.checkout_date,"2026-10-09","Pingshun checkout date must be October 9");
@@ -426,7 +429,7 @@ async function main(){
     });
     assert.deepEqual(lightingCheck,{
       items:2,grouped:0,total:1500,rooms:"中清11-1B、一中7B",
-      receipts:4,matchingBank:true,allPaid:true,zhongqingPending:true,
+      receipts:4,matchingBank:true,allPaid:true,zhongqingPending:false,
       xuRepair:{party:"徐志騰（包通）",room:"精誠301",item:"通浴室管道",
         amount:1500,date:"2026-10-16",status:"pending",
         receipt:"https://drive.google.com/file/d/1zsb3p98LNFK4nSNrnvCsxp6UE74qQSkT/view?usp=drivesdk"},

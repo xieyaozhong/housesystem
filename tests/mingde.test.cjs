@@ -21,7 +21,7 @@ function load(s, saved){
   vm.runInNewContext(cloud,context,{filename:"mingde-finance-cloud.js"});
   return app;
 }
-test("two separate Mingde refunds, vacant rooms, and encrypted bank placeholders",async()=>{
+test("two paid Mingde refunds retain their checkout history without bank accounts",async()=>{
   const s=session();
   const api=load(s);
   await api.loadWithKey({});
@@ -33,11 +33,13 @@ test("two separate Mingde refunds, vacant rooms, and encrypted bank placeholders
     assert.equal(c.refund_amount,values.amount);
     assert.equal(c.electricity_usage,values.meter);
     assert.equal(c.electricity_fee,values.fee);
-    assert.equal(c.refund_status,"pending");
+    assert.equal(c.refund_status,"paid");
+    assert.equal(c.refund_paid_date,"2026-10-20");
     const w=s.ops.weekly_accounts.find(x=>x.property_label===room&&x.kind==="refund");
     assert.ok(w,room);
     assert.equal(w.amount,values.amount);
-    assert.equal(w.status,"pending");
+    assert.equal(w.status,"paid");
+    assert.equal(w.paid_date,"2026-10-20");
     assert.equal(w.due_date,values.due);
     const v=s.ops.vacancies.find(x=>x.room===room);
     assert.ok(v,room);
@@ -47,7 +49,7 @@ test("two separate Mingde refunds, vacant rooms, and encrypted bank placeholders
     assert.equal(b.bank_code,"013");
     assert.equal(b.bank_account_last4,values.last4);
     assert.equal(b.bank_account,"");
-    assert.equal(b.secure_local,true);
+    assert.equal(b.secure_local,false);
   }
   assert.equal(s.ops.checkouts.find(x=>x.room==="明德2D").october_checkout_fee,3000);
   assert.equal(s.ops.checkouts.find(x=>x.room==="明德3B").rent_arrears,6400);
@@ -64,7 +66,7 @@ test("a later rental does not get cleared by historical Mingde 3B checkout",asyn
   assert.equal(s.ops.vacancies.some(x=>x.room==="明德3B"),false);
   assert.equal(s.ops.checkouts.some(x=>x.room==="明德3B"),true);
 });
-test("locally encrypted bank numbers remain visible after unlock without a sync code",async()=>{
+test("paid refunds do not retain previously saved bank account numbers",async()=>{
   const s=session();
   const saved={
     "house_ops_finance_account_v1:refund-mingde-2d-20261015":JSON.stringify({id:"refund-mingde-2d-20261015",account:"999999993491"}),
@@ -72,8 +74,8 @@ test("locally encrypted bank numbers remain visible after unlock without a sync 
   };
   await load(s,saved).unlock();
   const banks=s.finance.accounts;
-  assert.equal(banks.find(x=>x.id==="refund-mingde-2d-20261015")?.bank_account,"999999993491");
-  assert.equal(banks.find(x=>x.id==="refund-mingde-3b-20261002")?.bank_account,"888888883791");
+  assert.equal(banks.find(x=>x.id==="refund-mingde-2d-20261015")?.bank_account,"");
+  assert.equal(banks.find(x=>x.id==="refund-mingde-3b-20261002")?.bank_account,"");
 });
 test("sync-code interface removed while authenticated Firestore sync remains",()=>{
   const html=fs.readFileSync(path.resolve(__dirname,"../checkout.html"),"utf8");
@@ -86,4 +88,12 @@ test("sync-code interface removed while authenticated Firestore sync remains",()
   assert.equal(accounts.includes("runTransaction"),true);
   assert.equal(accounts.includes("AES-GCM"),true);
   assert.equal(accounts.includes("HouseCore?.readConfig()"),true);
+});
+
+test("paid refund accounts are omitted from current public weekly payment page",()=>{
+ const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
+ for(const room of ["明德2D","明德3B","中清11-3A"]){
+   assert.equal(weekly.includes('if(r.property_label==="'+room+'")return{bank_code:'),false);
+ }
+ assert.equal(weekly.includes('S.ops.weekly_accounts.filter(x=>x.status!=="paid")'),true);
 });

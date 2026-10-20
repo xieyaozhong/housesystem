@@ -36,7 +36,7 @@
       const address=ops.vacancies.find(findRoom)?.address||
         ops.rented.find(findRoom)?.address||
         (vault.properties||[]).find(findRoom)?.address||"";
-      const checkout={...entry,id:"checkout-"+slug+"-"+date.replaceAll("-"),address,refund_status:"pending"};
+      const checkout={...entry,id:"checkout-"+slug+"-"+date.replaceAll("-"),address,refund_status:"paid",refund_paid_date:"2026-10-20"};
       delete checkout.bank_account_last4;
       const previousCheckout=ops.checkouts.find(x=>x.id===checkout.id||
         (x.room===room&&x.checkout_date===date));
@@ -45,7 +45,7 @@
       const weekly={
         id,kind:"refund",party:room+"房客",property_label:room,
         description:"退租退款｜"+entry.note,amount:entry.refund_amount,
-        due_date:entry.refund_due_date,settlement_date:date,status:"pending"
+        due_date:entry.refund_due_date,settlement_date:date,status:"paid",paid_date:"2026-10-20"
       };
       const priorWeekly=ops.weekly_accounts.find(x=>x.id===id);
       if(priorWeekly)Object.assign(priorWeekly,weekly);
@@ -55,15 +55,10 @@
       bank.bank_code="013";
       bank.bank_name="國泰世華";
       bank.bank_account_last4=entry.bank_account_last4;
-      bank.secure_local=true;
+      bank.secure_local=false;
       bank.bank_account="";
-      try{
-        const item=localStorage.getItem(storagePrefix+id);
-        if(item){
-          const decoded=await HouseTrusted.decryptVaultWithKey(JSON.parse(item),key);
-          if(decoded.id===id&&/^\d{6,20}$/.test(decoded.account))bank.bank_account=decoded.account;
-        }
-      }catch(_){ /* Bank account can be saved after unlock. */ }
+      // Paid refunds no longer need a stored transfer account on this device.
+      try{localStorage.removeItem(storagePrefix+id)}catch(_){}
       const rentedLater=ops.rented.some(x=>x.room===room&&String(x.updated_at||x.since||"")>date);
       if(!rentedLater){
         const vacancy={
@@ -76,7 +71,7 @@
         ops.rented=ops.rented.filter(x=>x.room!==room);
       }
     }
-    ops.updated_at="2026-10-15T19:36:00+08:00";
+    ops.updated_at="2026-10-20T12:02:00+08:00";
     return session;
   }
   for(const method of ["unlock","auto","loadWithKey"]){
