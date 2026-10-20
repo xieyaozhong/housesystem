@@ -15,7 +15,7 @@ function bankFor(r){
     if(vendor.startsWith("徐志騰"))return{bank_code:"053",bank_name:"台中銀行（北太平分行）",bank_account:"025200180300"};
     if(vendor.startsWith("鄭國峰"))return{bank_code:"808",bank_name:"玉山銀行",bank_account:"1159968132133"};
   }
-  if(r.kind==="refund"&&r.status!=="paid"&&r.property_label==="中清9-1A")
+  if(r.kind==="refund"&&r.status!=="paid"&&r.property_label==="中清1A")
     return{bank_code:"812",bank_name:"台新銀行",bank_account:"21091000525883"};
 
 const fm=new Map((S.finance.accounts||[]).map(x=>[x.id,x])),ids=r._grouped?r._items.map(x=>x.id):[r.id],rows=ids.map(id=>fm.get(id)||{}),codes=[...new Set(rows.map(x=>x.bank_code).filter(Boolean))],accounts=[...new Set(rows.map(x=>x.bank_account).filter(Boolean))],names=[...new Set(rows.map(x=>x.bank_name).filter(Boolean))];if(codes.length>1||accounts.length>1||names.length>1)return{bank_code:"⚠ 帳號不一致",bank_account:"請逐筆確認",bank_name:""};return{bank_code:codes[0]||"—",bank_account:accounts[0]||"—",bank_name:names[0]||""}}
