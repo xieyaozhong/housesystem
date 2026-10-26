@@ -192,3 +192,59 @@ test("Zhongqing 1A refund pages display corrected identity and bank while pendin
   assert.equal(weekly.includes('r.property_label==="中清9-1A"'),false);
   assert.equal(checkout.includes('r.room==="中清9-1A"'),false);
 });
+
+const mingde2AScript=fs.readFileSync(path.resolve(__dirname,"../mingde2a-checkout.js"),"utf8");
+function loadMingde2A(s){
+ const app={unlock:async()=>s,auto:async()=>s,loadWithKey:async()=>s};
+ vm.runInNewContext(mingde2AScript,{window:{HouseSecureApp:app}});
+ return app;
+}
+test("Mingde 2A Oct 27 refund uses verified arithmetic and does not duplicate",async()=>{
+ const s=session();
+ const app=loadMingde2A(s);
+ await app.loadWithKey();
+ const c=s.ops.checkouts.find(x=>x.room==="明德2A");
+ assert.ok(c);
+ assert.equal(c.checkout_date,"2026-10-15");
+ assert.equal(c.refund_due_date,"2026-10-27");
+ assert.equal(c.refund_status,"pending");
+ assert.equal(c.meter_current-c.meter_previous,479);
+ assert.equal(c.power_rate,5);
+ assert.equal(c.electricity_fee,2395);
+ assert.equal(c.deposit+c.termination_compensation+c.internet_subsidy-c.october_rent-c.other_fee-c.electricity_fee,12755);
+ assert.equal(c.refund_amount,12755);
+ const w=s.ops.weekly_accounts.find(x=>x.id==="refund-mingde-2a-20261015");
+ assert.ok(w);
+ assert.equal(w.amount,12755);
+ assert.equal(w.status,"pending");
+ assert.equal(w.due_date,"2026-10-27");
+ const bank=s.finance.accounts.find(x=>x.id===w.id);
+ assert.equal(bank.bank_code,"812");
+ assert.equal(bank.bank_name,"台新銀行");
+ assert.equal(bank.bank_account_last4,"1568");
+ assert.equal(s.ops.vacancies.find(x=>x.room==="明德2A")?.rent,6000);
+ await app.unlock();
+ assert.equal(s.ops.checkouts.filter(x=>x.room==="明德2A").length,1);
+ assert.equal(s.ops.weekly_accounts.filter(x=>x.id===w.id).length,1);
+});
+test("Mingde 2A paid state is not reverted on future logins",async()=>{
+ const s=session();
+ s.ops.checkouts.push({id:"checkout-mingde-2a-20261015",room:"明德2A",checkout_date:"2026-10-15",refund_status:"paid",refund_paid_date:"2026-10-27"});
+ s.ops.weekly_accounts.push({id:"refund-mingde-2a-20261015",status:"paid",paid_date:"2026-10-27"});
+ await loadMingde2A(s).unlock();
+ assert.equal(s.ops.checkouts[0].refund_status,"paid");
+ assert.equal(s.ops.checkouts[0].refund_paid_date,"2026-10-27");
+ assert.equal(s.ops.weekly_accounts[0].status,"paid");
+ assert.equal(s.ops.weekly_accounts[0].paid_date,"2026-10-27");
+ assert.equal(s.finance.accounts[0].bank_account,"");
+});
+test("Mingde 2A account is shown only for pending refunds",()=>{
+ const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
+ const checkout=fs.readFileSync(path.resolve(__dirname,"../checkout.html"),"utf8");
+ const build=fs.readFileSync(path.resolve(__dirname,"../scripts/build.mjs"),"utf8");
+ assert.ok(weekly.includes('r.property_label==="明德2A"'));
+ assert.ok(weekly.includes('r.status!=="paid"'));
+ assert.ok(checkout.includes('r.room==="明德2A"&&r.refund_status!=="paid"'));
+ assert.ok(weekly.includes('bank_name:"台新銀行"'));
+ assert.ok(build.includes("'mingde2a-checkout.js'"));
+});
