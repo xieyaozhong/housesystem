@@ -35,6 +35,7 @@ async function apply(s){
     if(prior)Object.assign(prior,vacant);else ops.vacancies.push(vacant);
     ops.rented=ops.rented.filter(x=>!match(x));
   }
+  ops.updated_at="2026-10-26T15:48:00+08:00";
   return s;
 }
 for(const method of ["unlock","auto","loadWithKey"]){
