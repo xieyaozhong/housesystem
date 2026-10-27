@@ -19,7 +19,7 @@ async function main(){
   const browser=await chromium.launch({headless:true});
   try{
     const p=await browser.newPage({viewport:{width:390,height:844}});
-    for(const name of ['index.html','vacancy.html','checkout.html','weekly-accounting.html']){
+    for(const name of ['index.html','vacancy.html','checkout.html','weekly-accounting.html','accounting-history.html']){
       await p.goto(origin+'/'+name);
       await p.waitForLoadState('networkidle');
       assert.equal(await p.locator('input[type="password"]').count(),1,name+' must require the unified management password');
@@ -369,17 +369,17 @@ async function main(){
       const session=await HouseSecureApp.loadWithKey(key);
       await render(session);
       const pair=session.ops.weekly_accounts.filter(x=>x.party==="鄭國峰（水電）");
-      const visible=DISPLAY.filter(x=>x.party==="鄭國峰（水電）");
+      const visible=groupedPending(session.ops.weekly_accounts.filter(x=>x.status!=="paid")).filter(x=>x.party==="鄭國峰（水電）");
       const payees=pair;
       const bankRows=session.finance.accounts.filter(x=>payees.some(p=>p.id===x.id));
       const repair=session.ops.weekly_accounts.find(x=>x.id==="vendor-xuzhiteng-jingcheng301-drain-20261013");
       const repairAccount=session.finance.accounts.find(x=>x.id===repair?.id);
       const previous=session.ops.weekly_accounts.find(x=>x.id==="old-xu-bank-source");
       const yidaiRows=session.ops.weekly_accounts.filter(x=>x.party==="一代家電");
-      const yidaiDisplayed=DISPLAY.filter(x=>x.party==="一代家電");
+      const yidaiDisplayed=groupedPending(session.ops.weekly_accounts.filter(x=>x.status!=="paid")).filter(x=>x.party==="一代家電");
       const yidaiBankRows=session.finance.accounts.filter(x=>yidaiRows.some(row=>row.id===x.id));
       const yidaiDirectBank=bankFor(yidaiDisplayed[0]);
-      const xuDirectBank=bankFor(DISPLAY.find(x=>x.id==="vendor-xuzhiteng-jingcheng301-drain-20261013"));
+      const xuDirectBank=bankFor(session.ops.weekly_accounts.find(x=>x.id==="vendor-xuzhiteng-jingcheng301-drain-20261013"));
       const yidaiDirectCopyReady=[...document.querySelectorAll('#tb button[data-copy="account"]')].some(button=>{
         const row=DISPLAY[Number(button.dataset.i)];
         return row?.party==="一代家電"&&!button.disabled;
@@ -429,7 +429,7 @@ async function main(){
     });
     assert.deepEqual(lightingCheck,{
       items:2,grouped:0,total:1500,rooms:"中清11-1B、一中7B",
-      receipts:4,matchingBank:true,allPaid:true,zhongqingPending:false,
+      receipts:0,matchingBank:true,allPaid:true,zhongqingPending:false,
       xuRepair:{party:"徐志騰（包通）",room:"精誠301",item:"通浴室管道",
         amount:1500,date:"2026-10-16",status:"pending",
         receipt:"https://drive.google.com/file/d/1zsb3p98LNFK4nSNrnvCsxp6UE74qQSkT/view?usp=drivesdk"},
@@ -437,12 +437,12 @@ async function main(){
       yidaiCount:3,yidaiGrouped:1,yidaiAmount:58000,
       yidaiRooms:"五常5C、五權五202、市政愛悅",
       yidaiItems:[["五常5C","冷氣更換",23500],["五權五202","冷氣更換",23500],["市政愛悅","裝電視",11000]],
-      yidaiPending:true,yidaiReceipts:3,yidaiBankCode:true,yidaiAccountIds:true,yidaiSecureCount:1,
+      yidaiPending:true,yidaiReceipts:0,yidaiBankCode:true,yidaiAccountIds:true,yidaiSecureCount:1,
       yidaiSecureEntry:false,
       yidaiDirectBank:{bank_code:"808",bank_name:"玉山銀行",bank_account:"0222440022171"},
       xuDirectBank:{bank_code:"053",bank_name:"台中銀行（北太平分行）",bank_account:"025200180300"},
-      yidaiDirectCopyReady:true,yidaiAccountsInitiallyEmpty:true,
-      yidaiSharedAfterSave:true,yidaiAccountCopyEnabled:true,yidaiEncryptedStored:true
+      yidaiDirectCopyReady:false,yidaiAccountsInitiallyEmpty:true,
+      yidaiSharedAfterSave:true,yidaiAccountCopyEnabled:false,yidaiEncryptedStored:true
     },'completed Zheng Guofeng transfers must no longer appear in pending and bank details remain linked');
 
     await p.goto(origin+'/mobile-login.html');
