@@ -8,8 +8,8 @@ async function apply(s){
  const room="南屯643-301",date="2026-10-14",id="refund-nantun643-301-20261014",cid="checkout-nantun643-301-20261014";
  const old=o.checkouts.find(x=>x.id===cid||(x.room===room&&x.checkout_date===date));
  const prior=o.weekly_accounts.find(x=>x.id===id||(x.kind==="refund"&&x.property_label===room&&x.settlement_date===date));
- const paid=old?.refund_status==="paid"||prior?.status==="paid";
- const when=old?.refund_paid_date||prior?.paid_date;
+ const paid=true;
+ const when="2026-10-27";
  const c={id:cid,room,checkout_date:date,refund_due_date:"2026-10-27",refund_amount:28588,
   deposit:38000,previous_overpayment:289,meter_previous:12842,meter_current:13600,
   electricity_usage:758,power_rate:5.5,electricity_fee:4169,utilities_status:"settled",
@@ -33,7 +33,7 @@ async function apply(s){
   if(previous)Object.assign(previous,v);else o.vacancies.push(v);
   o.rented=o.rented.filter(x=>x.room!==room);
  }
- o.updated_at="2026-10-27T15:27:00+08:00";
+ o.updated_at="2026-10-27T22:33:00+08:00";
  return s;
 }
 for(const m of ["unlock","auto","loadWithKey"]){
