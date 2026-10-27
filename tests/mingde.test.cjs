@@ -104,7 +104,7 @@ function loadZhongqing1A(s){
   vm.runInNewContext(newCheckoutScript,{window:{HouseSecureApp:app}});
   return app;
 }
-test("Zhongqing 1A Oct 20 pending refund has consistent amount, complete breakdown and Oct 27 due date",async()=>{
+test("Zhongqing 1A Oct 20 paid refund has consistent amount, complete breakdown and Oct 27 due date",async()=>{
   const s=session();
   const app=loadZhongqing1A(s);
   await app.loadWithKey();
@@ -112,7 +112,8 @@ test("Zhongqing 1A Oct 20 pending refund has consistent amount, complete breakdo
   assert.ok(c);
   assert.equal(c.checkout_date,"2026-10-20");
   assert.equal(c.refund_due_date,"2026-10-27");
-  assert.equal(c.refund_status,"pending");
+  assert.equal(c.refund_status,"paid");
+  assert.equal(c.refund_paid_date,"2026-10-27");
   assert.equal(c.deposit,28000);
   assert.equal(c.overpaid_rent,9334);
   assert.equal(c.short_term_penalty,11200);
@@ -129,7 +130,8 @@ test("Zhongqing 1A Oct 20 pending refund has consistent amount, complete breakdo
   assert.ok(w);
   assert.equal(w.party,"中清1A房客");
   assert.equal(w.amount,11782);
-  assert.equal(w.status,"pending");
+  assert.equal(w.status,"paid");
+  assert.equal(w.paid_date,"2026-10-27");
   assert.equal(w.due_date,"2026-10-27");
   assert.equal(w.description.includes("待核對"),false);
   const b=s.finance.accounts.find(x=>x.id===w.id);
@@ -154,11 +156,13 @@ test("incorrect Zhongqing 9-1A record migrates into 1A without duplicate history
   assert.equal(s.ops.checkouts.length,1);
   assert.equal(s.ops.checkouts[0].id,"checkout-zhongqing1a-20261020");
   assert.equal(s.ops.checkouts[0].room,"中清1A");
-  assert.equal(s.ops.checkouts[0].refund_status,"pending");
+  assert.equal(s.ops.checkouts[0].refund_status,"paid");
+  assert.equal(s.ops.checkouts[0].refund_paid_date,"2026-10-27");
   assert.equal(s.ops.checkouts[0].refund_amount,11782);
   assert.equal(s.ops.weekly_accounts.length,1);
   assert.equal(s.ops.weekly_accounts[0].id,"refund-zhongqing1a-20261020");
-  assert.equal(s.ops.weekly_accounts[0].status,"pending");
+  assert.equal(s.ops.weekly_accounts[0].status,"paid");
+  assert.equal(s.ops.weekly_accounts[0].paid_date,"2026-10-27");
   assert.equal(s.ops.weekly_accounts[0].amount,11782);
   assert.equal(s.finance.accounts.length,1);
   assert.equal(s.finance.accounts[0].id,"refund-zhongqing1a-20261020");
@@ -207,7 +211,8 @@ test("Mingde 2A Oct 27 refund uses verified arithmetic and does not duplicate",a
  assert.ok(c);
  assert.equal(c.checkout_date,"2026-10-15");
  assert.equal(c.refund_due_date,"2026-10-27");
- assert.equal(c.refund_status,"pending");
+ assert.equal(c.refund_status,"paid");
+ assert.equal(c.refund_paid_date,"2026-10-27");
  assert.equal(c.meter_current-c.meter_previous,479);
  assert.equal(c.power_rate,5);
  assert.equal(c.electricity_fee,2395);
@@ -216,7 +221,8 @@ test("Mingde 2A Oct 27 refund uses verified arithmetic and does not duplicate",a
  const w=s.ops.weekly_accounts.find(x=>x.id==="refund-mingde-2a-20261015");
  assert.ok(w);
  assert.equal(w.amount,12755);
- assert.equal(w.status,"pending");
+ assert.equal(w.status,"paid");
+ assert.equal(w.paid_date,"2026-10-27");
  assert.equal(w.due_date,"2026-10-27");
  const bank=s.finance.accounts.find(x=>x.id===w.id);
  assert.equal(bank.bank_code,"812");
@@ -300,7 +306,8 @@ test("Nantun 643-301 refund is 28,588 due Tuesday Oct 27, with 758-unit electric
   assert.ok(c);
   assert.equal(c.checkout_date,"2026-10-14");
   assert.equal(c.refund_due_date,"2026-10-27");
-  assert.equal(c.refund_status,"pending");
+  assert.equal(c.refund_status,"paid");
+  assert.equal(c.refund_paid_date,"2026-10-27");
   assert.equal(c.deposit,38000);
   assert.equal(c.previous_overpayment,289);
   assert.equal(c.meter_current-c.meter_previous,758);
@@ -313,7 +320,8 @@ test("Nantun 643-301 refund is 28,588 due Tuesday Oct 27, with 758-unit electric
   assert.ok(w);
   assert.equal(w.amount,28588);
   assert.equal(w.due_date,"2026-10-27");
-  assert.equal(w.status,"pending");
+  assert.equal(w.status,"paid");
+  assert.equal(w.paid_date,"2026-10-27");
   assert.equal(w.property_label,"南屯643-301");
   const b=s.finance.accounts.find(x=>x.id===w.id);
   assert.equal(b.bank_code,"700");
@@ -358,4 +366,29 @@ test("Nantun 643-301 is loaded in all pages, shows postal payout account while p
   const ctx={window:{},Date,Intl};
   vm.runInNewContext(periods,ctx);
   assert.equal(ctx.window.HouseAccounting.period({kind:"refund",settlement_date:"2026-10-14",due_date:"2026-10-27"}),"2026-10-27");
+});
+
+test("three Oct 27 refunds stay paid even if encrypted source still says pending",async()=>{
+ for(const [room,checkoutId,weeklyId,amount,load] of [
+  ["南屯643-301","checkout-nantun643-301-20261014","refund-nantun643-301-20261014",28588,loadNantun],
+  ["明德2A","checkout-mingde-2a-20261015","refund-mingde-2a-20261015",12755,loadMingde2A],
+  ["中清1A","checkout-zhongqing1a-20261020","refund-zhongqing1a-20261020",11782,loadZhongqing1A]
+ ]){
+   const s=session();
+   s.ops.checkouts.push({id:checkoutId,room,refund_status:"pending"});
+   s.ops.weekly_accounts.push({id:weeklyId,kind:"refund",property_label:room,status:"pending"});
+   const app=load(s);
+   await app.unlock();
+   const c=s.ops.checkouts.find(x=>x.id===checkoutId);
+   const w=s.ops.weekly_accounts.find(x=>x.id===weeklyId);
+   assert.equal(c.refund_status,"paid",room+" checkout status");
+   assert.equal(c.refund_paid_date,"2026-10-27",room+" paid date");
+   assert.equal(w.status,"paid",room+" weekly account status");
+   assert.equal(w.paid_date,"2026-10-27",room+" weekly paid date");
+   assert.equal(w.amount,amount,room+" paid amount");
+   assert.ok(s.finance.accounts.find(x=>x.id===weeklyId)?.bank_account==="");
+   await app.loadWithKey();
+   assert.equal(s.ops.weekly_accounts.filter(x=>x.id===weeklyId).length,1);
+   assert.equal(s.ops.checkouts.filter(x=>x.id===checkoutId).length,1);
+ }
 });
