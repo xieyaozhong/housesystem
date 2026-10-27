@@ -14,9 +14,9 @@
     const weeklyMatches=ops.weekly_accounts.filter(x=>x.id===id||x.id===legacyId);
     const old=checkoutMatches.find(x=>x.id===checkoutId)||checkoutMatches[0];
     const previous=weeklyMatches.find(x=>x.id===id)||weeklyMatches[0];
-    const paid=checkoutMatches.some(x=>x.refund_status==="paid")||weeklyMatches.some(x=>x.status==="paid");
-    const paidAt=checkoutMatches.find(x=>x.refund_paid_date)?.refund_paid_date||
-      weeklyMatches.find(x=>x.paid_date)?.paid_date;
+    // Zhongqing 9-1A was corrected to 1A; this is one refund, now paid.
+    const paid=true;
+    const paidAt="2026-10-27";
     ops.checkouts=ops.checkouts.filter(x=>!checkoutMatches.includes(x)||x===old);
     ops.weekly_accounts=ops.weekly_accounts.filter(x=>!weeklyMatches.includes(x)||x===previous);
     const checkout={id:checkoutId,room,address,checkout_date:date,refund_due_date:"2026-10-27",refund_amount:11782,calculated_refund_amount:11782,
@@ -42,7 +42,7 @@
       const prior=ops.vacancies.find(isRoom);if(prior)Object.assign(prior,vacant);else ops.vacancies.push(vacant);
       ops.rented=ops.rented.filter(x=>!isRoom(x));
     }
-    ops.updated_at="2026-10-20T15:12:00+08:00";
+    ops.updated_at="2026-10-27T22:33:00+08:00";
     return s;
   }
   for(const method of ["unlock","auto","loadWithKey"]){
