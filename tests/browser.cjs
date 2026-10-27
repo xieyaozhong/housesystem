@@ -128,7 +128,7 @@ async function main(){
     assert.equal(checkout.includes('HOUSE_PUBLIC_DATA'),false,'checkout must only use encrypted data');
     assert.equal(checkout.includes('b.bank_name'),true,'checkout must render refund bank name when present');
     assert.equal(weekly.includes('HOUSE_PUBLIC_DATA'),false,'finance must only use encrypted data');
-    assert.equal(weekly.includes('function groupedPending()'),true,'finance must preserve same-vendor weekly aggregation');
+    assert.equal(weekly.includes('function groupedPending(rows)'),true,'finance must preserve same-vendor weekly aggregation');
     assert.equal(weekly.includes('x.status!=="paid"'),true,'finance must continue hiding completed transfers from the pending list');
     assert.equal(weekly.includes('複製帳號'),true,'finance must provide one-tap account copy');
     assert.equal(weekly.includes('複製完整資訊'),true,'finance must provide one-tap full-info copy');
