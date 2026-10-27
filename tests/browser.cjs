@@ -31,6 +31,54 @@ async function main(){
       assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,name+' must fit mobile width');
     }
 
+    // History page: no plaintext before login, retain older paid/unpaid transactions,
+    // and exclude current-week records by default while allowing explicit inclusion.
+    await p.goto(origin+'/accounting-history.html');
+    await p.waitForLoadState('networkidle');
+    const historyCheck=await p.evaluate(async()=>{
+      const H=HouseAccounting,cycle=H.current(),previous=H.addDays(cycle,-7);
+      const oldFriday=H.addDays(previous,-4);
+      window.HOUSE_PETTY_CASH_DATA={entries:[
+        {id:"old-fund",date:previous,manager:"馬卡",kind:"fund",item:"之前入帳",amount:500,status:"active"},
+        {id:"current-fund",date:cycle,manager:"馬卡",kind:"fund",item:"本週入帳",amount:100,status:"active"}
+      ]};
+      HouseSecureApp.unlock=async()=>({
+        ops:{updated_at:"2026-10-20T12:00:00+08:00",weekly_accounts:[
+          {id:"vendor-old-paid",kind:"vendor",party:"歷史已付廠商",property_label:"A101",
+            description:"舊維修",amount:1000,settlement_date:oldFriday,status:"paid",paid_date:previous},
+          {id:"vendor-old-pending",kind:"vendor",party:"歷史未付廠商",property_label:"B102",
+            description:"舊欠款",amount:500,settlement_date:oldFriday,status:"pending"},
+          {id:"refund-current",kind:"refund",party:"本期退款房客",property_label:"C103",
+            description:"押金退還",amount:2222,settlement_date:H.addDays(cycle,-5),
+            due_date:cycle,status:"pending"}
+        ]},finance:{accounts:[]},vault:{properties:[]}
+      });
+      document.querySelector('#unlock').click();
+      await new Promise(resolve=>setTimeout(resolve,30));
+      const archive=HouseHistoryDebug.filtered();
+      const archiveAmount=document.querySelector('#nAmount').textContent;
+      const archiveUnpaid=document.querySelector('#nUnpaid').textContent;
+      document.querySelector('#includeCurrent').click();
+      const total=HouseHistoryDebug.filtered();
+      document.querySelector('#kind').value='refund';
+      document.querySelector('#kind').dispatchEvent(new Event('change'));
+      const refunds=HouseHistoryDebug.filtered();
+      document.querySelector('#keyword').value='本期退款';
+      document.querySelector('#keyword').dispatchEvent(new Event('input'));
+      const search=HouseHistoryDebug.filtered();
+      return {archiveIds:archive.map(x=>x.id).sort(),
+        archiveAmount,archiveUnpaid,totalCount:total.length,
+        refundCount:refunds.length,searchIds:search.map(x=>x.id),
+        cycle:HouseAccounting.period({kind:"vendor",settlement_date:oldFriday}),expected:previous};
+    });
+    assert.deepEqual(historyCheck.archiveIds,['old-fund','vendor-old-paid','vendor-old-pending']);
+    assert.equal(historyCheck.archiveAmount,"$1,500");
+    assert.equal(historyCheck.archiveUnpaid,"$500");
+    assert.equal(historyCheck.totalCount,5);
+    assert.equal(historyCheck.refundCount,1);
+    assert.deepEqual(historyCheck.searchIds,['refund-current']);
+    assert.equal(historyCheck.cycle,historyCheck.expected);
+
     const opsSource=fs.readFileSync(path.join(root,'ops-secure.js'),'utf8');
     const financeSource=fs.readFileSync(path.join(root,'finance-secure.js'),'utf8');
     const pettySource=fs.readFileSync(path.join(root,'petty-cash-data.js'),'utf8');
