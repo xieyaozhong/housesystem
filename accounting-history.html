@@ -1,0 +1,35 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>家總管｜歷史帳務</title><link rel="stylesheet" href="public-style.css"><link rel="stylesheet" href="secure-style.css"><style>
+.history-filter{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0 18px}
+.history-filter label{display:flex;flex-direction:column;gap:6px;color:#aebfd3;font-size:13px;font-weight:650}
+.history-filter input,.history-filter select{box-sizing:border-box;width:100%;border:1px solid #34506b;background:#0d1d30;color:#f1f7ff;border-radius:10px;padding:10px 11px;min-height:44px}
+.history-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0}
+.history-controls label{display:flex;gap:9px;align-items:center;color:#dbe6f2;font-size:14px}
+.history-controls input{accent-color:#49bc97;min-width:18px;min-height:18px}
+.history-controls button{border:1px solid #34516f;background:#122a43;color:#eaf4ff;border-radius:9px;padding:10px 14px;cursor:pointer}
+.record-status{display:inline-block;white-space:nowrap;border:1px solid #426080;border-radius:999px;padding:4px 8px;font-size:12px}
+.record-status.paid{color:#a9efc9;border-color:#2c7955}
+.record-status.pending{color:#ffca8e;border-color:#a4793d}
+.history-note{color:#9db2c9;line-height:1.7}
+.history-receipt{display:inline-block;border:1px solid #34516f;border-radius:8px;padding:6px 10px;color:#b6d8ff;text-decoration:none;white-space:nowrap}
+.history-table td{vertical-align:top;max-width:280px;overflow-wrap:anywhere}
+.history-table td:nth-child(5),.history-table td:nth-child(6){min-width:130px}
+.history-empty{text-align:center;padding:28px 16px;color:#9db2c9}
+</style></head><body>
+<div class="lock" id="lock"><div class="lockbox"><div class="ey">HISTORY SECURE</div><h2>歷史帳務登入</h2><p>輸入管理密碼後查詢歷年帳務及零用金紀錄</p><div class="lockrow"><input id="pw" class="secure-input" type="password" autocomplete="current-password" placeholder="管理密碼"><button id="unlock" class="unlock-btn">解鎖</button></div><div id="err" class="lockerr"></div></div></div>
+<div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS · SECURE</small></div><nav class="nav"><a href="vacancy.html">空房系統</a><a href="checkout.html">退租紀錄</a><a href="weekly-accounting.html">每週帳務</a><a class="on" href="accounting-history.html">歷史帳務</a></nav><div class="foot"><button id="forget" class="secure-btn" style="width:100%">鎖定此裝置</button><a href="index.html">← 系統首頁</a></div></aside>
+<main class="main"><header class="top"><div><div class="ey">ACCOUNTING ARCHIVE</div><h1>歷史帳務查詢</h1><div class="sub">帳務不刪除，只依週二結算週期分類｜可查過往已付、未付、零用金及代墊</div></div><div class="chip" id="updated">● 已加密</div></header>
+<section class="stats"><div class="st"><span>查詢筆數</span><b id="nRows">0</b></div><div class="st"><span>帳務金額合計</span><b id="nAmount">$0</b></div><div class="st"><span>未付款項</span><b id="nUnpaid">$0</b></div><div class="st"><span>零用金淨額</span><b id="nPetty">$0</b></div></section>
+<section class="panel"><h2>查詢條件</h2><p class="history-note">每週三至隔週二為同一期；原有週五廠商結算日歸到下一個週二。日期範圍以週二結算日為準，資料保留原始單據日期。未排定日期的帳務也可透過「全部」查到。</p>
+<div class="history-controls"><label><input id="includeCurrent" type="checkbox">包含本期（預設僅歷史週期）</label><button type="button" id="clearFilters">清除篩選</button><button type="button" id="exportCsv">匯出查詢結果 CSV</button></div>
+<div class="history-filter">
+<label>週二結算週期<select id="cycle"><option value="">全部歷史週期</option></select></label>
+<label>起始結算日<input id="startDate" type="date"></label>
+<label>截止結算日<input id="endDate" type="date"></label>
+<label>帳務類型<select id="kind"><option value="">全部類型</option><option value="vendor">廠商款</option><option value="refund">退租退款</option><option value="fund">零用金入帳</option><option value="advance">代墊</option><option value="advance_repaid">代墊歸還</option><option value="petty_expense">零用金支出</option></select></label>
+<label>付款狀態<select id="status"><option value="">全部狀態</option><option value="paid">已支付／已記帳</option><option value="pending">待付款／未結清</option></select></label>
+<label>關鍵字（廠商、房間、項目）<input id="keyword" type="search" placeholder="例如：明德2A、馬卡、冷氣"></label>
+</div><p class="sub" id="filterInfo">—</p></section>
+<section class="panel"><h2>帳務歷史明細</h2><div class="tbl"><table class="history-table"><thead><tr><th>週二結算日</th><th>原始日期</th><th>類型</th><th>收款人／代管人</th><th>物件</th><th>項目／摘要</th><th>金額</th><th>付款狀態</th><th>完成日期</th><th>銀行／末四碼</th><th>收據</th></tr></thead><tbody id="historyTb"></tbody></table></div></section>
+</main></div>
+<script src="secure-data.js"></script><script src="trusted-device.js"></script><script src="ops-secure.js"></script><script src="finance-secure.js"></script><script src="petty-cash-data.js"></script><script src="secure-app.js"></script><script src="mingde-checkouts.js"></script><script src="zhongqing1a-checkout.js"></script><script src="mingde2a-checkout.js"></script><script src="house-core.js"></script><script src="mingde-finance-cloud.js"></script><script src="accounting-periods.js"></script><script src="accounting-history.js"></script></body></html>
