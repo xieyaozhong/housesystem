@@ -248,3 +248,40 @@ test("Mingde 2A account is shown only for pending refunds",()=>{
  assert.ok(weekly.includes('bank_name:"台新銀行"'));
  assert.ok(build.includes("'mingde2a-checkout.js'"));
 });
+
+test("Tuesday cycles group Wednesday through Tuesday and preserve Friday vendor settlement dates",()=>{
+  const src=fs.readFileSync(path.resolve(__dirname,"../accounting-periods.js"),"utf8");
+  const world={window:{},Date,Intl};
+  vm.runInNewContext(src,world,{filename:"accounting-periods.js"});
+  const H=world.window.HouseAccounting;
+  assert.equal(H.tuesday("2026-10-20"),"2026-10-20");
+  assert.equal(H.tuesday("2026-10-21"),"2026-10-27");
+  assert.equal(H.tuesday("2026-10-27"),"2026-10-27");
+  assert.equal(H.tuesday("2026-10-28"),"2026-11-03");
+  assert.equal(H.start("2026-10-27"),"2026-10-21");
+  assert.equal(H.period({kind:"vendor",settlement_date:"2026-10-16"}),"2026-10-20");
+  assert.equal(H.period({kind:"refund",settlement_date:"2026-10-15",due_date:"2026-10-27"}),"2026-10-27");
+  assert.equal(H.period({kind:"refund",due_date:"2026-10-20"}),"2026-10-20");
+  assert.equal(H.pettyPeriod({date:"2026-10-20"}),"2026-10-20");
+  assert.equal(H.pettyPeriod({date:"2026-10-26"}),"2026-10-27");
+  assert.equal(H.tuesday("2026-02-30"),"");
+});
+test("history archive page is included in all management navigation and published build",()=>{
+  for(const filename of ["index.html","vacancy.html","checkout.html","weekly-accounting.html"]){
+    const html=fs.readFileSync(path.resolve(__dirname,"../"+filename),"utf8");
+    assert.ok(html.includes('accounting-history.html'),filename+" history link");
+  }
+  const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
+  assert.ok(weekly.includes('HouseAccounting.inCurrent(x,cycle)'));
+  assert.ok(weekly.includes('HouseAccounting.pettyPeriod(x)===HouseAccounting.current()'));
+  const history=fs.readFileSync(path.resolve(__dirname,"../accounting-history.html"),"utf8");
+  assert.ok(history.includes('id="cycle"'));
+  assert.ok(history.includes('id="keyword"'));
+  assert.ok(history.includes('id="includeCurrent"'));
+  const source=fs.readFileSync(path.resolve(__dirname,"../accounting-history.js"),"utf8");
+  assert.ok(source.includes('s.ops.weekly_accounts'));
+  assert.ok(source.includes('HOUSE_PETTY_CASH_DATA'));
+  const build=fs.readFileSync(path.resolve(__dirname,"../scripts/build.mjs"),"utf8");
+  for(const file of ["accounting-history.html","accounting-history.js","accounting-periods.js"])
+    assert.ok(build.includes("'"+file+"'"),file+" in build");
+});
