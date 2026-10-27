@@ -9,8 +9,8 @@ async function apply(s){
   const match=x=>x?.room===room||x?.code===room;
   const old=ops.checkouts.find(x=>x.id===checkoutId||(x.room===room&&x.checkout_date===date));
   const oldWeekly=ops.weekly_accounts.find(x=>x.id===id);
-  const paid=old?.refund_status==="paid"||oldWeekly?.status==="paid";
-  const paidDate=old?.refund_paid_date||oldWeekly?.paid_date;
+  const paid=true;
+  const paidDate="2026-10-27";
   const address=ops.vacancies.find(match)?.address||ops.rented.find(match)?.address||(vault.properties||[]).find(match)?.address||"";
   const checkout={id:checkoutId,room,address,checkout_date:date,refund_due_date:"2026-10-27",
     refund_amount:12755,deposit:12000,termination_compensation:6000,internet_subsidy:250,
@@ -27,7 +27,7 @@ async function apply(s){
   if(oldWeekly)Object.assign(oldWeekly,weekly);else ops.weekly_accounts.push(weekly);
   let bank=finance.accounts.find(x=>x.id===id);
   if(!bank){bank={id};finance.accounts.push(bank)}
-  Object.assign(bank,{bank_code:"812",bank_name:"台新銀行",bank_account_last4:"1568",secure_local:!paid,bank_account:paid?"":bank.bank_account||""});
+  Object.assign(bank,{bank_code:"812",bank_name:"台新銀行",bank_account_last4:"1568",secure_local:false,bank_account:""});
   const rentedLater=ops.rented.some(x=>match(x)&&String(x.updated_at||x.since||"")>date);
   if(!rentedLater){
     const vacant={room,address,source:"退租轉空房",since:date,updated_at:date,status:"vacant",rent:6000,rent_pending:false,power_rate:5};
@@ -35,7 +35,7 @@ async function apply(s){
     if(prior)Object.assign(prior,vacant);else ops.vacancies.push(vacant);
     ops.rented=ops.rented.filter(x=>!match(x));
   }
-  ops.updated_at="2026-10-26T15:48:00+08:00";
+  ops.updated_at="2026-10-27T22:33:00+08:00";
   return s;
 }
 for(const method of ["unlock","auto","loadWithKey"]){
