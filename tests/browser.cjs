@@ -249,6 +249,8 @@ async function main(){
         zhongqingCheckout:s.ops.checkouts.find(x=>x.room==="中清11-3A"),
         zhongqingWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-zhongqing11-3a-20261013"),
         zhongqingVacancy:s.ops.vacancies.find(x=>x.room==="中清11-3A"),
+        zhongqingRented:s.ops.rented.find(x=>x.room==="中清11-3A"),
+        zhongqingRentalCount:s.ops.rented.filter(x=>x.room==="中清11-3A").length,
         zhongqingBank:s.finance.accounts.find(x=>x.id==="refund-zhongqing11-3a-20261013"),
         zhongqingEntry:document.querySelector('[data-account-id="refund-zhongqing11-3a-20261013"]')!==null
 
@@ -272,9 +274,10 @@ async function main(){
     assert.equal(refundCheck.zhongqingWeekly?.amount,36489,"Zhongqing weekly accounting must match refund");
     assert.equal(refundCheck.zhongqingWeekly?.status,"paid","Zhongqing weekly refund is paid");
     assert.equal(refundCheck.zhongqingWeekly?.paid_date,"2026-10-20","Zhongqing weekly payment date is recorded");
-    assert.equal(refundCheck.zhongqingVacancy?.rent,18500,"Zhongqing vacancy rent must equal half of original deposit");
-    assert.equal(refundCheck.zhongqingVacancy?.power_rate,5.5,"Zhongqing vacancy electricity rate must stay at 5.5");
-    assert.equal(refundCheck.zhongqingVacancy?.source,"退租轉空房","Zhongqing must be a checkout-based vacancy");
+    assert.equal(refundCheck.zhongqingVacancy,undefined,"Zhongqing 11-3A is no longer vacant");
+    assert.equal(refundCheck.zhongqingRented?.status,"rented","Zhongqing 11-3A is rented again");
+    assert.equal(refundCheck.zhongqingRentalCount,1,"Zhongqing 11-3A rental must not duplicate");
+    assert.ok(refundCheck.zhongqingRented?.updated_at>="2026-10-29","Zhongqing 11-3A status update must be recent");
     assert.equal(refundCheck.zhongqingBank?.bank_code,"812","Zhongqing refund bank code must be 812");
     assert.equal(refundCheck.zhongqingBank?.secure_local,false,"Zhongqing paid refund account does not require entry");
     assert.equal(refundCheck.zhongqingBank?.bank_account,"","Paid Zhongqing account is cleared");
