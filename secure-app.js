@@ -523,7 +523,28 @@
       ops.rented=ops.rented.filter(r=>r.room!==room);
     }
 
-    ops.updated_at="2026-10-20T12:02:00+08:00";
+    // 2026-10-29 status report: Zhongqing 11-3A has a new tenant.
+    // A prior checkout must remain in history; the new lease's rent and start date
+    // were not supplied, so do not infer them from the prior tenant's deposit.
+    const rentalUpdateDate="2026-10-29";
+    const zhongqingVacancy=ops.vacancies.find(isZhongqing3A);
+    const existingZhongqingRental=ops.rented.find(isZhongqing3A);
+    const rentalAddress=existingZhongqingRental?.address||zhongqingVacancy?.address||zhongqingAddress;
+    ops.vacancies=ops.vacancies.filter(v=>!isZhongqing3A(v));
+    if(existingZhongqingRental){
+      existingZhongqingRental.room=zhongqingRoom;
+      existingZhongqingRental.status="rented";
+      if(String(existingZhongqingRental.updated_at||"")<rentalUpdateDate)
+        existingZhongqingRental.updated_at=rentalUpdateDate;
+      if(!existingZhongqingRental.address)existingZhongqingRental.address=rentalAddress;
+    }else{
+      ops.rented.push({room:zhongqingRoom,address:rentalAddress,
+        status:"rented",updated_at:rentalUpdateDate,
+        source:"已出租（更新狀態；實際起租日及租金待補）"});
+    }
+    ops.rented=ops.rented.filter((r,i,rows)=>!isZhongqing3A(r)||rows.indexOf(existingZhongqingRental||rows.find(isZhongqing3A))===i);
+
+    ops.updated_at="2026-10-29T14:23:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
