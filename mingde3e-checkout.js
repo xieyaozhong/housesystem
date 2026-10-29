@@ -14,16 +14,16 @@ async function apply(s){
  const paidDate=old?.refund_paid_date||oldWeekly?.paid_date;
  const address=old?.address||ops.vacancies.find(match)?.address||ops.rented.find(match)?.address||(vault.properties||[]).find(match)?.address||"";
  const checkout={id:cid,room,address,checkout_date:date,refund_due_date:"2026-11-03",
-  refund_amount:11840,requested_refund_amount:12755,calculated_refund_amount:11840,
-  reconciliation_difference:915,reconciliation_status:"needs_review",
+  refund_amount:11840,requested_refund_amount:11840,calculated_refund_amount:11840,
+  reconciliation_difference:0,reconciliation_status:"matched",
   deposit:10000,october_overpaid_rent:2000,meter_previous:3359,meter_current:3391,
   electricity_usage:32,power_rate:5,electricity_fee:160,utilities_status:"settled",
   refund_status:paid?"paid":"pending",
-  note:"本期電3391－上期電3359＝32度；32×5元＝160元（結清）；押金10000＋10月租金溢繳2000－電費160＝11840元。開頭指定12755元，與明細相差915元；請核對後再匯款"};
+  note:"本期電3391－上期電3359＝32度；32×5元＝160元（結清）；押金10000＋10月租金溢繳2000－電費160＝確認應退11840元；預計11/3退款"};
  if(paidDate)checkout.refund_paid_date=paidDate;
  if(old)Object.assign(old,checkout);else ops.checkouts.push(checkout);
  const weekly={id,kind:"refund",party:"明德3E房客",property_label:room,
-  description:"⚠ 待核對差額915元｜押金10000＋10月溢繳2000－已結清電費160＝11840；開頭指定12755元",
+  description:"退租退款｜已確認押金10000＋10月租金溢繳2000－已結清電費160＝11840元",
   amount:11840,due_date:"2026-11-03",settlement_date:date,status:paid?"paid":"pending"};
  if(paidDate)weekly.paid_date=paidDate;
  if(oldWeekly)Object.assign(oldWeekly,weekly);else ops.weekly_accounts.push(weekly);
@@ -38,7 +38,7 @@ async function apply(s){
   if(prior)Object.assign(prior,vacancy);else ops.vacancies.push(vacancy);
   ops.rented=ops.rented.filter(x=>!match(x));
  }
- ops.updated_at="2026-10-29T13:14:00+08:00";
+ ops.updated_at="2026-10-29T14:23:00+08:00";
  return s;
 }
 for(const name of ["unlock","auto","loadWithKey"]){
