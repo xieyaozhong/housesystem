@@ -5,7 +5,7 @@ const state=()=>({ops:{checkouts:[],weekly_accounts:[],vacancies:[],rented:[]},f
 const load=s=>{const api={unlock:async()=>s,auto:async()=>s,loadWithKey:async()=>s};
 vm.runInNewContext(patch,{window:{HouseSecureApp:api}});
 return api};
-test("Mingde 3E reconciles 11840 with 915 discrepancy and Nov 3 due date",async()=>{
+test("Mingde 3E confirmed NT$11,840 refund matches calculation and Nov 3 due date",async()=>{
  const s=state(),app=load(s);await app.unlock();
  const c=s.ops.checkouts[0],w=s.ops.weekly_accounts[0],b=s.finance.accounts[0];
  assert.equal(c.room,"明德3E");
@@ -15,14 +15,15 @@ test("Mingde 3E reconciles 11840 with 915 discrepancy and Nov 3 due date",async(
  assert.equal(c.electricity_fee,160);
  assert.equal(c.deposit+c.october_overpaid_rent-c.electricity_fee,11840);
  assert.equal(c.refund_amount,11840);
- assert.equal(c.requested_refund_amount,12755);
- assert.equal(c.reconciliation_difference,915);
- assert.equal(c.reconciliation_status,"needs_review");
+ assert.equal(c.requested_refund_amount,11840);
+ assert.equal(c.reconciliation_difference,0);
+ assert.equal(c.reconciliation_status,"matched");
  assert.equal(c.refund_status,"pending");
  assert.equal(w.amount,11840);
  assert.equal(w.due_date,"2026-11-03");
  assert.equal(w.status,"pending");
- assert.match(w.description,/待核對差額915元/);
+ assert.match(w.description,/已確認/);
+ assert.equal(w.description.includes("待核對"),false);
  assert.equal(b.bank_code,"812");
  assert.equal(b.bank_account_last4,"7418");
  await app.loadWithKey();
