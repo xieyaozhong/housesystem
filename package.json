@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "test": "node --test tests/core.test.mjs tests/mingde.test.cjs tests/mingde3e.test.cjs && node scripts/check.mjs",
+    "test": "node --test tests/core.test.mjs tests/mingde.test.cjs tests/mingde3e.test.cjs tests/fengjia701.test.cjs && node scripts/check.mjs",
     "test:browser": "node tests/browser.cjs",
     "build": "node scripts/build.mjs"
   },
