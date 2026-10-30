@@ -30,7 +30,7 @@ async function apply(s){
  if(oldWeekly)Object.assign(oldWeekly,weekly);else ops.weekly_accounts.push(weekly);
  let bank=finance.accounts.find(x=>x.id===id||x.id===oldWeekly?.id);
  if(!bank){bank={id};finance.accounts.push(bank)}
- Object.assign(bank,{id,bank_code:"822",bank_name:"中國信託",bank_account_last4:"0976",secure_local:false,bank_account:""});
+ Object.assign(bank,{id,bank_code:"822",bank_name:"中國信託",bank_account_last4:"0976",secure_local:!paid,bank_account:paid?"":bank.bank_account||""});
  const later=ops.rented.some(x=>match(x)&&String(x.updated_at||x.since||"")>date);
  if(!later){
   const vacancy={room,address,source:"退租轉空房",since:date,updated_at:date,status:"vacant",power_rate:5};
