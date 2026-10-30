@@ -23,6 +23,8 @@ function bankFor(r){
     return{bank_code:"700",bank_name:"中華郵政",bank_account:"01213610048183"};
   if(r.kind==="refund"&&r.status!=="paid"&&r.property_label==="明德3E")
     return{bank_code:"812",bank_name:"台新銀行",bank_account:"20511000357418"};
+  if(r.kind==="refund"&&r.status!=="paid"&&r.property_label==="逢甲701")
+    return{bank_code:"017",bank_name:"兆豐銀行",bank_account:"03210522301"};
 
 const fm=new Map((S.finance.accounts||[]).map(x=>[x.id,x])),ids=r._grouped?r._items.map(x=>x.id):[r.id],rows=ids.map(id=>fm.get(id)||{}),codes=[...new Set(rows.map(x=>x.bank_code).filter(Boolean))],accounts=[...new Set(rows.map(x=>x.bank_account).filter(Boolean))],names=[...new Set(rows.map(x=>x.bank_name).filter(Boolean))];if(codes.length>1||accounts.length>1||names.length>1)return{bank_code:"⚠ 帳號不一致",bank_account:"請逐筆確認",bank_name:""};return{bank_code:codes[0]||"—",bank_account:accounts[0]||"—",bank_name:names[0]||""}}
 function secureFinanceId(r){const fm=new Map((S.finance.accounts||[]).map(x=>[x.id,x])),ids=r._grouped?r._items.map(x=>x.id):[r.id],secure=ids.filter(id=>fm.get(id)?.secure_local);return secure.length===1?secure[0]:""}
