@@ -15,6 +15,8 @@
   row.utilities_status="settled";
   if(old)Object.assign(old,row);else o.checkouts.push(row);
   const weekly={id,kind:"refund",party:"明德4B房客",property_label:"明德4B",amount:16760,due_date:"2026-11-03",settlement_date:"2026-10-30",status:paid?"paid":"pending"};
+  if(paid&&paidAt)weekly.paid_date=paidAt;
+  weekly.description="退租退款｜押金11000＋違約補償5500＋網路補助500－電費（48度×5）240＝16760元";
   if(w)Object.assign(w,weekly);else o.weekly_accounts.push(weekly);
   const accounts=s.finance.accounts||=[];
   let bank=accounts.find(x=>x.id===id);
