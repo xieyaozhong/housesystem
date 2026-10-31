@@ -10,6 +10,10 @@
   if(old)Object.assign(old,row);else o.checkouts.push(row);
   const weekly={id,kind:"refund",party:"明德4B房客",property_label:"明德4B",amount:16760,due_date:"2026-11-03",settlement_date:"2026-10-30",status:paid?"paid":"pending"};
   if(w)Object.assign(w,weekly);else o.weekly_accounts.push(weekly);
+  const accounts=s.finance.accounts||=[];
+  let bank=accounts.find(x=>x.id===id);
+  if(!bank){bank={id};accounts.push(bank)}
+  Object.assign(bank,{bank_code:"808",bank_name:"玉山銀行",bank_account_last4:"9661",secure_local:false,bank_account:""});
   return s;
  }
  for(const name of ["unlock","auto","loadWithKey"]){
