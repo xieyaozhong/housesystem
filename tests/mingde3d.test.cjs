@@ -54,10 +54,16 @@ test("Mingde 3D preserves paid status and later rental",async()=>{
  assert.equal(s.finance.accounts[0].secure_local,false);
 });
 test("Mingde 3D checkout is published in management and historic views",()=>{
- for(const p of ["index.html","vacancy.html","checkout.html","accounting-history.html"]){
+ for(const p of ["index.html","vacancy.html","checkout.html","weekly-accounting.html","accounting-history.html"]){
   const html=fs.readFileSync(path.resolve(__dirname,"../"+p),"utf8");
   assert.ok(html.includes('<script src="mingde3d-checkout.js"></script>'),p);
  }
+ const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
+ assert.ok(weekly.includes('r.property_label==="明德3D"'));
+ assert.ok(weekly.includes('bank_code:"700",bank_name:"中華郵政"'));
+ assert.ok(weekly.includes('bank_account:"00812060051667"'));
+ assert.ok(weekly.includes("HouseAccounting.inCurrent(x,cycle)"));
+ assert.ok(weekly.includes('r.status!=="paid"'));
  const build=fs.readFileSync(path.resolve(__dirname,"../scripts/build.mjs"),"utf8");
  assert.ok(build.includes("'mingde3d-checkout.js'"));
  const src=fs.readFileSync(path.resolve(__dirname,"../accounting-periods.js"),"utf8");
