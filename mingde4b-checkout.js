@@ -7,6 +7,12 @@
   const old=o.checkouts.find(x=>x.id===cid),w=o.weekly_accounts.find(x=>x.id===id);
   const paid=old?.refund_status==="paid"||w?.status==="paid";
   const row={id:cid,room:"明德4B",checkout_date:"2026-10-30",refund_due_date:"2026-11-03",deposit:11000,termination_compensation:5500,internet_subsidy:500,meter_previous:8727,meter_current:8775,electricity_usage:48,power_rate:5,electricity_fee:240,refund_amount:16760,refund_status:paid?"paid":"pending"};
+  const paidAt=old?.refund_paid_date||w?.paid_date;
+  if(paid&&paidAt)row.refund_paid_date=paidAt;
+  row.calculated_refund_amount=16760;
+  row.reconciliation_difference=0;
+  row.reconciliation_status="matched";
+  row.utilities_status="settled";
   if(old)Object.assign(old,row);else o.checkouts.push(row);
   const weekly={id,kind:"refund",party:"明德4B房客",property_label:"明德4B",amount:16760,due_date:"2026-11-03",settlement_date:"2026-10-30",status:paid?"paid":"pending"};
   if(w)Object.assign(w,weekly);else o.weekly_accounts.push(weekly);
