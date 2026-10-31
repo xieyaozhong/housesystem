@@ -30,7 +30,8 @@ test("Mingde 4D October 20 checkout and November 3 refund amounts are consistent
  assert.equal(b.bank_code,"822");
  assert.equal(b.bank_name,"中國信託");
  assert.equal(b.bank_account_last4,"0976");
- assert.equal(b.secure_local,true);
+ assert.equal(b.secure_local,false);
+ assert.equal(b.bank_account,"");
  assert.equal(s.ops.rented.length,0);
  assert.equal(s.ops.vacancies[0].address,"原有地址");
  assert.equal(s.ops.vacancies[0].rent,8800);
@@ -66,6 +67,10 @@ test("Mingde 4D refund appears in weekly, checkout and searchable history",()=>{
  const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
  assert.ok(weekly.includes("HouseAccounting.inCurrent(x,cycle)"));
  assert.ok(weekly.includes('function secureFinanceId(r)'));
+ assert.ok(weekly.includes('r.property_label==="明德4D"'));
+ assert.ok(weekly.includes('bank_code:"822",bank_name:"中國信託",bank_account:"613540670976"'));
+ const checkout=fs.readFileSync(path.resolve(__dirname,"../checkout.html"),"utf8");
+ assert.ok(checkout.includes('r.room==="明德4D"&&r.refund_status!=="paid"?"613540670976"'));
  const history=fs.readFileSync(path.resolve(__dirname,"../accounting-history.js"),"utf8");
  assert.ok(history.includes('s.ops.weekly_accounts'));
  const build=fs.readFileSync(path.resolve(__dirname,"../scripts/build.mjs"),"utf8");
