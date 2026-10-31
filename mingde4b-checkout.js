@@ -22,6 +22,19 @@
   let bank=accounts.find(x=>x.id===id);
   if(!bank){bank={id};accounts.push(bank)}
   Object.assign(bank,{bank_code:"808",bank_name:"玉山銀行",bank_account_last4:"9661",secure_local:false,bank_account:""});
+  o.vacancies||=[];o.rented||=[];
+  const room="明德4B",date="2026-10-30";
+  const vacancy=o.vacancies.find(x=>x.room===room);
+  const oldRental=o.rented.find(x=>x.room===room);
+  const rentedLater=o.rented.some(x=>x.room===room&&String(x.updated_at||x.since||"")>date);
+  if(!rentedLater){
+   const address=vacancy?.address||oldRental?.address||
+     (s.vault.properties||[]).find(x=>x.code===room)?.address||"";
+   const record={room,address,source:"退租轉空房",since:date,updated_at:date,status:"vacant",power_rate:5};
+   if(vacancy)Object.assign(vacancy,record);
+   else{if(oldRental?.rent!=null)record.rent=oldRental.rent;o.vacancies.push(record)}
+   o.rented=o.rented.filter(x=>x.room!==room);
+  }
   return s;
  }
  for(const name of ["unlock","auto","loadWithKey"]){
