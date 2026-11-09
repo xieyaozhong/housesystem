@@ -12,6 +12,7 @@ function bankFor(r){
   if(r.kind==="vendor"&&r.status!=="paid"){
     const vendor=vendorKey(r.party);
     if(vendor==="一代家電")return{bank_code:"808",bank_name:"玉山銀行",bank_account:"0222440022171"};
+    if(vendor.startsWith("鴻茂"))return{bank_code:"013",bank_name:"國泰世華銀行",bank_account:"0000699514776613"};
     if(vendor.startsWith("徐志騰"))return{bank_code:"053",bank_name:"台中銀行（北太平分行）",bank_account:"025200180300"};
     if(vendor.startsWith("鄭國峰"))return{bank_code:"808",bank_name:"玉山銀行",bank_account:"1159968132133"};
   }
