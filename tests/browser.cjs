@@ -451,7 +451,7 @@ async function main(){
         items:pair.length,grouped:visible.length,
         total:pair.reduce((sum,x)=>sum+Number(x.amount||0),0),
         rooms:pair.map(x=>x.property_label).join("、"),
-        receipts:document.querySelectorAll('#tb button[data-receipt-url]').length,
+        receipts:[...document.querySelectorAll('#tb button[data-receipt-url]')].filter(b=>pair.some(x=>x.receipt_url&&x.receipt_url===b.dataset.receiptUrl)).length,
         matchingBank:bankRows.length===2&&bankRows[0].bank_account===bankRows[1].bank_account,
         allPaid:pair.every(x=>x.status==="paid"&&x.paid_date==="2026-10-13"),
         zhongqingPending:DISPLAY.some(x=>x.id==="refund-zhongqing11-3a-20261013"),
