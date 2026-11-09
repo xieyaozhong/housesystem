@@ -552,7 +552,7 @@
       {room:"平德401",aliases:["平德401"]},
       {room:"太原D",aliases:["太原D","太原Ｄ"]}
     ];
-    const rentalRoomKey=value=>String(value||"").trim().replace(/[\\s_－-]/g,"")
+    const rentalRoomKey=value=>String(value||"").trim().replace(/[\s_－-]/g,"")
       .replace(/[陜陕]/g,"陝").replace(/Ｄ/g,"D").toUpperCase();
     for(const target of knownRentedRooms){
       const keys=new Set(target.aliases.map(rentalRoomKey));
