@@ -544,7 +544,34 @@
     }
     ops.rented=ops.rented.filter((r,i,rows)=>!isZhongqing3A(r)||rows.indexOf(existingZhongqingRental||rows.find(isZhongqing3A))===i);
 
-    ops.updated_at="2026-10-29T14:23:00+08:00";
+    // 2026-11-09 confirmed occupied. This is a status update, not a lease start date.
+    // The previous checkout/refund records remain untouched.
+    const rentedStatusDate="2026-11-09";
+    const knownRentedRooms=[
+      {room:"陝西703",aliases:["陝西703","陜西703","陕西703","陝西","陜西","陕西"]},
+      {room:"平德401",aliases:["平德401"]},
+      {room:"太原D",aliases:["太原D","太原Ｄ"]}
+    ];
+    const rentalRoomKey=value=>String(value||"").trim().replace(/[\\s_－-]/g,"")
+      .replace(/[陜陕]/g,"陝").replace(/Ｄ/g,"D").toUpperCase();
+    for(const target of knownRentedRooms){
+      const keys=new Set(target.aliases.map(rentalRoomKey));
+      const sameRoom=row=>keys.has(rentalRoomKey(row?.room||row?.code));
+      const priorVacancies=(ops.vacancies||[]).filter(sameRoom);
+      const priorRentals=(ops.rented||[]).filter(sameRoom);
+      const formerVacancy=priorVacancies[0],existingRental=priorRentals[0];
+      const property=(vault.properties||[]).find(sameRoom);
+      const address=existingRental?.address||formerVacancy?.address||property?.address||"";
+      const confirmed={...formerVacancy,...existingRental,room:target.room,address,status:"rented",
+        source:"已出租（狀態已確認；實際起租日期與租金待補）",
+        updated_at:rentedStatusDate,rent_unverified:true,lease_start_pending:true};
+      delete confirmed.since;
+      delete confirmed.rent_pending;
+      ops.vacancies=(ops.vacancies||[]).filter(x=>!sameRoom(x));
+      ops.rented=(ops.rented||[]).filter(x=>!sameRoom(x));
+      ops.rented.push(confirmed);
+    }
+    ops.updated_at="2026-11-09T15:22:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
