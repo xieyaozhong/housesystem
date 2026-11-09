@@ -215,6 +215,10 @@ async function main(){
         pending:weekly&&{amount:weekly.amount,due:weekly.due_date,status:weekly.status},
         vacancy:s.ops.vacancies.some(x=>x.room==="平德401"),
         noLongerRented:s.ops.rented.every(x=>x.room!=="平德401"),
+        pingdeRented:s.ops.rented.find(x=>x.room==="平德401"),
+        shaanxiVacancy:s.ops.vacancies.some(x=>x.room==="陝西703"||x.room==="陜西703"),
+        shaanxiRented:s.ops.rented.find(x=>x.room==="陝西703"),
+        shaanxiRentalCount:s.ops.rented.filter(x=>x.room==="陝西703").length,
         saveButton:document.querySelector('[data-save-account][data-account-id="refund-pingde-401-20261002"]')===null,
         bank:s.finance.accounts.find(x=>x.id==="refund-pingde-401-20261002"),
         pingshun:s.ops.checkouts.find(x=>x.room==="平順403"),
@@ -227,6 +231,8 @@ async function main(){
         taiyuanBank:{...(s.finance.accounts.find(x=>x.id==="refund-taiyuan-d-20261009")||{})},
         taiyuanVacancy:s.ops.vacancies.filter(x=>x.room==="太原D").length,
         taiyuanNotRented:s.ops.rented.every(x=>x.room!=="太原D"),
+        taiyuanRented:s.ops.rented.find(x=>x.room==="太原D"),
+        taiyuanRentalCount:s.ops.rented.filter(x=>x.room==="太原D").length,
         taiyuanAccountEntry:document.querySelector('[data-account-id="refund-taiyuan-d-20261009"]')!==null,
         taiyuanAccountDisplayed:document.querySelector("#tb")?.textContent.includes("0000473541080310")||false,
         pingdeVacancy:s.ops.vacancies.find(v=>v.room==="平德401"),
@@ -259,8 +265,13 @@ async function main(){
     });
     assert.deepEqual(refundCheck.checkout,{date:"2026-10-02",due:"2026-10-06",amount:24218,usage:324,electricity_fee:1782,status:"paid"},'Pingde 401 checkout must retain amounts and show completed refund');
     assert.deepEqual(refundCheck.pending,{amount:24218,due:"2026-10-06",status:"paid"},'weekly accounting must retain Pingde 401 refund history as paid');
-    assert.equal(refundCheck.vacancy,true,'Pingde 401 must return to vacancies');
-    assert.equal(refundCheck.noLongerRented,true,'Pingde 401 must not remain in rented list');
+    assert.equal(refundCheck.vacancy,false,'Pingde 401 is re-rented and removed from vacancies');
+    assert.equal(refundCheck.noLongerRented,false,'Pingde 401 is in rented list');
+    assert.equal(refundCheck.pingdeRented?.status,"rented","Pingde 401 is marked rented");
+    assert.equal(refundCheck.pingdeRented?.updated_at,"2026-11-09","Pingde 401 status confirmed November 9");
+    assert.equal(refundCheck.shaanxiVacancy,false,"Shaanxi 703 no longer appears vacant");
+    assert.equal(refundCheck.shaanxiRented?.status,"rented","Shaanxi 703 is rented");
+    assert.equal(refundCheck.shaanxiRentalCount,1,"Shaanxi 703 must be listed only once");
     assert.equal(refundCheck.saveButton,true,'checkout should display the saved refund account directly');
     assert.equal(refundCheck.bank?.bank_code,"013",'refund must retain user-provided bank code');
     assert.equal(refundCheck.zhongqingCheckout?.checkout_date,"2026-10-13","Zhongqing 11-3A handover date must be October 13");
@@ -334,14 +345,17 @@ async function main(){
     assert.equal(refundCheck.taiyuanWeekly?.paid_date,"2026-10-13","Taiyuan D weekly accounts must preserve refund completion date");
     assert.equal(refundCheck.taiyuanWeekly?.due_date,"2026-10-13","Taiyuan D weekly refund deadline must be October 13");
     assert.equal(refundCheck.taiyuanWeekly?.settlement_date,"2026-10-09","Taiyuan D weekly batch date must be October 9");
-    assert.equal(refundCheck.taiyuanVacancy,1,"Taiyuan D must appear exactly once in vacancies");
-    assert.equal(refundCheck.pingdeVacancy?.rent,13000,"Pingde 401 vacancy monthly rent must be half of the 26,000 deposit");
-    assert.equal(refundCheck.pingdeVacancy?.power_rate,5.5,"Pingde 401 vacancy must retain checkout electricity rate");
+    assert.equal(refundCheck.taiyuanVacancy,0,"Taiyuan D re-rented and removed from vacancies");
+    assert.equal(refundCheck.taiyuanRented?.status,"rented","Taiyuan D is re-rented");
+    assert.equal(refundCheck.taiyuanRentalCount,1,"Taiyuan D must have one rental entry");
+    assert.equal(refundCheck.pingdeRented?.rent,13000,"Pingde 401 preserves original listed rent as unverified for the new lease");
+    assert.equal(refundCheck.pingdeRented?.power_rate,5.5,"Pingde 401 retains existing electricity rate");
+    assert.equal(refundCheck.pingdeRented?.rent_unverified,true,"New contract rent has not been confirmed");
     assert.equal(refundCheck.pingshunVacancyItem?.rent,12000,"Pingshun 403 vacancy monthly rent must be half of the 24,000 deposit");
     assert.equal(refundCheck.pingshunVacancyItem?.power_rate,5.5,"Pingshun 403 vacancy must retain checkout electricity rate");
-    assert.equal(refundCheck.taiyuanVacancyItem?.rent,13000,"Taiyuan D vacancy monthly rent must be half of the 26,000 deposit");
-    assert.equal(refundCheck.taiyuanVacancyItem?.power_rate,5,"Taiyuan D vacancy must retain checkout electricity rate");
-    assert.equal(refundCheck.taiyuanVacancyItem?.source,"退租轉空房","Taiyuan D must be flagged as a checkout-based vacancy");
+    assert.equal(refundCheck.taiyuanRented?.rent,13000,"Taiyuan D retains original listed rent");
+    assert.equal(refundCheck.taiyuanRented?.power_rate,5,"Taiyuan D retains existing electricity rate");
+    assert.equal(refundCheck.taiyuanRented?.source,"已出租（狀態已確認；實際起租日期與租金待補）","Taiyuan D records status rather than invented lease start");
     assert.equal(refundCheck.autoPricedVacancy?.rent,15000,"latest checkout deposit must override older rents for future checkouts");
     assert.equal(refundCheck.autoPricedVacancy?.power_rate,5.5,"future checkout must set the vacancy electricity rate");
     assert.equal(refundCheck.autoPricedVacancy?.since,"2026-10-11","new vacancy must use checkout date");
@@ -387,7 +401,7 @@ async function main(){
     assert.equal(secureApp.includes('xuefuBank.bank_account="288540544712"'),true,"Xuefu 702 direct bank account is shared across device loads");
     assert.equal(secureApp.includes('const latestCheckouts=new Map()'),true,"generic checkout to vacancy mapping must be maintained");
     assert.equal(secureApp.includes('deposit/2'),true,"vacancy rent must be half of original deposit, not the refunded amount");
-    assert.equal(refundCheck.taiyuanNotRented,true,"Taiyuan D must no longer be rented");
+    assert.equal(refundCheck.taiyuanNotRented,false,"Taiyuan D is currently rented");
     assert.equal(refundCheck.taiyuanBank?.bank_code,"822","Taiyuan D bank code must be 822");
     assert.equal(refundCheck.taiyuanBank?.bank_name,"中國信託","Taiyuan D bank name must be CTBC");
     assert.equal(refundCheck.taiyuanBank?.bank_account_last4,"0310","Taiyuan D account hint must preserve last four digits");
