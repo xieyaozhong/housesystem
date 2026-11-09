@@ -226,6 +226,14 @@ async function main(){
         pingshunBank:s.finance.accounts.find(x=>x.id==="refund-pingshun403-20261009"),
         pingshunVacancy:s.ops.vacancies.filter(x=>x.room==="平順403").length,
         pingshunRemovedFromRented:s.ops.rented.every(x=>x.room!=="平順403"),
+        pingshunRented:s.ops.rented.find(x=>x.room==="平順403"),
+        pingshunRentalCount:s.ops.rented.filter(x=>x.room==="平順403").length,
+        nantun643Vacancy:s.ops.vacancies.filter(x=>x.room==="南屯643-301").length,
+        nantun643Rented:s.ops.rented.find(x=>x.room==="南屯643-301"),
+        nantun643RentalCount:s.ops.rented.filter(x=>x.room==="南屯643-301").length,
+        erroneousNantun463:s.ops.rented.some(x=>x.room==="南屯463-301"),
+        nantun643Checkout:s.ops.checkouts.find(x=>x.id==="checkout-nantun643-301-20261014"),
+        nantun643Refund:s.ops.weekly_accounts.find(x=>x.id==="refund-nantun643-301-20261014"),
         taiyuan:s.ops.checkouts.find(x=>x.room==="太原D"),
         taiyuanWeekly:s.ops.weekly_accounts.find(x=>x.id==="refund-taiyuan-d-20261009"),
         taiyuanBank:{...(s.finance.accounts.find(x=>x.id==="refund-taiyuan-d-20261009")||{})},
@@ -309,8 +317,19 @@ async function main(){
     assert.equal(refundCheck.pingshunWeekly?.amount,23709,"Pingshun weekly transfer is 23,709");
     assert.equal(refundCheck.pingshunWeekly?.due_date,"2026-10-13","Pingshun weekly transfer due date is October 13");
     assert.equal(refundCheck.pingshunWeekly?.settlement_date,"2026-10-09","Pingshun refund is listed in October 9 Friday batch");
-    assert.equal(refundCheck.pingshunVacancy,1,"Pingshun must return to the vacancy list once");
-    assert.equal(refundCheck.pingshunRemovedFromRented,true,"Pingshun must not remain recently rented");
+    assert.equal(refundCheck.pingshunVacancy,0,"Pingshun 403 is rented and no longer vacant");
+    assert.equal(refundCheck.pingshunRemovedFromRented,false,"Pingshun 403 is recently rented");
+    assert.equal(refundCheck.pingshunRented?.status,"rented","Pingshun 403 status is rented");
+    assert.equal(refundCheck.pingshunRented?.updated_at,"2026-11-09","Pingshun 403 status last confirmed Nov 9");
+    assert.equal(refundCheck.pingshunRentalCount,1,"Pingshun 403 must not duplicate");
+    assert.equal(refundCheck.nantun643Vacancy,0,"Nantun 643-301 is no longer vacant");
+    assert.equal(refundCheck.nantun643Rented?.status,"rented","Nantun 643-301 status is rented");
+    assert.equal(refundCheck.nantun643Rented?.updated_at,"2026-11-09","Nantun 643-301 status confirmed Nov 9");
+    assert.equal(refundCheck.nantun643RentalCount,1,"Nantun 643-301 rented once");
+    assert.equal(refundCheck.erroneousNantun463,false,"Do not invent Nantun 463-301 rental");
+    assert.equal(refundCheck.nantun643Checkout?.refund_status,"paid","Nantun earlier refund remains paid");
+    assert.equal(refundCheck.nantun643Checkout?.refund_amount,28588,"Nantun earlier refund amount unchanged");
+    assert.equal(refundCheck.nantun643Refund?.status,"paid","Nantun historical refund remains paid");
     assert.equal(refundCheck.pingshunBank?.bank_code,"013","Pingshun bank code must be 013");
     assert.equal(refundCheck.pingshunBank?.bank_name,"國泰世華","Pingshun bank name must be displayed");
     assert.equal(refundCheck.pingshunBank?.secure_local,false,"Pingshun bank should require no device-local setup");
@@ -351,8 +370,10 @@ async function main(){
     assert.equal(refundCheck.pingdeRented?.rent,13000,"Pingde 401 preserves original listed rent as unverified for the new lease");
     assert.equal(refundCheck.pingdeRented?.power_rate,5.5,"Pingde 401 retains existing electricity rate");
     assert.equal(refundCheck.pingdeRented?.rent_unverified,true,"New contract rent has not been confirmed");
-    assert.equal(refundCheck.pingshunVacancyItem?.rent,12000,"Pingshun 403 vacancy monthly rent must be half of the 24,000 deposit");
-    assert.equal(refundCheck.pingshunVacancyItem?.power_rate,5.5,"Pingshun 403 vacancy must retain checkout electricity rate");
+    assert.equal(refundCheck.pingshunVacancyItem,undefined,"Pingshun 403 has been removed from vacancy list");
+    assert.equal(refundCheck.pingshunRented?.rent,12000,"Pingshun retains existing listed rent, not new contract terms");
+    assert.equal(refundCheck.pingshunRented?.power_rate,5.5,"Pingshun retains existing electricity rate");
+    assert.equal(refundCheck.pingshunRented?.rent_unverified,true,"New lease price is unverified");
     assert.equal(refundCheck.taiyuanRented?.rent,13000,"Taiyuan D retains original listed rent");
     assert.equal(refundCheck.taiyuanRented?.power_rate,5,"Taiyuan D retains existing electricity rate");
     assert.equal(refundCheck.taiyuanRented?.source,"已出租（狀態已確認；實際起租日期與租金待補）","Taiyuan D records status rather than invented lease start");
