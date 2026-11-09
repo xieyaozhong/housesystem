@@ -573,7 +573,7 @@
       ops.rented=(ops.rented||[]).filter(x=>!sameRoom(x));
       ops.rented.push(confirmed);
     }
-    ops.updated_at="2026-11-09T15:22:00+08:00";
+    ops.updated_at="2026-11-09T16:36:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
