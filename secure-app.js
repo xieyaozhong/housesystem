@@ -550,7 +550,9 @@
     const knownRentedRooms=[
       {room:"陝西703",aliases:["陝西703","陜西703","陕西703","陝西","陜西","陕西"]},
       {room:"平德401",aliases:["平德401"]},
-      {room:"太原D",aliases:["太原D","太原Ｄ"]}
+      {room:"太原D",aliases:["太原D","太原Ｄ"]},
+      {room:"南屯643-301",aliases:["南屯643-301","南屯643－301","南屯643301"]},
+      {room:"平順403",aliases:["平順403"]}
     ];
     const rentalRoomKey=value=>String(value||"").trim().replace(/[\s_－-]/g,"")
       .replace(/[陜陕]/g,"陝").replace(/Ｄ/g,"D").toUpperCase();
