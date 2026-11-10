@@ -18,7 +18,7 @@ async function apply(s){
  const checkout={id:cid,room,address,checkout_date:date,refund_due_date:"2026-11-10",
   refund_amount:22297,requested_refund_amount:22297,calculated_refund_amount:22297,
   reconciliation_difference:0,reconciliation_status:"confirmed",
-  deposit:22000,remaining_electricity_units:54,electricity_credit_rate:5.5,
+  deposit:22000,rent:11000,remaining_electricity_units:54,electricity_credit_rate:5.5,
   electricity_credit:297,electricity_credit_direction:"add_to_deposit",
   refund_status:paid?"paid":"pending",
   note:"應退22,297元：押金22,000元＋剩餘電費54度×5.5元＝297元（加回）；預計2026/11/10退款，實際匯款完成後再標記已付"};
