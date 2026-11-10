@@ -30,7 +30,7 @@ function allRentRows(o,v){
   if(knownRent!==null&&priority>=current.rentPriority){current.knownRent=knownRent;current.rentPriority=priority}
  }
  for(const p of v.properties||[])add(p,"主檔",0);
- for(const c of o.checkouts||[])add(c,"退租紀錄",1);
+ for(const c of o.checkouts||[])add({...c,deposit:null},"退租紀錄",1);
  for(const x of o.vacancies||[])add(x,"空房",2);
  for(const x of o.rented||[])add(x,"已出租",3);
  for(const [key,current] of rows){
