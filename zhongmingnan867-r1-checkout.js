@@ -14,20 +14,19 @@ async function apply(s){
  const paidDate=old?.refund_paid_date||oldWeekly?.paid_date;
  const formerVacancy=ops.vacancies.find(match),formerRental=ops.rented.find(match);
  const address=old?.address||formerVacancy?.address||formerRental?.address||(vault.properties||[]).find(match)?.address||"";
- // User wrote NT$22,000 to refund, while the supplied credit math totals NT$22,297.
- // Preserve both figures explicitly; never silently approve the difference.
+ // The confirmed refund is deposit NT$22,000 plus NT$297 electricity credit.
  const checkout={id:cid,room,address,checkout_date:date,refund_due_date:"2026-11-10",
-  refund_amount:22000,requested_refund_amount:22000,calculated_refund_amount:22297,
-  reconciliation_difference:-297,reconciliation_status:"needs_confirmation",
+  refund_amount:22297,requested_refund_amount:22297,calculated_refund_amount:22297,
+  reconciliation_difference:0,reconciliation_status:"confirmed",
   deposit:22000,remaining_electricity_units:54,electricity_credit_rate:5.5,
   electricity_credit:297,electricity_credit_direction:"add_to_deposit",
   refund_status:paid?"paid":"pending",
-  note:"⚠ 金額待確認：開頭填應退22000元，但明細為剩餘電費54度×5.5＝297元（加回），押金22000＋297＝22297元，差額297元；先保留填報應退22000元，預計11/10退款；匯款前請確認正確金額"};
+  note:"應退22,297元：押金22,000元＋剩餘電費54度×5.5元＝297元（加回）；預計2026/11/10退款，實際匯款完成後再標記已付"};
  if(paid&&paidDate)checkout.refund_paid_date=paidDate;
  if(old)Object.assign(old,checkout);else ops.checkouts.push(checkout);
  const weekly={id,kind:"refund",party:"忠明南867-R1房客",property_label:room,
-  description:"⚠ 退款金額待確認｜填報應退22000元；押金22000＋剩餘電費297（54度×5.5）＝計算22297元，差額297元",
-  amount:22000,due_date:"2026-11-10",settlement_date:date,status:paid?"paid":"pending"};
+  description:"退租退款｜押金22,000元＋剩餘電費297元（54度×5.5元）＝22,297元",
+  amount:22297,due_date:"2026-11-10",settlement_date:date,status:paid?"paid":"pending"};
  if(paid&&paidDate)weekly.paid_date=paidDate;
  if(oldWeekly)Object.assign(oldWeekly,weekly);else ops.weekly_accounts.push(weekly);
  let bank=finance.accounts.find(x=>x.id===id);
