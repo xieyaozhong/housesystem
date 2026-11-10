@@ -7,7 +7,7 @@ const load=s=>{const app={unlock:async()=>s,auto:async()=>s,loadWithKey:async()=
  vm.runInNewContext(src,{window:{HouseSecureApp:app}});return app};
 const cid="checkout-zhongmingnan867-r1-20261109";
 const wid="refund-zhongmingnan867-r1-20261109";
-test("Zhongmingnan 867-R1 Nov 9 checkout records NT$297 discrepancy, not silently reconciled",async()=>{
+test("Zhongmingnan 867-R1 Nov 9 confirmed refund includes NT$297 electricity credit",async()=>{
  const s=state();
  s.ops.rented.push({room:"忠明南867-R1",address:"原有地址",rent:11000});
  const app=load(s);await app.unlock();
@@ -22,18 +22,17 @@ test("Zhongmingnan 867-R1 Nov 9 checkout records NT$297 discrepancy, not silentl
  assert.equal(c.electricity_credit_rate,5.5);
  assert.equal(c.electricity_credit,54*5.5);
  assert.equal(c.calculated_refund_amount,22297);
- assert.equal(c.requested_refund_amount,22000);
- assert.equal(c.refund_amount,22000);
- assert.equal(c.reconciliation_difference,-297);
- assert.equal(c.reconciliation_status,"needs_confirmation");
- assert.match(c.note,/待確認/);
- assert.match(c.note,/22297/);
+ assert.equal(c.requested_refund_amount,22297);
+ assert.equal(c.refund_amount,c.deposit+c.electricity_credit);
+ assert.equal(c.reconciliation_difference,0);
+ assert.equal(c.reconciliation_status,"confirmed");
+ assert.match(c.note,/22,297/);
  assert.equal(c.refund_status,"pending");
  assert.equal(w.kind,"refund");
- assert.equal(w.amount,22000);
+ assert.equal(w.amount,c.refund_amount);
  assert.equal(w.due_date,"2026-11-10");
  assert.equal(w.status,"pending");
- assert.match(w.description,/差額297/);
+ assert.match(w.description,/剩餘電費297元/);
  assert.equal(b.bank_code,"808");
  assert.equal(b.bank_name,"玉山銀行");
  assert.equal(b.bank_account_last4,"3713");
@@ -65,7 +64,7 @@ test("Zhongmingnan 867-R1 previously paid records and newer lease survive reload
 test("Zhongmingnan 867-R1 script is on all pages, direct bank account and Nov 10 cycle",()=>{
  for(const page of ["index.html","vacancy.html","checkout.html","weekly-accounting.html","accounting-history.html"]){
   const html=fs.readFileSync(path.resolve(__dirname,"../"+page),"utf8");
-  assert.ok(html.includes('<script src="zhongmingnan867-r1-checkout.js"></script>'),page);
+  assert.match(html,/<script src="zhongmingnan867-r1-checkout\.js(?:\?[^"]+)?"\s*><\/script>/,page);
  }
  const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
  assert.ok(weekly.includes('r.property_label==="忠明南867-R1"'));

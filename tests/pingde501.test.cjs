@@ -62,7 +62,7 @@ test("Pingde 501 paid refund and new rental survive future unlocks",async()=>{
 test("Pingde 501 loads across all five pages, full bank account and next Tuesday",()=>{
  for(const page of ["index.html","vacancy.html","checkout.html","weekly-accounting.html","accounting-history.html"]){
   const html=fs.readFileSync(path.resolve(__dirname,"../"+page),"utf8");
-  assert.ok(html.includes('<script src="pingde501-checkout.js"></script>'),page);
+  assert.match(html,/<script src="pingde501-checkout\.js(?:\?[^"]+)?"\s*><\/script>/,page);
  }
  const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
  assert.ok(weekly.includes('r.property_label==="平德501"'));

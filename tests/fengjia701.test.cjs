@@ -65,7 +65,7 @@ test("Fengjia 701 is loaded on all pages with current Tuesday payout, account an
  for(const page of ["index.html","vacancy.html","checkout.html",
   "weekly-accounting.html","accounting-history.html"]){
   const html=fs.readFileSync(path.resolve(__dirname,"../"+page),"utf8");
-  assert.ok(html.includes('<script src="fengjia701-checkout.js"></script>'),page);
+  assert.match(html,/<script src="fengjia701-checkout\.js(?:\?[^"]+)?"\s*><\/script>/,page);
  }
  const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
  const checkout=fs.readFileSync(path.resolve(__dirname,"../checkout.html"),"utf8");

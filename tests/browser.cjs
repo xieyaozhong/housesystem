@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const assert = require('node:assert/strict');
+const { checkVacancyPage } = require('./vacancy-browser.cjs');
 const root = path.resolve(__dirname, '..');
 
 const server = http.createServer((req,res)=>{
@@ -18,6 +19,7 @@ async function main(){
   const origin='http://127.0.0.1:'+server.address().port;
   const browser=await chromium.launch({headless:true});
   try{
+    await checkVacancyPage(browser, origin + '/vacancy.html');
     const p=await browser.newPage({viewport:{width:390,height:844}});
     for(const name of ['index.html','vacancy.html','checkout.html','weekly-accounting.html','accounting-history.html']){
       await p.goto(origin+'/'+name);
@@ -107,7 +109,7 @@ async function main(){
     const checkout=fs.readFileSync(path.join(root,'checkout.html'),'utf8');
     const weekly=fs.readFileSync(path.join(root,'weekly-accounting.html'),'utf8');
     assert.equal(vacancy.includes('HOUSE_PUBLIC_DATA'),false,'vacancy must only use encrypted data');
-    assert.equal(vacancy.includes('月租 '),true,'vacancy cards must render monthly rent when present');
+    assert.equal(vacancy.includes('<span>月租金</span>'),true,'vacancy cards must label the monthly rent');
     assert.equal(vacancy.includes('元／度'),true,'vacancy cards must render electricity rate when present');
     assert.equal(vacancy.includes('<th>月租</th><th>電費</th>'),true,'rented list must show rent and electricity columns');
     const secureApp=fs.readFileSync(path.join(root,'secure-app.js'),'utf8');
@@ -418,7 +420,7 @@ async function main(){
     assert.equal(refundCheck.xuefuVacancy?.rent,9500,"Xuefu vacancy monthly rent must equal half the confirmed 19,000 deposit");
     assert.equal(refundCheck.xuefuVacancy?.rent_pending,false,"Xuefu vacancy rent must no longer be pending deposit information");
     assert.equal(refundCheck.xuefuRented,false,"Xuefu 702 must no longer be rented");
-    assert.equal(vacancy.includes("月租待補原押金"),true,"vacancy cards must explain missing deposit");
+    assert.equal(vacancy.includes("原押金資料待補"),true,"vacancy cards must explain missing deposit");
     assert.equal(secureApp.includes('xuefuBank.bank_account="288540544712"'),true,"Xuefu 702 direct bank account is shared across device loads");
     assert.equal(secureApp.includes('const latestCheckouts=new Map()'),true,"generic checkout to vacancy mapping must be maintained");
     assert.equal(secureApp.includes('deposit/2'),true,"vacancy rent must be half of original deposit, not the refunded amount");

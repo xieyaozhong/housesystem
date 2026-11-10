@@ -45,7 +45,7 @@ test("Undated vacancies follow dated vacancies, even when originally listed firs
 test("Vacancy page uses sort helper for cards and counts, and build includes it",()=>{
  const html=fs.readFileSync(path.resolve(__dirname,"../vacancy.html"),"utf8");
  const manifest=fs.readFileSync(path.resolve(__dirname,"../scripts/build.mjs"),"utf8");
- assert.ok(html.includes('<script src="vacancy-sort.js"></script>'));
+ assert.match(html,/<script src="vacancy-sort\.js(?:\?[^"]+)?"\s*><\/script>/);
  assert.ok(html.includes('HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented).filter('));
  assert.ok(html.includes('const available=HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented)'));
  assert.ok(html.includes("最新在上方"));
