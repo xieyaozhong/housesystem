@@ -552,7 +552,9 @@
       {room:"平德401",aliases:["平德401"]},
       {room:"太原D",aliases:["太原D","太原Ｄ"]},
       {room:"南屯643-301",aliases:["南屯643-301","南屯643－301","南屯643301"]},
-      {room:"平順403",aliases:["平順403"]}
+      {room:"平順403",aliases:["平順403"]},
+      // Occupancy status confirmed 2026-11-10; this is not the new lease start date.
+      {room:"平德501",aliases:["平德501"],confirmed_date:"2026-11-10"}
     ];
     const rentalRoomKey=value=>String(value||"").trim().replace(/[\s_－-]/g,"")
       .replace(/[陜陕]/g,"陝").replace(/Ｄ/g,"D").toUpperCase();
@@ -566,14 +568,14 @@
       const address=existingRental?.address||formerVacancy?.address||property?.address||"";
       const confirmed={...formerVacancy,...existingRental,room:target.room,address,status:"rented",
         source:"已出租（狀態已確認；實際起租日期與租金待補）",
-        updated_at:rentedStatusDate,rent_unverified:true,lease_start_pending:true};
+        updated_at:target.confirmed_date||rentedStatusDate,rent_unverified:true,lease_start_pending:true};
       delete confirmed.since;
       delete confirmed.rent_pending;
       ops.vacancies=(ops.vacancies||[]).filter(x=>!sameRoom(x));
       ops.rented=(ops.rented||[]).filter(x=>!sameRoom(x));
       ops.rented.push(confirmed);
     }
-    ops.updated_at="2026-11-09T16:36:00+08:00";
+    ops.updated_at="2026-11-10T17:21:00+08:00";
     return {key,ops,finance,vault};
   }
   async function unlock(password){
