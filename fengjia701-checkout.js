@@ -17,7 +17,7 @@ async function apply(s){
  const address=old?.address||existingVacancy?.address||existingRental?.address||(vault.properties||[]).find(match)?.address||"";
  const checkout={id:cid,room,address,checkout_date:date,refund_due_date:"2026-11-03",
   refund_amount:22485,calculated_refund_amount:22485,reconciliation_difference:0,reconciliation_status:"matched",
-  deposit:24000,meter_previous:18531,meter_current:18834,electricity_usage:303,
+  deposit:24000,rent:12000,meter_previous:18531,meter_current:18834,electricity_usage:303,
   power_rate:5,electricity_fee:1515,utilities_status:"settled",refund_status:paid?"paid":"pending",
   note:"電表18834－18531＝303度；303×5元＝1515元（已結清）；押金24000－電費1515＝應退22485元；預計11/3退款"};
  if(paid&&paidDate)checkout.refund_paid_date=paidDate;
@@ -33,11 +33,10 @@ async function apply(s){
   bank_account_last4:"2301",secure_local:false,bank_account:""});
  const later=ops.rented.some(x=>match(x)&&String(x.updated_at||x.since||"")>date);
  if(!later){
-  const vacancy={room,address,source:"退租轉空房",since:date,updated_at:date,status:"vacant",power_rate:5};
-  // Preserve an existing verified rent; deposit alone does not establish monthly rent.
+  const vacancy={room,address,source:"退租轉空房",since:date,updated_at:date,status:"vacant",power_rate:5,deposit:24000,rent:12000};
+  // Verified monthly rent is NT$12,000, corresponding to half of the deposit.
   if(existingVacancy)Object.assign(existingVacancy,vacancy);
   else {
-   if(existingRental?.rent!=null)vacancy.rent=existingRental.rent;
    ops.vacancies.push(vacancy);
   }
   ops.rented=ops.rented.filter(x=>!match(x));
