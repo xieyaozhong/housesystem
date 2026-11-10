@@ -34,10 +34,9 @@ async function apply(s){
  Object.assign(bank,{id,bank_code:"808",bank_name:"玉山銀行",bank_account_last4:"3713",secure_local:false,bank_account:""});
  const later=ops.rented.some(x=>match(x)&&String(x.updated_at||x.since||"")>date);
  if(!later){
-  const vacancy={room,address,source:"退租轉空房",since:date,updated_at:date,status:"vacant"};
+  const vacancy={room,address,source:"退租轉空房",since:date,updated_at:date,status:"vacant",deposit:22000,rent:11000};
   if(formerVacancy)Object.assign(formerVacancy,vacancy);
   else{
-   if(formerRental?.rent!=null)vacancy.rent=formerRental.rent;
    if(formerRental?.power_rate!=null)vacancy.power_rate=formerRental.power_rate;
    ops.vacancies.push(vacancy);
   }
