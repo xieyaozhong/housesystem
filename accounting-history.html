@@ -23,7 +23,7 @@
 <section class="panel" id="paymentSyncPanel"><h2>跨裝置帳務編輯</h2>
 <p id="paymentCloudStatus" class="history-edit-status">解鎖後檢查雲端同步…</p>
 <p class="history-note">可直接在下方帳務明細修改付款狀態與實際付款日期，修改會加密儲存至 Firebase，其他已登入裝置自動更新。首次設定 Firebase 專案請先至 <a href="vacancy.html">空房管理頁</a>。</p>
-<form id="historyCloudLogin" class="history-edit-controls"><label>Firebase 同步帳號<input id="historyCloudEmail" type="email" autocomplete="username" required></label><label>Firebase 帳號密碼<input id="historyCloudPassword" type="password" autocomplete="current-password" required></label><button type="submit">登入同步</button></form><p id="historyCloudFeedback" class="history-edit-feedback" role="status"></p></section>
+<form id="historyCloudLogin" class="history-edit-controls"><label>Firebase 同步帳號<input id="historyCloudEmail" type="email" autocomplete="username" value="handsomeboy784@gmail.com" required></label><label>Firebase 帳號密碼<input id="historyCloudPassword" type="password" autocomplete="current-password" required></label><label>此裝置登入偏好<span><input type="checkbox" id="historyCloudRemember" checked> 記住這台裝置，自動登入</span></label><button type="submit">首次登入並驗證</button></form><p id="historyCloudFeedback" class="history-edit-feedback" role="status"></p></section>
 <section class="panel" id="paymentEditPanel" hidden><h2>編輯付款紀錄</h2><p id="paymentEditLabel" class="history-note"></p>
 <form id="paymentEditForm" class="history-edit-controls">
 <label>付款狀態<select id="paymentEditStatus"><option value="paid">已付款</option><option value="pending">待付款</option></select></label>
