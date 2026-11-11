@@ -162,7 +162,7 @@
     try{
       await HouseOpsLive.login($("historyCloudEmail").value,$("historyCloudPassword").value,{remember:$("historyCloudRemember").checked});
       $("historyCloudPassword").value="";
-      feedback("historyCloudFeedback",$("historyCloudRemember").checked?"已驗證並記住此裝置，下次將自動恢復登入。":"已驗證，本次工作階段有效。");
+      feedback("historyCloudFeedback",HouseOpsLive.rememberOnThisDevice()?"已驗證並記住此裝置，下次將自動恢復登入。":"已驗證，本次工作階段有效；私密瀏覽可能無法保留自動登入。");
     }catch(err){feedback("historyCloudFeedback",err?.message||"登入失敗",true)}
   };
   window.addEventListener("house-ops-live-state",e=>cloudStatus(e.detail));
