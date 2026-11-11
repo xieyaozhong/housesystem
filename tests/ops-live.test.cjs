@@ -9,7 +9,8 @@ const source=fs.readFileSync(require("node:path").join(__dirname,"../house-ops-l
  .replace('import(SDK+"firebase-auth.js")','Promise.resolve(window.__testSDK.auth)')
  .replace('import(SDK+"firebase-firestore.js")','Promise.resolve(window.__testSDK.db)');
 function fixture(role="editor"){
- const saved=new Map(),listeners=new Set(),events=[];
+ const saved=new Map(),listeners=new Set(),events=[],preferences=new Map(),persistence=[];
+ const localStorage={getItem:k=>preferences.get(k)||null,setItem:(k,v)=>preferences.set(k,String(v))};
  const user={uid:"test-"+role,email:role==="editor"?"admin@example.com":"viewer@example.com",
   getIdTokenResult:async()=>({claims:{email:role==="editor"?"admin@example.com":"viewer@example.com",email_verified:true}})};
  const identity={currentUser:user,authStateReady:async()=>{}};
@@ -17,6 +18,8 @@ function fixture(role="editor"){
   docs:[...saved].map(([id,value])=>({id,data:()=>value}))});
  const appSDK={getApps:()=>[],initializeApp:()=>({name:"housesystem-sync"})};
  const authSDK={getAuth:()=>identity,authStateReady:async()=>{},
+  browserLocalPersistence:"LOCAL",browserSessionPersistence:"SESSION",
+  setPersistence:async(_auth,mode)=>{persistence.push(mode)},
   onAuthStateChanged:(_auth,cb)=>{queueMicrotask(cb);return ()=>{}},
   signInWithEmailAndPassword:async()=>({user}),signOut:async()=>{identity.currentUser=null}};
  const dbSDK={getFirestore:()=>({}),collection:()=>({}),doc:(_,__,id)=>({id}),
@@ -31,7 +34,7 @@ function fixture(role="editor"){
  const window={HouseSecureApp:api,HouseCore:{readConfig:()=>({projectId:"house-test"}),ADMIN_EMAIL:"admin@example.com"},
   __testSDK:{app:appSDK,auth:authSDK,db:dbSDK},
   dispatchEvent:e=>events.push(e)};
- const sandbox={window,crypto:webcrypto,TextEncoder,TextDecoder,btoa,atob,CustomEvent:
+ const sandbox={window,localStorage,crypto:webcrypto,TextEncoder,TextDecoder,btoa,atob,CustomEvent:
   class{constructor(type,options){this.type=type;this.detail=options?.detail}},
   navigator:{onLine:true},location:{reload:()=>{}},queueMicrotask,Promise,Date,Map,Set,Error,Number,String,Array,Object};
  vm.runInNewContext(source,sandbox,{filename:"house-ops-live.js"});
@@ -41,7 +44,7 @@ function fixture(role="editor"){
    weekly_accounts:[{id:"refund-fengjia701-20261029",kind:"refund",property_label:"逢甲701",
     settlement_date:"2026-10-29",status:"pending"}]},
    vault:{properties:[{code:"平德501",address:"舊址"}]}});
- return {live:window.HouseOpsLive,store:saved,state,events};
+ return {live:window.HouseOpsLive,store:saved,state,events,preferences,persistence};
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function online(live){
@@ -88,4 +91,20 @@ test("An authenticated viewer receives cloud updates but cannot save or edit",as
  await assert.rejects(()=>x.live.saveRoom({room:"平德501",status:"vacant",deposit:26000}),/唯讀帳號/);
  assert.equal(x.store.size,0);
  assert.equal(session.ops.rented.some(row=>row.room==="平德501"),true);
+});
+
+test("This browser can remember verified Firebase login without storing a password",async()=>{
+ const x=fixture(),key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ await x.live.connect(x.state(key));
+ await online(x.live);
+ await x.live.login("admin@example.com","testing-password",{remember:true});
+ await online(x.live);
+ assert.equal(x.live.getStatus().remembered,true);
+ assert.equal(x.live.rememberOnThisDevice(),true);
+ assert.equal(x.preferences.get("house_ops_remember_firebase_login_v1"),"yes");
+ assert.equal(x.persistence.at(-1),"LOCAL");
+ assert.equal([...x.preferences.values()].some(v=>v.includes("testing-password")),false);
+ await x.live.logout();
+ assert.equal(x.live.rememberOnThisDevice(),false);
+ assert.equal(x.preferences.get("house_ops_remember_firebase_login_v1"),"no");
 });
