@@ -1,7 +1,7 @@
 (function(){
 "use strict";
-const form=document.getElementById("opsEditorForm"),checkoutForm=document.getElementById("checkoutEditorForm");
-if(!form&&!checkoutForm)return;
+const form=document.getElementById("opsEditorForm"),checkoutForm=document.getElementById("checkoutEditorForm"),pettyForm=document.getElementById("pettyEditorForm");
+if(!form&&!checkoutForm&&!pettyForm)return;
 const $=id=>document.getElementById(id);
 const E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const N=n=>"NT$ "+Math.round(Number(n)||0).toLocaleString("zh-TW");
@@ -17,6 +17,7 @@ function paintAccess(){
  for(const el of document.querySelectorAll(".ops-editor-submit"))el.disabled=!can;
  if($("opsEditorState"))$("opsEditorState").textContent=can?"已取得管理員編輯權限，可新增或修改帳務。":"此頁只有已登入 Firebase 並同步成功的管理員可修改；主管仍維持唯讀。";
  if($("checkoutEditorState"))$("checkoutEditorState").textContent=can?"已取得管理員編輯權限；儲存退租時會同時更新空房與退款帳務。":"僅已登入 Firebase 並同步成功的管理員可登記退租；主管維持唯讀。";
+ if($("pettyEditorState"))$("pettyEditorState").textContent=can?"已取得管理員編輯權限，可新增及修改代管備用金。":"主管為唯讀；請在管理員手機登入 Firebase 並完成同步。";
 }
 function note(id,message,error=false){
  const node=$(id);if(!node)return;node.textContent=message;node.classList.toggle("error",error);
@@ -116,9 +117,33 @@ function editCheckout(id){
  previewCheckout();
  checkoutForm.scrollIntoView({behavior:"smooth",block:"start"});
 }
+function paintPetty(){
+ if(!pettyForm||!session)return;
+ const term=$("pettyEditorFilter").value.trim().toLowerCase();
+ const rows=(window.HOUSE_PETTY_CASH_DATA?.entries||[]).filter(r=>
+  [r.manager,r.item,r.date,r.id].join(" ").toLowerCase().includes(term))
+  .sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,200);
+ const names={fund:"零用金入帳",petty_expense:"零用金支出",advance:"代墊",advance_repaid:"代墊歸還"};
+ $("pettyEditorRows").innerHTML=rows.map(r=>'<tr><td>'+E(r.date)+'</td><td>'+E(r.manager)+'</td><td>'+E(names[r.kind]||r.kind)+'</td><td>'+E(r.item)+'</td><td>'+N(r.amount)+'</td><td>'+E(r.status==="void"?"作廢":"有效")+'</td><td><button type="button" data-edit-petty="'+E(r.id)+'">修改</button></td></tr>').join("")||'<tr><td colspan="7">沒有符合的紀錄</td></tr>';
+}
+function resetPetty(){
+ if(!pettyForm)return;pettyForm.reset();fill(pettyForm,{
+  id:"",date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Taipei"}),
+  kind:"fund",status:"active"
+ });
+ note("pettyEditorFeedback","新增代管備用金：儲存後會更新本期與歷史統計。");
+}
+function editPetty(id){
+ if(!isEditor())return;
+ const r=(window.HOUSE_PETTY_CASH_DATA?.entries||[]).find(x=>x.id===id);
+ if(!r)return;
+ pettyForm.reset();fill(pettyForm,r);
+ note("pettyEditorFeedback","正在修改 "+r.manager+"｜"+r.item);
+ pettyForm.scrollIntoView({behavior:"smooth",block:"start"});
+}
 function setSession(next){
  session=next;
- paintAccess();paintAccounts();paintCheckouts();
+ paintAccess();paintAccounts();paintCheckouts();paintPetty();
 }
 window.HouseOpsForms={setSession,paintAccess};
 window.addEventListener("house-ops-live-state",paintAccess);
@@ -158,6 +183,23 @@ if(checkoutForm){
  $("checkoutEditorReset").addEventListener("click",resetCheckout);
  $("checkoutEditorFilter").addEventListener("input",paintCheckouts);
  resetCheckout();
+}
+if(pettyForm){
+ pettyForm.addEventListener("submit",async e=>{
+  e.preventDefault();if(!isEditor())return note("pettyEditorFeedback","尚未取得管理員權限",true);
+  pettyForm.querySelector('button[type="submit"]').disabled=true;
+  note("pettyEditorFeedback","正在加密同步零用金／代墊紀錄…");
+  try{
+   await HouseOpsLive.savePetty(values(pettyForm));
+   note("pettyEditorFeedback","代管備用金已同步儲存。");
+   paintPetty();
+  }catch(err){note("pettyEditorFeedback",err.message||"儲存失敗",true)}
+  finally{paintAccess()}
+ });
+ $("pettyEditorRows").addEventListener("click",e=>{const btn=e.target.closest("[data-edit-petty]");if(btn)editPetty(btn.dataset.editPetty)});
+ $("pettyEditorFilter").addEventListener("input",paintPetty);
+ $("pettyEditorReset").addEventListener("click",resetPetty);
+ resetPetty();
 }
 paintAccess();
 })();
