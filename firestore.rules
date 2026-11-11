@@ -23,10 +23,13 @@ service cloud.firestore {
       allow create, update, delete: if isVerifiedOwner();
     }
 
-    // Live room and payment edits are AES-GCM encrypted. Document IDs are
-    // deterministic hashes of room/payment identifiers, not plaintext.
+    // Password-only supervisor viewing: this collection holds ciphertext only.
+    // Its encrypted blobs and hashed document IDs are publicly retrievable;
+    // plaintext is decrypted on the device using the house management password.
+    // Keep sensitive data in other collections protected and use a strong password.
+    // Only the verified admin may create or update encrypted modifications.
     match /housesystem_ops_edits/{recordId} {
-      allow read: if isHouseSystemMember();
+      allow read: if true;
       allow create, update: if isVerifiedOwner() &&
         recordId.matches('^[rp]-[0-9a-f]{64}$') &&
         request.resource.data.keys().hasOnly([
