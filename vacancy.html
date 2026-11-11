@@ -1,11 +1,31 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>家總管｜空房系統</title><link rel="stylesheet" href="public-style.css"><link rel="stylesheet" href="secure-style.css"><style>.monthly-rent{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:14px;padding:12px 14px;border:1px solid #285846;border-radius:12px;background:#102c25}.monthly-rent span{font-size:12px;color:#b8d9cf;font-weight:700}.monthly-rent strong{font-size:23px;letter-spacing:-.02em;color:#a0efd0;font-variant-numeric:tabular-nums}.monthly-rent strong.unknown{font-size:16px;color:#c5d0dd}.rent-cell{color:#a0efd0;font-weight:800;font-variant-numeric:tabular-nums}.rent-summary{margin:4px 0 12px;color:#a9c7e8;font-size:12px}</style></head><body>
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>家總管｜空房系統</title><link rel="stylesheet" href="public-style.css"><link rel="stylesheet" href="secure-style.css"><style>.monthly-rent{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:14px;padding:12px 14px;border:1px solid #285846;border-radius:12px;background:#102c25}.monthly-rent span{font-size:12px;color:#b8d9cf;font-weight:700}.monthly-rent strong{font-size:23px;letter-spacing:-.02em;color:#a0efd0;font-variant-numeric:tabular-nums}.monthly-rent strong.unknown{font-size:16px;color:#c5d0dd}.rent-cell{color:#a0efd0;font-weight:800;font-variant-numeric:tabular-nums}.rent-summary{margin:4px 0 12px;color:#a9c7e8;font-size:12px}.live-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px;align-items:end}.live-form label{display:flex;flex-direction:column;gap:5px;color:#c5d8ea;font-size:12px}.live-form input,.live-form select,.live-form textarea{width:100%;padding:11px;border:1px solid #34506b;border-radius:10px;background:#091a2b;color:#fff;font-size:14px}.live-form textarea{min-height:78px}.live-form button,.edit-btn,.live-actions button{border:1px solid #37745f;border-radius:10px;background:#143b30;color:#b9ffe1;padding:10px 12px;font-size:13px;font-weight:700;cursor:pointer}.live-form button:disabled{opacity:.45;cursor:not-allowed}.live-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.live-help{color:#91acc4;font-size:12px;line-height:1.7}.live-feedback{min-height:22px;color:#b9ffe1;font-size:12px}.live-feedback.error{color:#ffaaaa}.sync-settings{margin:10px 0}.sync-settings summary{cursor:pointer;color:#a8cfff;font-size:12px}.edit-btn{padding:6px 10px;background:#152d48;color:#b6d8ff;border-color:#2d516e}.edit-btn:disabled{opacity:.5}.live-info{font-size:12px;color:#a8cfff} </style></head><body>
 <div class="lock" id="lock"><div class="lockbox"><div class="ey">VACANCY SECURE</div><h2>空房系統登入</h2><p>輸入管理密碼後查看完整房務、門禁與備註資料</p><div class="lockrow"><input id="pw" class="secure-input" type="password" autocomplete="current-password" placeholder="管理密碼"><button id="unlock" class="unlock-btn">解鎖</button></div><div id="err" class="lockerr"></div></div></div>
 <div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS · SECURE</small></div><nav class="nav"><a class="on" href="vacancy.html">空房系統</a><a href="checkout.html">退租紀錄</a><a href="weekly-accounting.html">每週帳務</a><a href="accounting-history.html">歷史帳務</a></nav><div class="foot"><button id="forget" class="secure-btn" style="width:100%">鎖定此裝置</button><a href="index.html">← 系統首頁</a></div></aside>
-<main class="main"><header class="top"><div><div class="ey">FULL VACANCY CONTROL</div><h1>空房管理</h1><div class="sub">內部完整資料｜解鎖後顯示物件主檔、門禁、備註與房間狀態｜頁面版本 2026/11/10</div></div><div class="chip" id="updated">● 已加密</div></header><section class="stats"><div class="st"><span>目前空房</span><b id="sVac">0</b></div><div class="st"><span>近期已出租</span><b id="sRent">0</b></div><div class="st"><span>退租轉空房</span><b id="sCheckout">0</b></div><div class="st"><span>主檔物件</span><b id="sProps">0</b></div></section>
+<main class="main"><header class="top"><div><div class="ey">FULL VACANCY CONTROL</div><h1>空房管理</h1><div class="sub">內部完整資料｜解鎖後顯示物件主檔、門禁、備註與房間狀態｜頁面版本 2026/11/11・雲端編輯</div></div><div class="chip" id="updated">● 已加密</div></header><section class="stats"><div class="st"><span>目前空房</span><b id="sVac">0</b></div><div class="st"><span>近期已出租</span><b id="sRent">0</b></div><div class="st"><span>退租轉空房</span><b id="sCheckout">0</b></div><div class="st"><span>主檔物件</span><b id="sProps">0</b></div></section>
+<section class="panel" id="syncPanel"><h2>網頁編輯・所有裝置同步</h2>
+<p class="live-info" id="liveState">解鎖後檢查 Firebase 連線…</p>
+<p class="live-help">必須使用已授權的 Firebase 帳號及相同管理密碼。編輯時資料會先加密，再傳送至 Firestore；其他已登入並解鎖的裝置自動更新。未完成連線時無法儲存。</p>
+<details class="sync-settings" id="syncSettings"><summary>首次連線：設定 Firebase 專案（每台裝置各設定一次）</summary>
+<form id="syncConfigForm" class="live-form"><label>apiKey<input id="cfgApiKey" autocomplete="off" required></label><label>authDomain<input id="cfgAuthDomain" required></label><label>projectId<input id="cfgProjectId" required></label><label>appId<input id="cfgAppId" required></label><button type="submit">儲存 Firebase 設定</button></form></details>
+<form id="syncLoginForm" class="live-form"><label>已授權的同步帳號<input id="syncEmail" type="email" autocomplete="username" required></label><label>同步帳號密碼<input id="syncPassword" type="password" autocomplete="current-password" required></label><button type="submit" id="syncLoginBtn">登入雲端</button><button type="button" id="syncLogoutBtn">登出雲端</button></form>
+<div id="syncFeedback" class="live-feedback" role="status"></div></section>
+<section class="panel" id="roomEditPanel"><h2>編輯房間資料</h2>
+<p class="live-help">可新增房間，或在月租金總覽點「編輯」。押金與月租會自動互算（月租＝押金 ÷ 2）；點儲存才會寫入雲端。</p>
+<form id="roomEditForm"><div class="live-form">
+<label>房間名稱<input id="editRoom" placeholder="例如：平德501" required maxlength="100"></label>
+<label>房間狀態<select id="editStatus"><option value="vacant">空房</option><option value="rented">已出租</option></select></label>
+<label>押金（元）<input id="editDeposit" type="number" min="1" step="1" inputmode="numeric" required></label>
+<label>月租（元）<input id="editRent" type="number" min="1" step="1" inputmode="numeric" required></label>
+<label>電費（元／度）<input id="editPowerRate" type="number" min="0.1" step="0.1" inputmode="decimal"></label>
+<label>地址<input id="editAddress" maxlength="300"></label>
+<label>備註<input id="editNote" maxlength="2000"></label>
+<button type="submit" id="saveRoomBtn" disabled>儲存並同步所有裝置</button></div>
+<div class="live-actions"><button type="button" id="newRoomBtn">新增房間／清空欄位</button></div>
+<div id="editFeedback" class="live-feedback" role="status"></div></form></section>
 <section class="panel"><h2>目前空房</h2><p class="sub">依最近退租／空房日期排序，最新在上方；沒有日期的空房排在後方。</p><input id="q" class="search" placeholder="搜尋房號、地址"><div id="cards" class="cards"></div></section>
-<section class="panel"><h2>各房間月租金總覽</h2><p class="sub">月租金＝押金 ÷ 2。優先使用房間自身押金，再參考最近一次退租押金；沒有押金紀錄時保留已知租金，其餘標示待補登。歷史押金不一定代表新租約押金。</p><div class="rent-summary" id="rentSummary">解鎖後顯示各房間月租金</div><input id="rentQ" class="search" placeholder="搜尋房號、地址或狀態"><div class="tbl"><table><thead><tr><th>房間</th><th>地址</th><th>押金／依據</th><th>月租金</th><th>房間狀態</th></tr></thead><tbody id="rentRows"></tbody></table></div></section>
+<section class="panel"><h2>各房間月租金總覽</h2><p class="sub">月租金＝押金 ÷ 2。優先使用房間自身押金，再參考最近一次退租押金；沒有押金紀錄時保留已知租金，其餘標示待補登。歷史押金不一定代表新租約押金。</p><div class="rent-summary" id="rentSummary">解鎖後顯示各房間月租金</div><input id="rentQ" class="search" placeholder="搜尋房號、地址或狀態"><div class="tbl"><table><thead><tr><th>房間</th><th>地址</th><th>押金／依據</th><th>月租金</th><th>房間狀態</th><th>操作</th></tr></thead><tbody id="rentRows"></tbody></table></div></section>
 <section class="panel"><h2>近期已出租</h2><div class="tbl"><table><thead><tr><th>房間</th><th>地址</th><th>月租</th><th>電費</th><th>更新日期</th><th>狀態</th></tr></thead><tbody id="rented"></tbody></table></div></section>
-<section class="panel"><h2>物件主檔完整資訊</h2><div class="tbl"><table><thead><tr><th>ID</th><th>編號</th><th>地址</th><th>月租金</th><th>門禁／電錶</th><th>備註／物品</th><th>原始地址</th></tr></thead><tbody id="props"></tbody></table></div></section></main></div><script src="secure-data.js"></script><script src="trusted-device.js"></script><script src="ops-secure.js"></script><script src="finance-secure.js"></script><script src="secure-app.js?v=20261110-room-status-rent-v2"></script><script src="mingde-checkouts.js"></script><script src="zhongqing1a-checkout.js"></script><script src="mingde2a-checkout.js"></script><script src="nantun643-301-checkout.js"></script><script src="mingde3e-checkout.js"></script><script src="fengjia701-checkout.js?v=20261110-room-status-rent-v2"></script><script src="mingde4d-checkout.js"></script><script src="mingde3d-checkout.js"></script><script src="mingde4b-checkout.js"></script><script src="pingde501-checkout.js?v=20261110-room-status-rent-v2"></script><script src="minsheng303-repair.js"></script><script src="zhongmingnan867-r1-checkout.js?v=20261110-room-status-rent-v2"></script><script src="house-core.js"></script><script src="mingde-finance-cloud.js"></script><script src="payment-status-20261111.js?v=20261111-payments"></script><script src="vacancy-sort.js?v=20261110-room-status-rent-v2"></script><script>
+<section class="panel"><h2>物件主檔完整資訊</h2><div class="tbl"><table><thead><tr><th>ID</th><th>編號</th><th>地址</th><th>月租金</th><th>門禁／電錶</th><th>備註／物品</th><th>原始地址</th></tr></thead><tbody id="props"></tbody></table></div></section></main></div><script src="secure-data.js"></script><script src="trusted-device.js"></script><script src="ops-secure.js"></script><script src="finance-secure.js"></script><script src="secure-app.js?v=20261110-room-status-rent-v2"></script><script src="mingde-checkouts.js"></script><script src="zhongqing1a-checkout.js"></script><script src="mingde2a-checkout.js"></script><script src="nantun643-301-checkout.js"></script><script src="mingde3e-checkout.js"></script><script src="fengjia701-checkout.js?v=20261110-room-status-rent-v2"></script><script src="mingde4d-checkout.js"></script><script src="mingde3d-checkout.js"></script><script src="mingde4b-checkout.js"></script><script src="pingde501-checkout.js?v=20261110-room-status-rent-v2"></script><script src="minsheng303-repair.js"></script><script src="zhongmingnan867-r1-checkout.js?v=20261110-room-status-rent-v2"></script><script src="house-core.js"></script><script src="mingde-finance-cloud.js"></script><script src="payment-status-20261111.js?v=20261111-payments"></script><script src="house-ops-live.js?v=20261111-live1"></script><script src="vacancy-sort.js?v=20261110-room-status-rent-v2"></script><script>
 const $=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));let S=null;
 const rentKey=x=>String(x||"").trim().replace(/[\s_－-]/g,"").replace(/[陜陕]/g,"陝").toUpperCase();
 const moneyValue=x=>{if(x===null||x===undefined||String(x).trim()==="")return null;const n=Number(String(x).replace(/[,\s]/g,""));return Number.isFinite(n)&&n>0?n:null};
@@ -47,9 +67,69 @@ function paintRent(){
   .filter(x=>[x.room,x.address,x.status].join(" ").toLowerCase().includes(q));
  const filled=rows.filter(x=>moneyValue(x.rent)!==null).length;
  $("#rentSummary").textContent="已顯示 "+filled+" 間月租金｜"+(rows.length-filled)+" 間待補登";
- $("#rentRows").innerHTML=a.map(x=>`<tr><td><b>${E(x.room)}</b></td><td>${E(x.address||"—")}</td><td>${E(x.depositInfo)}</td><td class="rent-cell">${E(rentText(x.rent))}</td><td>${E(x.status)}</td></tr>`).join("")||'<tr><td colspan="5" class="sub">沒有符合資料</td></tr>';
+ $("#rentRows").innerHTML=a.map(x=>`<tr><td><b>${E(x.room)}</b></td><td>${E(x.address||"—")}</td><td>${E(x.depositInfo)}</td><td class="rent-cell">${E(rentText(x.rent))}</td><td>${E(x.status)}</td><td><button type="button" class="edit-btn" data-edit-room="${E(x.room)}">編輯</button></td></tr>`).join("")||'<tr><td colspan="6" class="sub">沒有符合資料</td></tr>';
 }
-function paint(){const o=S.ops,q=$("#q").value.trim().toLowerCase(),a=HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented).filter(v=>[v.room,v.address,v.source].join(" ").toLowerCase().includes(q));$("#cards").innerHTML=a.map(v=>`<article class="card"><span class="badge vac">目前空房</span><h3>${E(v.room)}</h3><div class="addr">${E(v.address)}</div><div class="meta">${E(v.source||"")}${HouseVacancySort.date(v,o.checkouts)?"｜空房日期 "+E(HouseVacancySort.date(v,o.checkouts)):""}</div>${`<div class="monthly-rent"><span>月租金</span><strong class="${rentOf(v.room)==null?"unknown":""}">${rentOf(v.room)==null?"待補登":"NT$ "+E(Number(rentOf(v.room)).toLocaleString("zh-TW"))}</strong></div>${v.power_rate!=null?`<div class="meta">電費 ${E(v.power_rate)} 元／度</div>`:""}`}${v.rent_pending&&rentOf(v.room)===null?'<div class="meta">原押金資料待補</div>':""}</article>`).join("")||'<div class="sub">沒有符合資料</div>'}
+function paint(){const o=S.ops,q=$("#q").value.trim().toLowerCase(),a=HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented).filter(v=>[v.room,v.address,v.source].join(" ").toLowerCase().includes(q));$("#cards").innerHTML=a.map(v=>`<article class="card"><span class="badge vac">目前空房</span><h3>${E(v.room)}</h3><div class="addr">${E(v.address)}</div><div class="meta">${E(v.source||"")}${HouseVacancySort.date(v,o.checkouts)?"｜空房日期 "+E(HouseVacancySort.date(v,o.checkouts)):""}</div>${`<div class="monthly-rent"><span>月租金</span><strong class="${rentOf(v.room)==null?"unknown":""}">${rentOf(v.room)==null?"待補登":"NT$ "+E(Number(rentOf(v.room)).toLocaleString("zh-TW"))}</strong></div><button type="button" class="edit-btn" data-edit-room="${E(v.room)}" style="margin-top:9px">編輯房間</button>${v.power_rate!=null?`<div class="meta">電費 ${E(v.power_rate)} 元／度</div>`:""}`}${v.rent_pending&&rentOf(v.room)===null?'<div class="meta">原押金資料待補</div>':""}</article>`).join("")||'<div class="sub">沒有符合資料</div>'}
 function render(session){S=session;const o=S.ops,v=S.vault;S.rentRows=allRentRows(o,v);S.rentIndex=new Map(S.rentRows.map(x=>[rentKey(x.room),x]));const rentMap=new Map(S.rentRows.map(x=>[rentKey(x.room),x.rent]));$("#lock").style.display="none";const available=HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented);$("#sVac").textContent=available.length;$("#sRent").textContent=o.rented.length;$("#sCheckout").textContent=available.filter(x=>x.source==="退租轉空房").length;$("#sProps").textContent=(v.properties||[]).length;$("#updated").textContent="● 更新 "+new Date(o.updated_at).toLocaleString("zh-TW");$("#rented").innerHTML=o.rented.map(r=>`<tr><td><b>${E(r.room)}</b></td><td>${E(r.address)}</td><td class="rent-cell">${E(rentText(rentMap.get(rentKey(r.room))))}</td><td>${r.power_rate!=null?E(r.power_rate)+" 元／度":"—"}</td><td>${E(r.updated_at)}</td><td><span class="badge rent">已出租</span></td></tr>`).join("");$("#props").innerHTML=(v.properties||[]).map(p=>`<tr><td>#${E(p.id)}</td><td>${E(p.code||"—")}</td><td>${E(p.address||"—")}</td><td class="rent-cell">${E(rentText(rentMap.get(rentKey(p.code))))}</td><td class="account">${E(p.access||"—")}</td><td>${E(p.note||"—")}</td><td>${E(p.address_raw||"—")}</td></tr>`).join("");paint();paintRent()}
+function livePaint(data=window.HouseOpsLive?.getStatus()||{}){
+ $("#liveState").textContent=data.message||"尚未連線";
+ $("#saveRoomBtn").disabled=data.mode!=="online";
+ $("#syncLoginBtn").disabled=data.mode==="online"||data.mode==="connecting";
+ if(data.user&&!$("#syncEmail").value)$("#syncEmail").value=data.user;
+}
+function editMessage(message,error=false){
+ $("#editFeedback").textContent=message;$("#editFeedback").classList.toggle("error",error)
+}
+function configMessage(message,error=false){
+ $("#syncFeedback").textContent=message;$("#syncFeedback").classList.toggle("error",error)
+}
+function openRoom(room){
+ const row=S?.rentIndex?.get(rentKey(room)),record=[...(S?.ops?.vacancies||[]),...(S?.ops?.rented||[])].find(x=>rentKey(x.room)===rentKey(room));
+ $("#editRoom").value=row?.room||room||"";
+ $("#editStatus").value=row?.status==="已出租"?"rented":"vacant";
+ $("#editDeposit").value=row?.deposit??(row?.rent?row.rent*2:"");
+ $("#editRent").value=row?.rent||"";
+ $("#editAddress").value=record?.address||row?.address||"";
+ $("#editPowerRate").value=record?.power_rate??"";
+ $("#editNote").value=record?.note||"";
+ editMessage("");
+ $("#roomEditPanel").scrollIntoView({behavior:"smooth",block:"start"});
+}
+$("#cards").addEventListener("click",e=>{const btn=e.target.closest("[data-edit-room]");if(btn)openRoom(btn.dataset.editRoom)});
+$("#rentRows").addEventListener("click",e=>{const btn=e.target.closest("[data-edit-room]");if(btn)openRoom(btn.dataset.editRoom)});
+$("#newRoomBtn").onclick=()=>{const form=$("#roomEditForm");form.reset();editMessage("已清空欄位，可輸入新房號。");$("#editRoom").focus()};
+$("#editDeposit").addEventListener("input",()=>{const n=moneyValue($("#editDeposit").value);$("#editRent").value=n===null?"":String(n/2)});
+$("#editRent").addEventListener("input",()=>{const n=moneyValue($("#editRent").value);$("#editDeposit").value=n===null?"":String(n*2)});
+$("#roomEditForm").onsubmit=async e=>{
+ e.preventDefault();
+ if(!S)return editMessage("請先解鎖管理密碼",true);
+ const btn=$("#saveRoomBtn");btn.disabled=true;editMessage("正在安全儲存與雲端確認…");
+ try{await HouseOpsLive.saveRoom({room:$("#editRoom").value,status:$("#editStatus").value,
+  deposit:$("#editDeposit").value,rent:$("#editRent").value,
+  power_rate:$("#editPowerRate").value,address:$("#editAddress").value,note:$("#editNote").value});
+  editMessage("已儲存至雲端，其他裝置將自動更新。");
+ }catch(err){editMessage(err?.message||"儲存失敗",true)}
+ finally{livePaint()}
+};
+$("#syncConfigForm").onsubmit=e=>{
+ e.preventDefault();
+ try{HouseOpsLive.configure({apiKey:$("#cfgApiKey").value,authDomain:$("#cfgAuthDomain").value,
+  projectId:$("#cfgProjectId").value,appId:$("#cfgAppId").value})}
+ catch(err){configMessage(err?.message||"設定儲存失敗",true)}
+};
+$("#syncLoginForm").onsubmit=async e=>{
+ e.preventDefault();configMessage("正在驗證同步帳號…");
+ try{await HouseOpsLive.login($("#syncEmail").value,$("#syncPassword").value);
+   $("#syncPassword").value="";configMessage("登入成功，正在確認雲端資料…")}
+ catch(err){configMessage(err?.message||"登入失敗",true)}
+};
+$("#syncLogoutBtn").onclick=async()=>{try{await HouseOpsLive.logout();configMessage("已登出雲端")}catch(err){configMessage(err?.message||"登出失敗",true)}};
+window.addEventListener("house-ops-live-state",e=>livePaint(e.detail));
+window.addEventListener("house-ops-live-change",e=>{if(S===e.detail?.session)render(S)});
+try{const cfg=HouseCore.readConfig();if(cfg){
+ $("#cfgApiKey").value=cfg.apiKey;$("#cfgAuthDomain").value=cfg.authDomain;
+ $("#cfgProjectId").value=cfg.projectId;$("#cfgAppId").value=cfg.appId;
+}}catch(err){configMessage(err.message,true)}
+livePaint();
 async function unlock(){try{render(await HouseSecureApp.unlock($("#pw").value));$("#pw").value=""}catch(e){$("#err").textContent=e?.message||"無法解鎖"}}$("#q").oninput=()=>S&&paint();$("#rentQ").oninput=()=>S&&paintRent();$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};$("#forget").onclick=async()=>{await HouseSecureApp.forget();location.reload()};(async()=>{const s=await HouseSecureApp.auto();if(s)render(s)})();
 </script></body></html>
