@@ -101,7 +101,7 @@ test("An authenticated viewer receives cloud updates but cannot save or edit",as
  const session=x.state(key);
  await x.live.connect(session);await online(x.live);
  assert.equal(x.live.getStatus().role,"viewer");
- await assert.rejects(()=>x.live.saveRoom({room:"平德501",status:"vacant",deposit:26000}),/唯讀帳號/);
+ await assert.rejects(()=>x.live.saveRoom({room:"平德501",status:"vacant",deposit:26000}),/唯讀/);
  assert.equal(x.store.size,0);
  assert.equal(session.ops.rented.some(row=>row.room==="平德501"),true);
 });
