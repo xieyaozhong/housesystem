@@ -70,7 +70,17 @@ function render(){
 function applyPatch(session,p){
  const ops=session.ops;if(!ops||!p)return;
  ops.vacancies||=[];ops.rented||=[];ops.weekly_accounts||=[];ops.checkouts||=[];
- if(p.kind==="room"){
+ if(p.kind==="vacancy_order"){
+  // This is encrypted with the same AES-GCM key as the room data. Never let a
+  // shared order overwrite room status, rent or historical checkout records.
+  const order=p.changes?.order;
+  if(Array.isArray(order)&&order.length<=500&&order.every(x=>typeof x==="string"&&x.length<=100)){
+   const normalized=order.map(norm);
+   if(normalized.every(Boolean)&&new Set(normalized).size===normalized.length){
+    ops.vacancy_card_order=normalized;
+   }
+  }
+ }else if(p.kind==="room"){
   const data=p.changes||{},key=norm(p.key);
   if(!key||!["vacant","rented"].includes(data.status))return;
   const match=x=>norm(x?.room||x?.code)===key;
@@ -185,7 +195,7 @@ async function decrypt(doc,key){
   const raw=await crypto.subtle.decrypt({name:"AES-GCM",iv:ub64(d.iv)},key,ub64(d.ct));
   p=JSON.parse(td.decode(raw));
  }catch(_){throw Error("雲端資料解密失敗。請確認各裝置使用相同管理密碼")}
- if(!p||!["room","payment","account","checkout","petty"].includes(p.kind)||typeof p.key!=="string"||typeof p.updated_at!=="string"||!p.changes||typeof p.changes!=="object")throw Error("雲端修改紀錄內容無效");
+ if(!p||!["room","payment","account","checkout","petty","vacancy_order"].includes(p.kind)||typeof p.key!=="string"||typeof p.updated_at!=="string"||!p.changes||typeof p.changes!=="object")throw Error("雲端修改紀錄內容無效");
  if(await hash(p.kind,p.key)!==doc.id)throw Error("雲端修改紀錄識別碼異常");
  return p;
 }
@@ -462,7 +472,23 @@ async function savePetty(data){
  const row={id,kind,date,manager,item,amount,receipt_url:receipt,status:statusValue};
  return save({v:1,kind:"petty",key:id,updated_at:nextTimestamp(),changes:{row}});
 }
-window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,savePetty,calculateCheckout,
+async function saveVacancyOrder(order){
+ writable();
+ if(!Array.isArray(order)||order.length>500)throw Error("空房卡片順序筆數不正確");
+ const keys=order.map(value=>{
+  if(typeof value!=="string"||!value.trim()||value.length>100)throw Error("房號排序資料不正確");
+  return norm(value);
+ });
+ if(new Set(keys).size!==keys.length)throw Error("房號排序資料有重複項目");
+ const available=window.HouseVacancySort?.sort(s.ops.vacancies,s.ops.checkouts,s.ops.rented)||s.ops.vacancies||[];
+ const current=new Set(available.map(row=>norm(row?.room||row?.code)).filter(Boolean));
+ if(keys.length!==current.size||keys.some(key=>!current.has(key))){
+  throw Error("空房名單已變更，請重新整理後再排序");
+ }
+ return save({v:1,kind:"vacancy_order",key:"global",updated_at:nextTimestamp(),
+  changes:{order:keys}});
+}
+window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,savePetty,saveVacancyOrder,calculateCheckout,
  defaultEmail:DEFAULT_EDITOR,defaultFirebaseConfig:()=>({...DEFAULT_FIREBASE_CONFIG}),rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)!=="no"};
 for(const name of ["unlock","auto","loadWithKey"]){
  const original=api[name];
