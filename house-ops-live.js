@@ -92,6 +92,15 @@ function applyPatch(session,p){
   ops.vacancies=ops.vacancies.filter(x=>!match(x));
   ops.rented=ops.rented.filter(x=>!match(x));
   (data.status==="vacant"?ops.vacancies:ops.rented).push(item);
+ }else if(p.kind==="petty"){
+  const row=p.changes?.row;
+  if(!row||row.id!==p.key||!["fund","advance","advance_repaid","petty_expense"].includes(row.kind))return;
+  const ledger=window.HOUSE_PETTY_CASH_DATA||{entries:[],updated_at:""};
+  ledger.entries||=[];
+  const existing=ledger.entries.find(x=>x.id===row.id);
+  if(existing)Object.assign(existing,row);else ledger.entries.push({...row});
+  if(p.updated_at>String(ledger.updated_at||""))ledger.updated_at=p.updated_at;
+  window.HOUSE_PETTY_CASH_DATA=ledger;
  }else if(p.kind==="account"){
   const row=p.changes?.row;
   if(!row||row.id!==p.key||row.kind!=="vendor")return;
@@ -176,7 +185,7 @@ async function decrypt(doc,key){
   const raw=await crypto.subtle.decrypt({name:"AES-GCM",iv:ub64(d.iv)},key,ub64(d.ct));
   p=JSON.parse(td.decode(raw));
  }catch(_){throw Error("雲端資料解密失敗。請確認各裝置使用相同管理密碼")}
- if(!p||!["room","payment","account","checkout"].includes(p.kind)||typeof p.key!=="string"||typeof p.updated_at!=="string"||!p.changes||typeof p.changes!=="object")throw Error("雲端修改紀錄內容無效");
+ if(!p||!["room","payment","account","checkout","petty"].includes(p.kind)||typeof p.key!=="string"||typeof p.updated_at!=="string"||!p.changes||typeof p.changes!=="object")throw Error("雲端修改紀錄內容無效");
  if(await hash(p.kind,p.key)!==doc.id)throw Error("雲端修改紀錄識別碼異常");
  return p;
 }
@@ -436,7 +445,24 @@ async function saveCheckout(data){
    bank_account:previousBank.bank_account||"",bank_account_last4:previousBank.bank_account_last4||"",secure_local:false}:null;
  return save({v:1,kind:"checkout",key:id,updated_at:nextTimestamp(),changes:{checkout:record,weekly,bank}});
 }
-window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,calculateCheckout,
+async function savePetty(data){
+ const existingId=String(data.id||"").trim();
+ const id=existingId||("petty-web-"+Date.now()+"-"+Math.random().toString(36).slice(2,8));
+ if(!/^[A-Za-z0-9_.-]{1,150}$/.test(id))throw Error("零用金編號不正確");
+ const kind=data.kind,available=["fund","advance","advance_repaid","petty_expense"];
+ if(!available.includes(kind))throw Error("請選擇代管備用金類型");
+ const date=safeText(data.date,10);
+ if(!validDate(date))throw Error("請填寫有效帳務日期");
+ const manager=safeText(data.manager,150),item=safeText(data.item,400);
+ if(!manager||!item)throw Error("請輸入代管人員與項目");
+ const amount=money(data.amount);
+ const receipt=safeText(data.receipt_url,1200);
+ if(receipt&&!/^https:\/\//i.test(receipt))throw Error("收據網址需以 https 開頭");
+ const statusValue=data.status==="void"?"void":"active";
+ const row={id,kind,date,manager,item,amount,receipt_url:receipt,status:statusValue};
+ return save({v:1,kind:"petty",key:id,updated_at:nextTimestamp(),changes:{row}});
+}
+window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,savePetty,calculateCheckout,
  defaultEmail:DEFAULT_EDITOR,defaultFirebaseConfig:()=>({...DEFAULT_FIREBASE_CONFIG}),rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)!=="no"};
 for(const name of ["unlock","auto","loadWithKey"]){
  const original=api[name];
