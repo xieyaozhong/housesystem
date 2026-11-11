@@ -7,7 +7,7 @@
 <p class="live-help">使用管理員帳號的手機顯示編輯功能；其他已授權帳號為唯讀，僅顯示最新結果。每台裝置需完成 Firebase 登入及房務管理密碼解鎖。未完成連線時無法儲存。</p>
 <details class="sync-settings" id="syncSettings"><summary>首次連線：設定 Firebase 專案（每台裝置各設定一次）</summary>
 <form id="syncConfigForm" class="live-form"><label>apiKey<input id="cfgApiKey" autocomplete="off" required></label><label>authDomain<input id="cfgAuthDomain" required></label><label>projectId<input id="cfgProjectId" required></label><label>appId<input id="cfgAppId" required></label><button type="submit">儲存 Firebase 設定</button></form></details>
-<form id="syncLoginForm" class="live-form"><label>已授權的同步帳號<input id="syncEmail" type="email" autocomplete="username" required></label><label>同步帳號密碼<input id="syncPassword" type="password" autocomplete="current-password" required></label><button type="submit" id="syncLoginBtn">登入雲端</button><button type="button" id="syncLogoutBtn">登出雲端</button></form>
+<form id="syncLoginForm" class="live-form"><label>已授權的同步帳號<input id="syncEmail" type="email" autocomplete="username" value="handsomeboy784@gmail.com" required></label><label>同步帳號密碼<input id="syncPassword" type="password" autocomplete="current-password" required></label><label><span>這台手機的登入偏好</span><span class="live-info"><input type="checkbox" id="syncRemember" checked> 記住這台裝置，下次自動登入</span></label><button type="submit" id="syncLoginBtn">首次登入並驗證</button><button type="button" id="syncLogoutBtn">登出雲端</button></form><p class="live-help">首次需登入已在 Firebase 建立並完成 Email 驗證的管理員帳號，且解鎖家總管管理密碼。下次僅在相同瀏覽器且已信任裝置時恢復登入；登出、清除網站資料或更換瀏覽器後需重新登入。</p>
 <div id="syncFeedback" class="live-feedback" role="status"></div></section>
 <section class="panel" id="roomEditPanel"><h2>編輯房間資料</h2>
 <p class="live-help">可新增房間，或在月租金總覽點「編輯」。押金與月租會自動互算（月租＝押金 ÷ 2）；點儲存才會寫入雲端。</p>
@@ -77,7 +77,8 @@ function livePaint(data=window.HouseOpsLive?.getStatus()||{}){
  document.body.classList.toggle("can-edit",editor);
  $("#saveRoomBtn").disabled=!editor;
  $("#syncLoginBtn").disabled=data.mode==="online"||data.mode==="connecting";
- if(data.user&&!$("#syncEmail").value)$("#syncEmail").value=data.user;
+ if(data.user)$("#syncEmail").value=data.user;
+ if(data.mode==="online"&&data.remembered)$("#syncFeedback").textContent="此裝置已啟用自動登入，Firebase 登入狀態已恢復。";
 }
 function editMessage(message,error=false){
  $("#editFeedback").textContent=message;$("#editFeedback").classList.toggle("error",error)
@@ -121,8 +122,8 @@ $("#syncConfigForm").onsubmit=e=>{
 };
 $("#syncLoginForm").onsubmit=async e=>{
  e.preventDefault();configMessage("正在驗證同步帳號…");
- try{await HouseOpsLive.login($("#syncEmail").value,$("#syncPassword").value);
-   $("#syncPassword").value="";configMessage("登入成功，正在確認雲端資料…")}
+ try{await HouseOpsLive.login($("#syncEmail").value,$("#syncPassword").value,{remember:$("#syncRemember").checked});
+   $("#syncPassword").value="";configMessage($("#syncRemember").checked?"已驗證並記住此裝置，之後可自動恢復 Firebase 登入。":"已驗證，本次瀏覽器工作階段有效。")}
  catch(err){configMessage(err?.message||"登入失敗",true)}
 };
 $("#syncLogoutBtn").onclick=async()=>{try{await HouseOpsLive.logout();configMessage("已登出雲端")}catch(err){configMessage(err?.message||"登出失敗",true)}};
@@ -132,6 +133,7 @@ try{const cfg=HouseCore.readConfig();if(cfg){
  $("#cfgApiKey").value=cfg.apiKey;$("#cfgAuthDomain").value=cfg.authDomain;
  $("#cfgProjectId").value=cfg.projectId;$("#cfgAppId").value=cfg.appId;
 }}catch(err){configMessage(err.message,true)}
+try{$("#syncRemember").checked=HouseOpsLive.rememberOnThisDevice()}catch(_){$("#syncRemember").checked=true}
 livePaint();
 async function unlock(){try{render(await HouseSecureApp.unlock($("#pw").value));$("#pw").value=""}catch(e){$("#err").textContent=e?.message||"無法解鎖"}}$("#q").oninput=()=>S&&paint();$("#rentQ").oninput=()=>S&&paintRent();$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};$("#forget").onclick=async()=>{await HouseSecureApp.forget();location.reload()};(async()=>{const s=await HouseSecureApp.auto();if(s)render(s)})();
 </script></body></html>
