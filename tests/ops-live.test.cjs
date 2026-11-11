@@ -8,9 +8,10 @@ const source=fs.readFileSync(require("node:path").join(__dirname,"../house-ops-l
  .replace('import(SDK+"firebase-app.js")','Promise.resolve(window.__testSDK.app)')
  .replace('import(SDK+"firebase-auth.js")','Promise.resolve(window.__testSDK.auth)')
  .replace('import(SDK+"firebase-firestore.js")','Promise.resolve(window.__testSDK.db)');
-function fixture(){
+function fixture(role="editor"){
  const saved=new Map(),listeners=new Set(),events=[];
- const user={uid:"test-admin",email:"admin@example.com"};
+ const user={uid:"test-"+role,email:role==="editor"?"admin@example.com":"viewer@example.com",
+  getIdTokenResult:async()=>({claims:{email:role==="editor"?"admin@example.com":"viewer@example.com",email_verified:true}})};
  const identity={currentUser:user,authStateReady:async()=>{}};
  const publish=listener=>listener({metadata:{fromCache:false,hasPendingWrites:false},
   docs:[...saved].map(([id,value])=>({id,data:()=>value}))});
@@ -27,7 +28,7 @@ function fixture(){
    for(const callback of listeners)queueMicrotask(()=>publish(callback));
   },serverTimestamp:()=>new Date()};
  const api={unlock:async()=>null,auto:async()=>null,loadWithKey:async()=>null};
- const window={HouseSecureApp:api,HouseCore:{readConfig:()=>({projectId:"house-test"})},
+ const window={HouseSecureApp:api,HouseCore:{readConfig:()=>({projectId:"house-test"}),ADMIN_EMAIL:"admin@example.com"},
   __testSDK:{app:appSDK,auth:authSDK,db:dbSDK},
   dispatchEvent:e=>events.push(e)};
  const sandbox={window,crypto:webcrypto,TextEncoder,TextDecoder,btoa,atob,CustomEvent:
@@ -77,4 +78,14 @@ test("Cloud payment edits synchronize weekly status and matching checkout withou
  const second=x.state(key);await x.live.connect(second);await online(x.live);
  assert.equal(second.ops.weekly_accounts[0].status,"paid");
  assert.equal(second.ops.checkouts[0].refund_status,"paid");
+});
+
+test("An authenticated viewer receives cloud updates but cannot save or edit",async()=>{
+ const x=fixture("viewer"),key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const session=x.state(key);
+ await x.live.connect(session);await online(x.live);
+ assert.equal(x.live.getStatus().role,"viewer");
+ await assert.rejects(()=>x.live.saveRoom({room:"平德501",status:"vacant",deposit:26000}),/唯讀帳號/);
+ assert.equal(x.store.size,0);
+ assert.equal(session.ops.rented.some(row=>row.room==="平德501"),true);
 });
