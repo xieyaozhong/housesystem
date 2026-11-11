@@ -11,7 +11,7 @@ const source=fs.readFileSync(require("node:path").join(__dirname,"../house-ops-l
 function fixture(){
  const saved=new Map(),listeners=new Set(),events=[];
  const user={uid:"test-admin",email:"admin@example.com"};
- const identity={currentUser:user};
+ const identity={currentUser:user,authStateReady:async()=>{}};
  const publish=listener=>listener({metadata:{fromCache:false,hasPendingWrites:false},
   docs:[...saved].map(([id,value])=>({id,data:()=>value}))});
  const appSDK={getApps:()=>[],initializeApp:()=>({name:"housesystem-sync"})};
