@@ -382,7 +382,10 @@ async function saveAccount(data){
  const bankCode=safeText(data.bank_code,12),bankName=safeText(data.bank_name,100),bankAccount=safeText(data.bank_account,35);
  if(bankCode&&!/^\d{3}$/.test(bankCode))throw Error("銀行代號必須是三位數字");
  if(bankAccount&&!/^\d{6,30}$/.test(bankAccount))throw Error("銀行帳號請輸入 6 至 30 位數字");
- const bank=(bankCode||bankName||bankAccount)?{bank_code:bankCode,bank_name:bankName,bank_account:bankAccount,bank_account_last4:bankAccount.slice(-4),secure_local:false}:null;
+ const previousBank=s?.finance?.accounts?.find(x=>x.id===id);
+ const bank=(bankCode||bankName||bankAccount)?{bank_code:bankCode,bank_name:bankName,bank_account:bankAccount,bank_account_last4:bankAccount.slice(-4),secure_local:false}:
+  previousBank?.edited_online?{bank_code:previousBank.bank_code||"",bank_name:previousBank.bank_name||"",
+   bank_account:previousBank.bank_account||"",bank_account_last4:previousBank.bank_account_last4||"",secure_local:false}:null;
  return save({v:1,kind:"account",key:id,updated_at:new Date().toISOString(),changes:{row,bank}});
 }
 async function saveCheckout(data){
@@ -419,8 +422,11 @@ async function saveCheckout(data){
  const bankCode=safeText(data.bank_code,12),bankName=safeText(data.bank_name,100),bankAccount=safeText(data.bank_account,35);
  if(bankCode&&!/^\d{3}$/.test(bankCode))throw Error("銀行代號必須是三位數字");
  if(bankAccount&&!/^\d{6,30}$/.test(bankAccount))throw Error("銀行帳號請輸入 6 至 30 位數字");
+ const previousBank=s?.finance?.accounts?.find(x=>x.id===refundId);
  const bank=(bankCode||bankName||bankAccount)?{bank_code:bankCode,bank_name:bankName,bank_account:bankAccount,
-  bank_account_last4:bankAccount.slice(-4),secure_local:false}:null;
+  bank_account_last4:bankAccount.slice(-4),secure_local:false}:
+  previousBank?.edited_online?{bank_code:previousBank.bank_code||"",bank_name:previousBank.bank_name||"",
+   bank_account:previousBank.bank_account||"",bank_account_last4:previousBank.bank_account_last4||"",secure_local:false}:null;
  return save({v:1,kind:"checkout",key:id,updated_at:new Date().toISOString(),changes:{checkout:record,weekly,bank}});
 }
 window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,calculateCheckout,
