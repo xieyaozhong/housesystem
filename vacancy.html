@@ -4,8 +4,8 @@
 <main class="main"><header class="top"><div><div class="ey">FULL VACANCY CONTROL</div><h1>空房管理</h1><div class="sub">內部完整資料｜解鎖後顯示物件主檔、門禁、備註與房間狀態｜頁面版本 2026/11/11・雲端編輯</div></div><div class="chip" id="updated">● 已加密</div></header><section class="stats"><div class="st"><span>目前空房</span><b id="sVac">0</b></div><div class="st"><span>近期已出租</span><b id="sRent">0</b></div><div class="st"><span>退租轉空房</span><b id="sCheckout">0</b></div><div class="st"><span>主檔物件</span><b id="sProps">0</b></div></section>
 <section class="panel" id="syncPanel"><h2>跨裝置同步｜手機編輯・其他裝置唯讀</h2>
 <p class="live-info" id="liveState">解鎖後檢查 Firebase 連線…</p>
-<p class="live-help">使用管理員帳號的手機顯示編輯功能；其他已授權帳號為唯讀，僅顯示最新結果。每台裝置需完成 Firebase 登入及房務管理密碼解鎖。未完成連線時無法儲存。</p>
-<details class="sync-settings" id="syncSettings"><summary>首次連線：設定 Firebase 專案（每台裝置各設定一次）</summary>
+<p class="live-help">已內建 house-52015 Firebase 連線設定，不必再複製 apiKey。管理員手機登入後可編輯；其他授權帳號為唯讀。每台裝置仍需登入 Firebase 並解鎖房務管理密碼。未完成同步確認時無法儲存。</p>
+<details class="sync-settings" id="syncSettings"><summary>Firebase 專案：house-52015（已內建，通常不需修改）</summary>
 <form id="syncConfigForm" class="live-form"><label>apiKey<input id="cfgApiKey" autocomplete="off" required></label><label>authDomain<input id="cfgAuthDomain" required></label><label>projectId<input id="cfgProjectId" required></label><label>appId<input id="cfgAppId" required></label><button type="submit">儲存 Firebase 設定</button></form></details>
 <form id="syncLoginForm" class="live-form"><label>已授權的同步帳號<input id="syncEmail" type="email" autocomplete="username" value="handsomeboy784@gmail.com" required></label><label>同步帳號密碼<input id="syncPassword" type="password" autocomplete="current-password" required></label><label><span>這台手機的登入偏好</span><span class="live-info"><input type="checkbox" id="syncRemember" checked> 記住這台裝置，下次自動登入</span></label><button type="submit" id="syncLoginBtn">首次登入並驗證</button><button type="button" id="syncLogoutBtn">登出雲端</button></form><p class="live-help">首次需登入已在 Firebase 建立並完成 Email 驗證的管理員帳號，且解鎖家總管管理密碼。下次僅在相同瀏覽器且已信任裝置時恢復登入；登出、清除網站資料或更換瀏覽器後需重新登入。</p>
 <div id="syncFeedback" class="live-feedback" role="status"></div></section>
@@ -129,7 +129,7 @@ $("#syncLoginForm").onsubmit=async e=>{
 $("#syncLogoutBtn").onclick=async()=>{try{await HouseOpsLive.logout();configMessage("已登出雲端")}catch(err){configMessage(err?.message||"登出失敗",true)}};
 window.addEventListener("house-ops-live-state",e=>livePaint(e.detail));
 window.addEventListener("house-ops-live-change",e=>{if(S===e.detail?.session)render(S)});
-try{const cfg=HouseCore.readConfig();if(cfg){
+try{const cfg=HouseCore.readConfig()||HouseOpsLive.defaultFirebaseConfig();if(cfg){
  $("#cfgApiKey").value=cfg.apiKey;$("#cfgAuthDomain").value=cfg.authDomain;
  $("#cfgProjectId").value=cfg.projectId;$("#cfgAppId").value=cfg.appId;
 }}catch(err){configMessage(err.message,true)}
