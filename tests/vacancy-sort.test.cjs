@@ -48,7 +48,7 @@ test("Vacancy page uses sort helper for cards and counts, and build includes it"
  assert.match(html,/<script src="vacancy-sort\.js(?:\?[^"]+)?"\s*><\/script>/);
  assert.ok(html.includes('HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented,o.vacancy_card_order).filter('));
  assert.ok(html.includes('const available=HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented,o.vacancy_card_order)'));
- assert.ok(html.includes("最新在上方"));
+ assert.ok(html.includes("新退租空房預設排在最上方"));
  assert.ok(manifest.includes("'vacancy-sort.js'"));
  assert.ok(manifest.includes("'vacancy-drag.js'"));
  assert.match(html,/data-vacancy-room=/);
