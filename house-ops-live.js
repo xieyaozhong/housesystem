@@ -34,6 +34,8 @@ function applyPatch(session,p){
   const match=x=>norm(x?.room||x?.code)===key;
   const prior=[...(ops.rented||[]),...(ops.vacancies||[])].find(match)||{};
   const master=(session.vault?.properties||[]).find(match)||{};
+  if(master&&data.address)master.address=data.address;
+  if(master&&data.note!==undefined)master.note=data.note;
   const item={...prior,room:p.key,address:data.address||prior.address||master.address||"",
    status:data.status,source:"網頁編輯（雲端同步）",updated_at:p.updated_at};
   if(data.deposit!=null)item.deposit=data.deposit;
