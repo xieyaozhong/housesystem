@@ -1,38 +1,29 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     function isVerifiedOwner() {
       return request.auth != null &&
         request.auth.token.email == 'handsomeboy784@gmail.com' &&
         request.auth.token.email_verified == true;
     }
-
-    // Read-only accounts must be explicitly approved through the server-side
-    // housesystem_members allowlist. Browsers cannot add themselves.
     function isHouseSystemMember() {
       return request.auth != null && (
         isVerifiedOwner() ||
         exists(/databases/$(database)/documents/housesystem_members/$(request.auth.uid))
       );
     }
-
-    // Shared checkout records remain encrypted in Firestore.
+    // Sensitive checkout data is never publicly readable.
     match /housesystem_checkouts/{recordId} {
       allow read: if isHouseSystemMember();
       allow create, update, delete: if isVerifiedOwner();
     }
-
-    // Password-only supervisor viewing: this collection holds ciphertext only.
-    // Its encrypted blobs and hashed document IDs are publicly retrievable;
-    // plaintext is decrypted on the device using the house management password.
-    // Keep sensitive data in other collections protected and use a strong password.
-    // Only the verified admin may create or update encrypted modifications.
-    // a = vendor accounts; c = checkouts; r = rooms; p = payment status.
+    // Public reads expose only AES-GCM ciphertext. Supervisor must enter the
+    // local house management password to decrypt. Admin verification is
+    // mandatory for every write. 'r' is room; 'p' is any other encrypted patch.
     match /housesystem_ops_edits/{recordId} {
       allow read: if true;
       allow create, update: if isVerifiedOwner() &&
-        recordId.matches('^[rpac]-[0-9a-f]{64} &&
+        recordId.matches('^[rp]-[0-9a-f]{64}$') &&
         request.resource.data.keys().hasOnly([
           'v', 'iv', 'ct', 'type', 'clientUpdatedAt', 'updatedAt'
         ]) &&
@@ -50,43 +41,10 @@ service cloud.firestore {
         request.resource.data.updatedAt is timestamp;
       allow delete: if false;
     }
-
-    // Member accounts are created only through Firebase Console or Admin SDK.
     match /housesystem_members/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}
-) &&
-        request.resource.data.keys().hasOnly([
-          'v', 'iv', 'ct', 'type', 'clientUpdatedAt', 'updatedAt'
-        ]) &&
-        request.resource.data.keys().hasAll([
-          'v', 'iv', 'ct', 'type', 'clientUpdatedAt', 'updatedAt'
-        ]) &&
-        request.resource.data.v == 1 &&
-        request.resource.data.type == 'ops-edit-v1' &&
-        request.resource.data.iv is string &&
-        request.resource.data.iv.size() <= 100 &&
-        request.resource.data.ct is string &&
-        request.resource.data.ct.size() <= 120000 &&
-        request.resource.data.clientUpdatedAt is string &&
-        request.resource.data.clientUpdatedAt.size() <= 50 &&
-        request.resource.data.updatedAt is timestamp;
-      allow delete: if false;
-    }
-
-    // Member accounts are created only through Firebase Console or Admin SDK.
-    match /housesystem_members/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if false;
-    }
-
     match /{document=**} {
       allow read, write: if false;
     }
