@@ -10,7 +10,10 @@ const source=fs.readFileSync(require("node:path").join(__dirname,"../house-ops-l
  .replace('import(SDK+"firebase-firestore.js")','Promise.resolve(window.__testSDK.db)');
 function fixture(role="editor",options={}){
  const saved=new Map(),listeners=new Set(),events=[],preferences=new Map(),persistence=[];
- let boundProject=options.newDevice?null:"house-52015",storedConfig=null;
+ let boundProject=options.otherProject?"other-project":options.newDevice?null:"house-52015",storedConfig=null;
+ if(options.corruptConfig)preferences.set("house_firebase_config_v1",JSON.stringify({
+   projectId:boundProject,authDomain:"https://broken.example/path"
+ }));
  const localStorage={getItem:k=>preferences.get(k)||null,setItem:(k,v)=>preferences.set(k,String(v))};
  const user={uid:"test-"+role,email:role==="editor"?"admin@example.com":"viewer@example.com",
   getIdTokenResult:async()=>({claims:{email:role==="editor"?"admin@example.com":"viewer@example.com",email_verified:true}})};
@@ -33,7 +36,12 @@ function fixture(role="editor",options={}){
   },serverTimestamp:()=>new Date()};
  const api={unlock:async()=>null,auto:async()=>null,loadWithKey:async()=>null};
  const window={HouseSecureApp:api,HouseCore:{
-    readConfig:()=>storedConfig||(boundProject?{projectId:boundProject}:null),
+    readConfig:()=>{
+      if(storedConfig)return storedConfig;
+      if(options.corruptConfig)throw Error("authDomain 請填網域，不含 https:// 或路徑");
+      return boundProject?{projectId:boundProject}:null
+    },
+    CONFIG_KEY:"house_firebase_config_v1",
     saveConfig:c=>{if(boundProject&&boundProject!==c.projectId)throw Error("不同專案");boundProject=c.projectId;storedConfig=c;return c},
     ADMIN_EMAIL:"admin@example.com"
   },
@@ -124,4 +132,20 @@ test("A fresh browser auto-configures Firebase before the management password is
  assert.equal(x.getSavedConfig().projectId,"house-52015");
  assert.equal(x.getSavedConfig().authDomain,"house-52015.firebaseapp.com");
  assert.equal(x.live.getStatus().role,"editor");
+});
+
+test("Existing house-52015 malformed authDomain is repaired without clearing other phone data",async()=>{
+ const x=fixture("editor",{corruptConfig:true});
+ x.preferences.set("house-unrelated-sensitive-data","KEEP");
+ await x.live.prepare();
+ assert.equal(x.getSavedConfig().authDomain,"house-52015.firebaseapp.com");
+ assert.equal(x.live.getStatus().mode,"locked");
+ assert.equal(x.preferences.get("house-unrelated-sensitive-data"),"KEEP");
+});
+test("A malformed configuration from another Firebase project is never overwritten",async()=>{
+ const x=fixture("editor",{corruptConfig:true,otherProject:true});
+ const before=x.preferences.get("house_firebase_config_v1");
+ await assert.rejects(()=>x.live.prepare(),/authDomain/);
+ assert.equal(x.getSavedConfig(),null);
+ assert.equal(x.preferences.get("house_firebase_config_v1"),before);
 });
