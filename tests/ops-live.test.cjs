@@ -259,3 +259,32 @@ test("Petty cash addition, edit and void are encrypted and visible without Fireb
  await assert.rejects(()=>viewer.live.savePetty({id,kind:"fund",manager:"甲",item:"無權",
   date:"2026-11-11",amount:1}),/唯讀/);
 });
+
+test("Editor card rearrangement saves encrypted order once and a password-only supervisor sees it",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture(),a=editor.state(key);
+ a.ops.vacancies=[{room:"Alpha",since:"2026-11-08"},{room:"Beta",since:"2026-11-10"},{room:"Gamma",since:"2026-11-11"}];
+ await editor.live.connect(a);await online(editor.live);
+ await editor.live.saveVacancyOrder(["Gamma","Alpha","Beta"]);
+ assert.deepEqual(Array.from(a.ops.vacancy_card_order),["GAMMA","ALPHA","BETA"]);
+ assert.equal(editor.store.size,1);
+ const ciphertext=JSON.stringify([...editor.store.values()]);
+ assert.equal(ciphertext.includes('"Gamma"'),false);
+ assert.equal(ciphertext.includes('"ALPHA"'),false);
+ const supervisor=fixture("guest",{newDevice:true,sharedStore:editor.store}),b=supervisor.state(key);
+ b.ops.vacancies=a.ops.vacancies.map(x=>({...x}));
+ await supervisor.live.connect(b);await online(supervisor.live);
+ assert.deepEqual(Array.from(b.ops.vacancy_card_order),["GAMMA","ALPHA","BETA"]);
+ assert.equal(supervisor.live.getStatus().role,"viewer");
+ await assert.rejects(()=>supervisor.live.saveVacancyOrder(["Alpha","Beta","Gamma"]),/唯讀/);
+});
+test("Card order rejects duplicate and incomplete room lists without modifying cloud data",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const x=fixture(),session=x.state(key);
+ session.ops.vacancies=[{room:"Alpha"},{room:"Beta"}];
+ await x.live.connect(session);await online(x.live);
+ await assert.rejects(()=>x.live.saveVacancyOrder(["Alpha","Alpha"]),/重複/);
+ await assert.rejects(()=>x.live.saveVacancyOrder(["Alpha"]),/名單已變更/);
+ await assert.rejects(()=>x.live.saveVacancyOrder(["Alpha","Unlisted"]),/名單已變更/);
+ assert.equal(x.store.size,0);
+});
