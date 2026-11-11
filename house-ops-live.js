@@ -19,6 +19,30 @@ const DEFAULT_FIREBASE_CONFIG=Object.freeze({
 const te=new TextEncoder(),td=new TextDecoder();
 const norm=s=>String(s||"").trim().replace(/[\s_－-]/g,"").replace(/[陜陕]/g,"陝").toUpperCase();
 const positive=x=>x!==undefined&&x!==null&&String(x).trim()!==""&&Number.isFinite(Number(x))&&Number(x)>0?Number(x):null;
+const money=x=>{const n=Number(String(x??"0").replace(/,/g,"").trim()||0);if(!Number.isFinite(n)||n<0||n>100000000)throw Error("金額必須為 0 至 100,000,000 元");return n};
+const validDate=x=>{const d=String(x||"");if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;const t=new Date(d+"T12:00:00Z");return !Number.isNaN(t.getTime())&&t.toISOString().slice(0,10)===d};
+const safeText=(x,max=500)=>{const v=String(x??"").trim();if(v.length>max)throw Error("欄位內容過長");return v};
+function calculateCheckout(data){
+ const deposit=money(data.deposit);
+ if(!deposit)throw Error("退租押金必須大於 0");
+ const previous=data.meter_previous===""||data.meter_previous==null?null:money(data.meter_previous);
+ const current=data.meter_current===""||data.meter_current==null?null:money(data.meter_current);
+ if((previous===null)!==(current===null))throw Error("電表前期與本期讀數需同時填寫");
+ if(previous!==null&&current<previous)throw Error("本期電表度數不可低於前期");
+ const units=previous!==null?current-previous:money(data.electricity_usage);
+ const rate=money(data.power_rate);
+ if(rate>1000)throw Error("每度電費金額不合理");
+ const electricityFee=Math.round(units*rate);
+ const creditMode=data.electricity_mode==="credit"?"credit":"deduct";
+ const penalty=money(data.penalty),cleaning=money(data.cleaning),
+  unpaidRent=money(data.unpaid_rent),otherCharge=money(data.other_charge),
+  overpaid=money(data.overpaid),otherCredit=money(data.other_credit);
+ const signedElectricity=creditMode==="credit"?electricityFee:-electricityFee;
+ const balance=Math.round(deposit+signedElectricity+overpaid+otherCredit-penalty-cleaning-unpaidRent-otherCharge);
+ return {deposit,previous,current,units,rate,electricityFee,creditMode,
+  penalty,cleaning,unpaidRent,otherCharge,overpaid,otherCredit,
+  balance,refundAmount:Math.max(0,balance),owedAmount:Math.max(0,-balance)};
+}
 const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
 const ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let s=null,app=null,auth=null,db=null,F=null,A=null,unsubscribe=null,authUnsubscribe=null,initPromise=null;
@@ -61,6 +85,44 @@ function applyPatch(session,p){
   ops.vacancies=ops.vacancies.filter(x=>!match(x));
   ops.rented=ops.rented.filter(x=>!match(x));
   (data.status==="vacant"?ops.vacancies:ops.rented).push(item);
+ }else if(p.kind==="account"){
+  const row=p.changes?.row;
+  if(!row||row.id!==p.key||row.kind!=="vendor")return;
+  const old=ops.weekly_accounts.find(x=>x.id===row.id);
+  if(old)Object.assign(old,row);
+  else ops.weekly_accounts.push({...row});
+  const bank=p.changes?.bank;
+  if(bank){
+   session.finance.accounts||=[];
+   const found=session.finance.accounts.find(x=>x.id===row.id);
+   if(found)Object.assign(found,bank,{id:row.id,edited_online:true});
+   else session.finance.accounts.push({...bank,id:row.id,edited_online:true});
+  }
+ }else if(p.kind==="checkout"){
+  const record=p.changes?.checkout,weekly=p.changes?.weekly;
+  if(!record||!weekly||record.id!==p.key||!validDate(record.checkout_date)||weekly.kind!=="refund")return;
+  const old=ops.checkouts.find(x=>x.id===record.id);
+  if(old)Object.assign(old,record);else ops.checkouts.push({...record});
+  const oldPay=ops.weekly_accounts.find(x=>x.id===weekly.id);
+  if(oldPay)Object.assign(oldPay,weekly);else ops.weekly_accounts.push({...weekly});
+  if(p.changes.bank){
+   session.finance.accounts||=[];
+   const existing=session.finance.accounts.find(x=>x.id===weekly.id);
+   if(existing)Object.assign(existing,p.changes.bank,{id:weekly.id,edited_online:true});
+   else session.finance.accounts.push({...p.changes.bank,id:weekly.id,edited_online:true});
+  }
+  const key=norm(record.room),matches=x=>norm(x?.room||x?.code)===key;
+  const rented=ops.rented.find(matches);
+  // Do not turn a room vacant if its latest rental started after this checkout.
+  if(!rented||String(rented.updated_at||rented.since||"").slice(0,10)<=record.checkout_date){
+   const prior=ops.vacancies.find(matches)||rented||{};
+   const item={...prior,room:record.room,address:record.address||prior.address||"",
+    status:"vacant",source:"退租轉空房",since:record.checkout_date,updated_at:p.updated_at,
+    rent:record.rent,deposit:record.deposit,power_rate:record.power_rate};
+   ops.vacancies=ops.vacancies.filter(x=>!matches(x));
+   ops.rented=ops.rented.filter(x=>!matches(x));
+   ops.vacancies.push(item);
+  }
  }else if(p.kind==="payment"){
   const statusValue=p.changes?.status;
   if(!["paid","pending"].includes(statusValue))return;
@@ -102,7 +164,7 @@ async function decrypt(doc,key){
   const raw=await crypto.subtle.decrypt({name:"AES-GCM",iv:ub64(d.iv)},key,ub64(d.ct));
   p=JSON.parse(td.decode(raw));
  }catch(_){throw Error("雲端資料解密失敗。請確認各裝置使用相同管理密碼")}
- if(!p||!["room","payment"].includes(p.kind)||typeof p.key!=="string"||typeof p.updated_at!=="string"||!p.changes||typeof p.changes!=="object")throw Error("雲端修改紀錄內容無效");
+ if(!p||!["room","payment","account","checkout"].includes(p.kind)||typeof p.key!=="string"||typeof p.updated_at!=="string"||!p.changes||typeof p.changes!=="object")throw Error("雲端修改紀錄內容無效");
  if(await hash(p.kind,p.key)!==doc.id)throw Error("雲端修改紀錄識別碼異常");
  return p;
 }
@@ -295,7 +357,68 @@ async function savePayment(data){
  return save({v:1,kind:"payment",key:id,updated_at:new Date().toISOString(),
   changes:{status:statusValue,paid_date:statusValue==="paid"?paidDate:""}});
 }
-window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,
+async function saveAccount(data){
+ const originalId=String(data.id||"").trim();
+ const id=originalId||("vendor-web-"+Date.now()+"-"+Math.random().toString(36).slice(2,8));
+ if(!/^[A-Za-z0-9_.-]{1,150}$/.test(id))throw Error("帳務編號格式不正確");
+ if(originalId&&s?.ops?.weekly_accounts?.some(x=>x.id===id&&x.kind!=="vendor"))throw Error("退租退款請至退租頁面修改");
+ const party=safeText(data.party,150),item=safeText(data.description,1200),property=safeText(data.property_label,200);
+ if(!party||!item)throw Error("請輸入收款人與項目說明");
+ const amount=money(data.amount);
+ const day=safeText(data.settlement_date,10),due=safeText(data.due_date,10),paidDate=safeText(data.paid_date,10);
+ if(!validDate(day)||(due&&!validDate(due))||(paidDate&&!validDate(paidDate)))throw Error("帳務日期格式不正確");
+ const statusValue=data.status==="paid"?"paid":"pending";
+ const receipt=safeText(data.receipt_url,1200);
+ if(receipt&&!/^https:\/\//i.test(receipt))throw Error("收據網址必須是 https 連結");
+ const previous=s?.ops?.weekly_accounts?.find(x=>x.id===id);
+ const row={id,kind:"vendor",party,property_label:property,description:item,amount,
+  settlement_date:day,due_date:due,status:statusValue,receipt_url:receipt};
+ if(statusValue==="paid"&&(paidDate||previous?.paid_date))row.paid_date=paidDate||previous.paid_date;
+ const bankCode=safeText(data.bank_code,12),bankName=safeText(data.bank_name,100),bankAccount=safeText(data.bank_account,35);
+ if(bankCode&&!/^\d{3}$/.test(bankCode))throw Error("銀行代號必須是三位數字");
+ if(bankAccount&&!/^\d{6,30}$/.test(bankAccount))throw Error("銀行帳號請輸入 6 至 30 位數字");
+ const bank={bank_code:bankCode,bank_name:bankName,bank_account:bankAccount,bank_account_last4:bankAccount.slice(-4),secure_local:false};
+ return save({v:1,kind:"account",key:id,updated_at:new Date().toISOString(),changes:{row,bank}});
+}
+async function saveCheckout(data){
+ const room=safeText(data.room,100),date=safeText(data.checkout_date,10),due=safeText(data.refund_due_date,10);
+ if(!room||/[\/]/.test(room)||!validDate(date)||(due&&!validDate(due)))throw Error("請填正確房號、退租日期及退款日");
+ const calc=calculateCheckout(data);
+ const old=s?.ops?.checkouts?.find(x=>x.id===data.id)||
+  s?.ops?.checkouts?.find(x=>norm(x.room)===norm(room)&&x.checkout_date===date);
+ const id=old?.id||("checkout-web-"+Date.now()+"-"+Math.random().toString(36).slice(2,8));
+ const originalRefund=s?.ops?.weekly_accounts?.find(x=>x.kind==="refund"&&(
+  x.id===id.replace(/^checkout-/,"refund-")||
+  (norm(x.property_label)===norm(room)&&String(x.settlement_date)===date)));
+ const refundId=originalRefund?.id||id.replace(/^checkout-/,"refund-");
+ const unchanged=old&&Number(old.refund_amount)===calc.refundAmount;
+ const wasPaid=unchanged&&old.refund_status==="paid";
+ const statusValue=calc.refundAmount===0?"no_refund":wasPaid?"paid":"pending";
+ const note=safeText(data.note,2000),address=safeText(data.address,300),tenant=safeText(data.party,150);
+ const description="退租退款｜押金"+calc.deposit+"－費用與扣款＋加回款項＝"+calc.refundAmount+"元"+
+  (calc.owedAmount?"（另需補繳 "+calc.owedAmount+" 元）":"");
+ const record={id,room,address,checkout_date:date,refund_due_date:due,
+  deposit:calc.deposit,rent:calc.deposit/2,meter_previous:calc.previous,meter_current:calc.current,
+  electricity_usage:calc.units,power_rate:calc.rate,electricity_fee:calc.electricityFee,
+  electricity_credit_direction:calc.creditMode==="credit"?"add_to_deposit":"deduct_from_deposit",
+  electricity_credit:calc.creditMode==="credit"?calc.electricityFee:0,
+  early_termination_penalty:calc.penalty,cleaning_fee:calc.cleaning,unpaid_rent:calc.unpaidRent,
+  other_charge:calc.otherCharge,overpaid:calc.overpaid,other_credit:calc.otherCredit,
+  refund_amount:calc.refundAmount,calculated_refund_amount:calc.refundAmount,
+  owed_amount:calc.owedAmount,reconciliation_status:"calculated",refund_status:statusValue,note};
+ if(wasPaid&&old.refund_paid_date)record.refund_paid_date=old.refund_paid_date;
+ const weekly={id:refundId,kind:"refund",party:tenant||room+"房客",property_label:room,
+  description,amount:calc.refundAmount,settlement_date:date,due_date:due,
+  status:statusValue==="paid"?"paid":"pending",__deleted:calc.refundAmount===0};
+ if(wasPaid&&old.refund_paid_date)weekly.paid_date=old.refund_paid_date;
+ const bankCode=safeText(data.bank_code,12),bankName=safeText(data.bank_name,100),bankAccount=safeText(data.bank_account,35);
+ if(bankCode&&!/^\d{3}$/.test(bankCode))throw Error("銀行代號必須是三位數字");
+ if(bankAccount&&!/^\d{6,30}$/.test(bankAccount))throw Error("銀行帳號請輸入 6 至 30 位數字");
+ const bank={bank_code:bankCode,bank_name:bankName,bank_account:bankAccount,
+  bank_account_last4:bankAccount.slice(-4),secure_local:false};
+ return save({v:1,kind:"checkout",key:id,updated_at:new Date().toISOString(),changes:{checkout:record,weekly,bank}});
+}
+window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,calculateCheckout,
  defaultEmail:DEFAULT_EDITOR,defaultFirebaseConfig:()=>({...DEFAULT_FIREBASE_CONFIG}),rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)!=="no"};
 for(const name of ["unlock","auto","loadWithKey"]){
  const original=api[name];
