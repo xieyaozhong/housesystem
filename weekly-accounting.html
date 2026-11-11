@@ -8,6 +8,12 @@ const $=s=>document.querySelector(s),E=s=>String(s??"").replace(/[&<>"']/g,m=>({
 function groupedPending(rows){const pending=rows||S.ops.weekly_accounts.filter(x=>x.status!=="paid"),groups=new Map(),out=[];for(const r of pending){if(r.kind!=="vendor"){out.push({...r,_grouped:false});continue}const nk=vendorKey(r.party),k=(r.settlement_date||"")+"|"+(nk||("id:"+r.id));if(!groups.has(k))groups.set(k,{...r,_grouped:true,_items:[],amount:0});const g=groups.get(k);g._items.push(r);g.amount+=Number(r.amount)||0}for(const g of groups.values()){g.property_label=[...new Set(g._items.map(x=>x.property_label).filter(Boolean))].join("、");g.description=g._items.length===1?(g._items[0].description||"維修款"):("共 "+g._items.length+" 筆｜"+g._items.map(x=>[x.property_label,x.description].filter(Boolean).join("：")).filter(Boolean).join("；"));g.due_date=g._items.map(x=>x.due_date).filter(Boolean).sort()[0]||"";out.push(g)}return out.sort((x,y)=>String(x.settlement_date).localeCompare(String(y.settlement_date))||String(x.party||"").localeCompare(String(y.party||"")))}
 function bankFor(r){
   if(!r||typeof r!=="object")return{bank_code:"—",bank_name:"",bank_account:"—"};
+  // Newly edited refunds are encrypted in the finance map, not in legacy
+  // hard-coded bank fixtures. Prefer the current synchronized record.
+  if(r.kind==="refund"){
+    const synced=(S.finance.accounts||[]).find(x=>x.id===r.id&&x.edited_online);
+    if(synced)return synced;
+  }
   // Only unsettled vendor payments are listed. Confirmed shared vendor bank details
   // are displayed directly, including grouped invoices, with their leading zeros.
   if(r.kind==="vendor"&&r.status!=="paid"){
