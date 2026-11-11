@@ -8,8 +8,9 @@ const source=fs.readFileSync(require("node:path").join(__dirname,"../house-ops-l
  .replace('import(SDK+"firebase-app.js")','Promise.resolve(window.__testSDK.app)')
  .replace('import(SDK+"firebase-auth.js")','Promise.resolve(window.__testSDK.auth)')
  .replace('import(SDK+"firebase-firestore.js")','Promise.resolve(window.__testSDK.db)');
-function fixture(role="editor"){
+function fixture(role="editor",options={}){
  const saved=new Map(),listeners=new Set(),events=[],preferences=new Map(),persistence=[];
+ let boundProject=options.newDevice?null:"house-52015",storedConfig=null;
  const localStorage={getItem:k=>preferences.get(k)||null,setItem:(k,v)=>preferences.set(k,String(v))};
  const user={uid:"test-"+role,email:role==="editor"?"admin@example.com":"viewer@example.com",
   getIdTokenResult:async()=>({claims:{email:role==="editor"?"admin@example.com":"viewer@example.com",email_verified:true}})};
@@ -31,7 +32,11 @@ function fixture(role="editor"){
    for(const callback of listeners)queueMicrotask(()=>publish(callback));
   },serverTimestamp:()=>new Date()};
  const api={unlock:async()=>null,auto:async()=>null,loadWithKey:async()=>null};
- const window={HouseSecureApp:api,HouseCore:{readConfig:()=>({projectId:"house-test"}),ADMIN_EMAIL:"admin@example.com"},
+ const window={HouseSecureApp:api,HouseCore:{
+    readConfig:()=>storedConfig||(boundProject?{projectId:boundProject}:null),
+    saveConfig:c=>{if(boundProject&&boundProject!==c.projectId)throw Error("不同專案");boundProject=c.projectId;storedConfig=c;return c},
+    ADMIN_EMAIL:"admin@example.com"
+  },
   __testSDK:{app:appSDK,auth:authSDK,db:dbSDK},
   dispatchEvent:e=>events.push(e)};
  const sandbox={window,localStorage,crypto:webcrypto,TextEncoder,TextDecoder,btoa,atob,CustomEvent:
@@ -44,7 +49,7 @@ function fixture(role="editor"){
    weekly_accounts:[{id:"refund-fengjia701-20261029",kind:"refund",property_label:"逢甲701",
     settlement_date:"2026-10-29",status:"pending"}]},
    vault:{properties:[{code:"平德501",address:"舊址"}]}});
- return {live:window.HouseOpsLive,store:saved,state,events,preferences,persistence};
+ return {live:window.HouseOpsLive,store:saved,state,events,preferences,persistence,getSavedConfig:()=>storedConfig};
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function online(live){
@@ -107,4 +112,13 @@ test("This browser can remember verified Firebase login without storing a passwo
  await x.live.logout();
  assert.equal(x.live.rememberOnThisDevice(),false);
  assert.equal(x.preferences.get("house_ops_remember_firebase_login_v1"),"no");
+});
+
+test("A fresh browser auto-configures the confirmed Firebase project without manual key entry",async()=>{
+ const x=fixture("editor",{newDevice:true});
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ await x.live.connect(x.state(key));await online(x.live);
+ assert.equal(x.getSavedConfig().projectId,"house-52015");
+ assert.equal(x.getSavedConfig().authDomain,"house-52015.firebaseapp.com");
+ assert.equal(x.live.getStatus().role,"editor");
 });
