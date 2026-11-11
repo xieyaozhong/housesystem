@@ -56,7 +56,7 @@ function fixture(role="editor",options={}){
    checkouts:[{id:"checkout-fengjia701-20261029",room:"逢甲701",checkout_date:"2026-10-29",refund_status:"pending"}],
    weekly_accounts:[{id:"refund-fengjia701-20261029",kind:"refund",property_label:"逢甲701",
     settlement_date:"2026-10-29",status:"pending"}]},
-   vault:{properties:[{code:"平德501",address:"舊址"}]}});
+   vault:{properties:[{code:"平德501",address:"舊址"}]},finance:{accounts:[]}});
  return {live:window.HouseOpsLive,store:saved,state,events,preferences,persistence,getSavedConfig:()=>storedConfig};
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -172,4 +172,34 @@ test("Public supervisor read never changes protected checkout or member rules",(
  assert.match(rules,/allow create, update: if isVerifiedOwner\(\)/);
  assert.match(rules,/match \/housesystem_checkouts\/\{recordId\} \{\s*allow read: if isHouseSystemMember\(\)/);
  assert.match(rules,/match \/\{document=\*\*\} \{\s*allow read, write: if false;/);
+});
+
+test("Refund calculator matches historical subtraction and electricity-credit cases",()=>{
+ const calc=fixture().live.calculateCheckout;
+ const a=calc({deposit:24000,meter_previous:18531,meter_current:18834,power_rate:5});
+ assert.equal(a.units,303);assert.equal(a.electricityFee,1515);assert.equal(a.refundAmount,22485);
+ const b=calc({deposit:26000,electricity_usage:160,power_rate:5.5,penalty:13000});
+ assert.equal(b.refundAmount,12120);
+ const c=calc({deposit:22000,electricity_usage:54,power_rate:5.5,electricity_mode:"credit"});
+ assert.equal(c.refundAmount,22297);
+ assert.throws(()=>calc({deposit:12000,meter_previous:200,meter_current:100,power_rate:5}),/電表/);
+});
+test("New and edited vendor accounts synchronize ciphertext to a supervisor",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const admin=fixture(),a=admin.state(key);await admin.live.connect(a);await online(admin.live);
+ const row=await admin.live.saveAccount({party:"廠商範例",property_label:"測試房間",description:"維修款",
+  amount:3000,settlement_date:"2026-11-10",status:"pending",bank_code:"013",bank_account:"123456789012"});
+ const id=row.key;
+ assert.equal(a.ops.weekly_accounts.find(r=>r.id===id)?.amount,3000);
+ assert.equal(JSON.stringify([...admin.store.values()]).includes("廠商範例"),false);
+ await admin.live.saveAccount({id,party:"廠商範例",description:"材料調整",amount:3600,
+  settlement_date:"2026-11-10",status:"paid",paid_date:"2026-11-12"});
+ assert.equal(a.ops.weekly_accounts.filter(r=>r.id===id).length,1);
+ assert.equal(a.ops.weekly_accounts.find(r=>r.id===id).amount,3600);
+ const supervisor=fixture("guest",{newDevice:true,sharedStore:admin.store}),b=supervisor.state(key);
+ await supervisor.live.connect(b);await online(supervisor.live);
+ assert.equal(b.ops.weekly_accounts.find(r=>r.id===id).amount,3600);
+ assert.equal(b.finance.accounts.find(r=>r.id===id).bank_account,"123456789012");
+ await assert.rejects(()=>supervisor.live.saveAccount({id,party:"修改",description:"無權",
+  amount:1,settlement_date:"2026-11-10"}),/唯讀/);
 });
