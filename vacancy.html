@@ -129,12 +129,19 @@ $("#syncLoginForm").onsubmit=async e=>{
 $("#syncLogoutBtn").onclick=async()=>{try{await HouseOpsLive.logout();configMessage("已登出雲端")}catch(err){configMessage(err?.message||"登出失敗",true)}};
 window.addEventListener("house-ops-live-state",e=>livePaint(e.detail));
 window.addEventListener("house-ops-live-change",e=>{if(S===e.detail?.session)render(S)});
-try{const cfg=HouseCore.readConfig()||HouseOpsLive.defaultFirebaseConfig();if(cfg){
+function showFirebaseConfig(cfg){
+ if(!cfg)return;
  $("#cfgApiKey").value=cfg.apiKey;$("#cfgAuthDomain").value=cfg.authDomain;
  $("#cfgProjectId").value=cfg.projectId;$("#cfgAppId").value=cfg.appId;
-}}catch(err){configMessage(err.message,true)}
+}
+try{showFirebaseConfig(HouseCore.readConfig()||HouseOpsLive.defaultFirebaseConfig())}
+catch(_){showFirebaseConfig(HouseOpsLive.defaultFirebaseConfig())}
 try{$("#syncRemember").checked=HouseOpsLive.rememberOnThisDevice()}catch(_){$("#syncRemember").checked=true}
 livePaint();
-HouseOpsLive.prepare().catch(err=>configMessage(err?.message||"Firebase 初始化失敗，請檢查網路連線。",true));
+HouseOpsLive.prepare().then(ok=>{
+ if(!ok)return;
+ showFirebaseConfig(HouseCore.readConfig());
+ configMessage("house-52015 Firebase 連線設定已載入，可以登入同步帳號。");
+}).catch(err=>configMessage(err?.message||"Firebase 初始化失敗，請檢查網路連線。",true));
 async function unlock(){try{render(await HouseSecureApp.unlock($("#pw").value));$("#pw").value=""}catch(e){$("#err").textContent=e?.message||"無法解鎖"}}$("#q").oninput=()=>S&&paint();$("#rentQ").oninput=()=>S&&paintRent();$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};$("#forget").onclick=async()=>{await HouseSecureApp.forget();location.reload()};(async()=>{const s=await HouseSecureApp.auto();if(s)render(s)})();
 </script></body></html>
