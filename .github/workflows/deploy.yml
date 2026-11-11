@@ -10,7 +10,8 @@ concurrency:
   cancel-in-progress: true
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    # Pin a stable runner to avoid changing apt mirrors in ubuntu-latest.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,7 +20,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npx playwright install --with-deps chromium
+      # GitHub Ubuntu runners already include Chromium's system libraries.
+      # Avoid apt-get: intermittent Ubuntu mirror DNS failures blocked deployment.
+      - run: npx playwright install chromium
       - run: npm run test:browser
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
