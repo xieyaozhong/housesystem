@@ -5,6 +5,8 @@
 const api=window.HouseSecureApp;
 if(!api)throw new Error("HouseSecureApp must load before house-ops-live.js");
 const COLL="housesystem_ops_edits",SDK="https://www.gstatic.com/firebasejs/12.19.0/";
+const REMEMBER_KEY="house_ops_remember_firebase_login_v1";
+const DEFAULT_EDITOR="handsomeboy784@gmail.com";
 const te=new TextEncoder(),td=new TextDecoder();
 const norm=s=>String(s||"").trim().replace(/[\s_－-]/g,"").replace(/[陜陕]/g,"陝").toUpperCase();
 const positive=x=>x!==undefined&&x!==null&&String(x).trim()!==""&&Number.isFinite(Number(x))&&Number(x)>0?Number(x):null;
@@ -12,7 +14,7 @@ const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
 const ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let s=null,app=null,auth=null,db=null,F=null,A=null,unsubscribe=null,authUnsubscribe=null,initPromise=null;
 let patches=new Map(),serial=Promise.resolve(),connection=0;
-let state={mode:"setup",role:"viewer",message:"尚未連結 Firebase。請先設定雲端連線。",user:"",lastSync:"",count:0};
+let state={mode:"setup",role:"viewer",message:"尚未連結 Firebase。請先設定雲端連線。",user:"",lastSync:"",count:0,remembered:false};
 function notify(){
  window.dispatchEvent(new CustomEvent("house-ops-live-state",{detail:{...state}}));
 }
@@ -112,6 +114,14 @@ async function init(){
   A=authSDK;F=firestoreSDK;
   app=appSDK.getApps().find(x=>x.name==="housesystem-sync")||appSDK.initializeApp(config,"housesystem-sync");
   auth=A.getAuth(app);db=F.getFirestore(app);
+  // Restore a Firebase session only when this browser chose persistent login.
+  // Firebase stores the auth session internally; no password or token is written
+  // into application-owned localStorage or the public repository.
+  if(localStorage.getItem(REMEMBER_KEY)==="yes"){
+    await A.setPersistence(auth,A.browserLocalPersistence);
+  }else{
+    await A.setPersistence(auth,A.browserSessionPersistence);
+  }
   await auth.authStateReady();
   authUnsubscribe=A.onAuthStateChanged(auth,()=>{
    if(s)subscribe().catch(error);
@@ -130,8 +140,9 @@ async function subscribe(){
  const token=await auth.currentUser.getIdTokenResult();
  const claims=token.claims||{},ownerEmail=window.HouseCore?.ADMIN_EMAIL;
  const role=claims.email===ownerEmail&&claims.email_verified===true?"editor":"viewer";
+ const remembered=localStorage.getItem(REMEMBER_KEY)==="yes";
  const g=connection, session=s, cryptoKey=session.key;
- status("connecting","正在下載並驗證加密房務修改紀錄…",{user:auth.currentUser.email||"",role});
+ status("connecting","正在下載並驗證加密房務修改紀錄…",{user:auth.currentUser.email||"",role,remembered});
  unsubscribe=F.onSnapshot(F.collection(db,COLL),{includeMetadataChanges:true},snapshot=>{
   serial=serial.then(async()=>{
    if(g!==connection||s!==session)return;
@@ -147,7 +158,7 @@ async function subscribe(){
    if(g!==connection||s!==session)return;
    patches=incoming;
    render();
-   status("online",role==="editor"?"編輯模式｜資料已同步，儲存後其他授權裝置立即更新。":"唯讀模式｜已同步最新房務資料。",{lastSync:new Date().toISOString(),count:patches.size,role});
+   status("online",role==="editor"?"編輯模式｜資料已同步，儲存後其他授權裝置立即更新。":"唯讀模式｜已同步最新房務資料。",{lastSync:new Date().toISOString(),count:patches.size,role,remembered});
   }).catch(error);
  },error);
 }
@@ -162,15 +173,20 @@ async function connect(session){
  if(auth&&db&&auth.currentUser&&!unsubscribe)await subscribe();
  else if(auth&&!auth.currentUser)status("login","請登入已授權的 Firebase 帳號查看同步資料",{role:"viewer"});
 }
-async function login(email,password){
+async function login(email,password,options={}){
  if(!(await init()))throw Error("請先儲存 Firebase 設定");
  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email||"")||!password)throw Error("請輸入正確的帳號及密碼");
+ const remember=options?.remember===true;
+ // This preference is bound to the current browser/device, never the account.
+ await A.setPersistence(auth,remember?A.browserLocalPersistence:A.browserSessionPersistence);
  await A.signInWithEmailAndPassword(auth,email.trim(),password);
+ localStorage.setItem(REMEMBER_KEY,remember?"yes":"no");
  await subscribe();
 }
 async function logout(){
  if(auth)await A.signOut(auth);
- stop();status("login","已登出雲端帳號；本機加密資料仍受管理密碼保護。",{user:"",role:"viewer"});
+ localStorage.setItem(REMEMBER_KEY,"no");
+ stop();status("login","已登出雲端帳號；本機加密資料仍受管理密碼保護。",{user:"",role:"viewer",remembered:false});
 }
 function configure(cfg){
  if(!window.HouseCore)throw Error("網站尚未載入 Firebase 設定功能");
@@ -216,7 +232,8 @@ async function savePayment(data){
  return save({v:1,kind:"payment",key:id,updated_at:new Date().toISOString(),
   changes:{status:statusValue,paid_date:statusValue==="paid"?paidDate:""}});
 }
-window.HouseOpsLive={connect,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment};
+window.HouseOpsLive={connect,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,
+ defaultEmail:DEFAULT_EDITOR,rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)==="yes"};
 for(const name of ["unlock","auto","loadWithKey"]){
  const original=api[name];
  if(typeof original!=="function")continue;
