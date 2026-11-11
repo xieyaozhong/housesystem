@@ -57,7 +57,7 @@ function fixture(role="editor",options={}){
    weekly_accounts:[{id:"refund-fengjia701-20261029",kind:"refund",property_label:"逢甲701",
     settlement_date:"2026-10-29",status:"pending"}]},
    vault:{properties:[{code:"平德501",address:"舊址"}]},finance:{accounts:[]}});
- return {live:window.HouseOpsLive,store:saved,state,events,preferences,persistence,getSavedConfig:()=>storedConfig};
+ return {live:window.HouseOpsLive,store:saved,state,events,preferences,persistence,getSavedConfig:()=>storedConfig,getPetty:()=>window.HOUSE_PETTY_CASH_DATA?.entries||[]};
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function online(live){
@@ -238,4 +238,24 @@ test("Earlier historical checkout cannot erase a later current rental",async()=>
  await admin.live.saveCheckout({room:"平德501",checkout_date:"2026-10-30",deposit:26000,
   electricity_usage:160,power_rate:5.5});
  assert.equal(state.ops.rented.some(x=>x.room==="平德501"),true);
+});
+
+test("Petty cash addition, edit and void are encrypted and visible without Firebase login",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const admin=fixture(),session=admin.state(key);await admin.live.connect(session);await online(admin.live);
+ const result=await admin.live.savePetty({kind:"advance",manager:"測試人員",item:"代墊材料",
+  date:"2026-11-11",amount:1474,receipt_url:"https://example.org/receipt"});
+ const id=result.key;
+ assert.equal(admin.getPetty().find(r=>r.id===id).amount,1474);
+ assert.equal(JSON.stringify([...admin.store.values()]).includes("代墊材料"),false);
+ await admin.live.savePetty({id,kind:"advance",manager:"測試人員",item:"代墊材料",
+  date:"2026-11-11",amount:1400,status:"void"});
+ assert.equal(admin.getPetty().find(r=>r.id===id).status,"void");
+ assert.equal(admin.getPetty().filter(r=>r.id===id).length,1);
+ const viewer=fixture("guest",{newDevice:true,sharedStore:admin.store}),vSession=viewer.state(key);
+ await viewer.live.connect(vSession);await online(viewer.live);
+ assert.equal(viewer.getPetty().find(r=>r.id===id).amount,1400);
+ assert.equal(viewer.getPetty().find(r=>r.id===id).status,"void");
+ await assert.rejects(()=>viewer.live.savePetty({id,kind:"fund",manager:"甲",item:"無權",
+  date:"2026-11-11",amount:1}),/唯讀/);
 });
