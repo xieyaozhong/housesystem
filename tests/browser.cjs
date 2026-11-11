@@ -24,7 +24,7 @@ async function main(){
     for(const name of ['index.html','vacancy.html','checkout.html','weekly-accounting.html','accounting-history.html']){
       await p.goto(origin+'/'+name);
       await p.waitForLoadState('networkidle');
-      assert.equal(await p.locator('input[type="password"]').count(),1,name+' must require the unified management password');
+      assert.equal(await p.locator('#lock input[type="password"]').count(),1,name+' must require the unified management password');
       assert.equal(await p.locator('#lock').isVisible(),true,name+' must start locked on a new device');
       const body=await p.textContent('body');
       for(const secret of ['明德5C','明德6D','一中4A','01016800045858','20301800995588','01910010974190','288540544712']){
