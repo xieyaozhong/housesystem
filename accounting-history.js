@@ -6,7 +6,7 @@
   const M=value=>"$"+Math.round(Number(value)||0).toLocaleString("zh-TW");
   const kindName={vendor:"廠商款",refund:"退租退款",fund:"零用金入帳",advance:"代墊",advance_repaid:"代墊歸還",petty_expense:"零用金支出"};
   const pettyKinds=new Set(["fund","advance","advance_repaid","petty_expense"]);
-  let session=null,entries=[],lastFiltered=[];
+  let session=null,entries=[],lastFiltered=[],editPaymentId=null;
   function normalize(s){
     const finance=new Map((s.finance.accounts||[]).map(x=>[x.id,x]));
     const payable=(s.ops.weekly_accounts||[]).filter(x=>x&&!x.__deleted).map(r=>{
@@ -81,8 +81,9 @@
         '<td>'+E(r.property||"—")+'</td><td>'+E(r.description||"—")+'</td>'+
         '<td class="money">'+E((r.amount<0?"−":"")+M(Math.abs(r.amount)))+'</td>'+
         '<td><span class="record-status '+(r.status==="paid"?"paid":"pending")+'">'+status+'</span></td>'+
-        '<td>'+E(r.paidDate||"—")+'</td><td>'+E(bank)+'</td><td>'+receiptLink(r.receipt)+'</td></tr>';
-    }).join("")||'<tr><td colspan="11" class="history-empty">查無符合條件的帳務，請調整查詢條件</td></tr>';
+        '<td>'+E(r.paidDate||"—")+'</td><td>'+E(bank)+'</td><td>'+receiptLink(r.receipt)+'</td>'+
+        '<td>'+(r.isPetty?'—':'<button type="button" class="history-edit-btn" data-payment-id="'+E(r.id)+'">編輯</button>')+'</td></tr>';
+    }).join("")||'<tr><td colspan="12" class="history-empty">查無符合條件的帳務，請調整查詢條件</td></tr>';
   }
   function exportCsv(){
     if(!session)return;
@@ -121,5 +122,47 @@
   $("pw").onkeydown=e=>{if(e.key==="Enter")unlock()};
   $("forget").onclick=async()=>{await HouseSecureApp.forget();location.reload()};
   (async()=>{try{const s=await HouseSecureApp.auto();if(s)await render(s)}catch(e){console.warn("History auto unlock",e)}})();
+  function cloudStatus(d=window.HouseOpsLive?.getStatus()||{}){
+    const el=$("paymentCloudStatus");if(el)el.textContent=d.message||"尚未啟用雲端同步";
+    if(d.user&&!$("historyCloudEmail").value)$("historyCloudEmail").value=d.user;
+    $("paymentEditSave").disabled=d.mode!=="online";
+  }
+  const feedback=(id,text,error=false)=>{
+    const el=$(id);if(!el)return;el.textContent=text;el.classList.toggle("error",error);
+  };
+  $("historyTb").addEventListener("click",e=>{
+    const btn=e.target.closest("button[data-payment-id]");if(!btn)return;
+    const row=entries.find(x=>x.id===btn.dataset.paymentId&&!x.isPetty);
+    if(!row)return;
+    editPaymentId=row.id;
+    $("paymentEditPanel").hidden=false;
+    $("paymentEditLabel").textContent=(row.property||"")+"｜"+(row.description||row.party||"")+"｜"+M(row.amount);
+    $("paymentEditStatus").value=row.status;
+    $("paymentEditDate").value=/^\\d{4}-\\d{2}-\\d{2}$/.test(row.paidDate)?row.paidDate:"";
+    feedback("paymentEditFeedback","");
+    $("paymentEditPanel").scrollIntoView({behavior:"smooth",block:"start"});
+  });
+  $("paymentEditCancel").onclick=()=>{$("paymentEditPanel").hidden=true;editPaymentId=null};
+  $("paymentEditForm").onsubmit=async e=>{
+    e.preventDefault();
+    if(!editPaymentId||!session)return;
+    $("paymentEditSave").disabled=true;feedback("paymentEditFeedback","儲存中，正在等待 Firebase 確認…");
+    try{
+      await HouseOpsLive.savePayment({id:editPaymentId,status:$("paymentEditStatus").value,paid_date:$("paymentEditDate").value});
+      feedback("paymentEditFeedback","已同步到雲端，其他裝置會自動更新。");
+    }catch(err){feedback("paymentEditFeedback",err?.message||"儲存失敗",true)}
+    finally{cloudStatus()}
+  };
+  $("historyCloudLogin").onsubmit=async e=>{
+    e.preventDefault();feedback("historyCloudFeedback","正在登入…");
+    try{
+      await HouseOpsLive.login($("historyCloudEmail").value,$("historyCloudPassword").value);
+      $("historyCloudPassword").value="";
+      feedback("historyCloudFeedback","登入成功，正在載入加密修改紀錄。");
+    }catch(err){feedback("historyCloudFeedback",err?.message||"登入失敗",true)}
+  };
+  window.addEventListener("house-ops-live-state",e=>cloudStatus(e.detail));
+  window.addEventListener("house-ops-live-change",e=>{if(session===e.detail?.session)render(session)});
+  cloudStatus();
   window.HouseHistoryDebug={normalize,filtered,paint};
 })();
