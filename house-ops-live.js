@@ -89,7 +89,7 @@ function applyPatch(session,p){
   const row=p.changes?.row;
   if(!row||row.id!==p.key||row.kind!=="vendor")return;
   const old=ops.weekly_accounts.find(x=>x.id===row.id);
-  if(old)Object.assign(old,row);
+  if(old){Object.assign(old,row);if(row.status!=="paid"){delete old.paid_date;delete old.paid_at}}
   else ops.weekly_accounts.push({...row});
   const bank=p.changes?.bank;
   if(bank){
@@ -102,9 +102,11 @@ function applyPatch(session,p){
   const record=p.changes?.checkout,weekly=p.changes?.weekly;
   if(!record||!weekly||record.id!==p.key||!validDate(record.checkout_date)||weekly.kind!=="refund")return;
   const old=ops.checkouts.find(x=>x.id===record.id);
-  if(old)Object.assign(old,record);else ops.checkouts.push({...record});
+  if(old){Object.assign(old,record);if(record.refund_status!=="paid")delete old.refund_paid_date}
+  else ops.checkouts.push({...record});
   const oldPay=ops.weekly_accounts.find(x=>x.id===weekly.id);
-  if(oldPay)Object.assign(oldPay,weekly);else ops.weekly_accounts.push({...weekly});
+  if(oldPay){Object.assign(oldPay,weekly);if(weekly.status!=="paid"){delete oldPay.paid_date;delete oldPay.paid_at}}
+  else ops.weekly_accounts.push({...weekly});
   if(p.changes.bank){
    session.finance.accounts||=[];
    const existing=session.finance.accounts.find(x=>x.id===weekly.id);
@@ -148,7 +150,10 @@ function applyPatch(session,p){
 }
 async function hash(kind,key){
  const h=new Uint8Array(await crypto.subtle.digest("SHA-256",te.encode(kind+":"+norm(key))));
- return kind.slice(0,1)+"-"+Array.from(h,x=>x.toString(16).padStart(2,"0")).join("");
+ // p is the already-published encrypted-patch document prefix; checkout
+ // and vendor account edits share it for compatibility with existing rules.
+ const prefix=kind==="room"?"r":"p";
+ return prefix+"-"+Array.from(h,x=>x.toString(16).padStart(2,"0")).join("");
 }
 async function encrypted(p){
  const iv=crypto.getRandomValues(new Uint8Array(12));
@@ -377,7 +382,7 @@ async function saveAccount(data){
  const bankCode=safeText(data.bank_code,12),bankName=safeText(data.bank_name,100),bankAccount=safeText(data.bank_account,35);
  if(bankCode&&!/^\d{3}$/.test(bankCode))throw Error("銀行代號必須是三位數字");
  if(bankAccount&&!/^\d{6,30}$/.test(bankAccount))throw Error("銀行帳號請輸入 6 至 30 位數字");
- const bank={bank_code:bankCode,bank_name:bankName,bank_account:bankAccount,bank_account_last4:bankAccount.slice(-4),secure_local:false};
+ const bank=(bankCode||bankName||bankAccount)?{bank_code:bankCode,bank_name:bankName,bank_account:bankAccount,bank_account_last4:bankAccount.slice(-4),secure_local:false}:null;
  return save({v:1,kind:"account",key:id,updated_at:new Date().toISOString(),changes:{row,bank}});
 }
 async function saveCheckout(data){
@@ -414,8 +419,8 @@ async function saveCheckout(data){
  const bankCode=safeText(data.bank_code,12),bankName=safeText(data.bank_name,100),bankAccount=safeText(data.bank_account,35);
  if(bankCode&&!/^\d{3}$/.test(bankCode))throw Error("銀行代號必須是三位數字");
  if(bankAccount&&!/^\d{6,30}$/.test(bankAccount))throw Error("銀行帳號請輸入 6 至 30 位數字");
- const bank={bank_code:bankCode,bank_name:bankName,bank_account:bankAccount,
-  bank_account_last4:bankAccount.slice(-4),secure_local:false};
+ const bank=(bankCode||bankName||bankAccount)?{bank_code:bankCode,bank_name:bankName,bank_account:bankAccount,
+  bank_account_last4:bankAccount.slice(-4),secure_local:false}:null;
  return save({v:1,kind:"checkout",key:id,updated_at:new Date().toISOString(),changes:{checkout:record,weekly,bank}});
 }
 window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,calculateCheckout,
