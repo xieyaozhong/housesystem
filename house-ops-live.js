@@ -117,10 +117,15 @@ async function init(){
   // Restore a Firebase session only when this browser chose persistent login.
   // Firebase stores the auth session internally; no password or token is written
   // into application-owned localStorage or the public repository.
-  if(localStorage.getItem(REMEMBER_KEY)==="yes"){
-    await A.setPersistence(auth,A.browserLocalPersistence);
-  }else{
+  const wasRemembered=localStorage.getItem(REMEMBER_KEY)==="yes";
+  try{
+    await A.setPersistence(auth,wasRemembered?A.browserLocalPersistence:A.browserSessionPersistence);
+  }catch(e){
+    // Private-browsing restrictions can prevent persistent storage.
+    // Fall back to session login; never tell users they were remembered.
+    if(!wasRemembered)throw e;
     await A.setPersistence(auth,A.browserSessionPersistence);
+    localStorage.setItem(REMEMBER_KEY,"no");
   }
   await auth.authStateReady();
   authUnsubscribe=A.onAuthStateChanged(auth,()=>{
@@ -177,10 +182,14 @@ async function login(email,password,options={}){
  if(!(await init()))throw Error("請先儲存 Firebase 設定");
  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email||"")||!password)throw Error("請輸入正確的帳號及密碼");
  const remember=options?.remember===true;
+ let persisted=false;
  // This preference is bound to the current browser/device, never the account.
- await A.setPersistence(auth,remember?A.browserLocalPersistence:A.browserSessionPersistence);
+ if(remember){
+  try{await A.setPersistence(auth,A.browserLocalPersistence);persisted=true}
+  catch(_){await A.setPersistence(auth,A.browserSessionPersistence)}
+ }else await A.setPersistence(auth,A.browserSessionPersistence);
  await A.signInWithEmailAndPassword(auth,email.trim(),password);
- localStorage.setItem(REMEMBER_KEY,remember?"yes":"no");
+ localStorage.setItem(REMEMBER_KEY,persisted?"yes":"no");
  await subscribe();
 }
 async function logout(){
