@@ -124,7 +124,8 @@
   (async()=>{try{const s=await HouseSecureApp.auto();if(s)await render(s)}catch(e){console.warn("History auto unlock",e)}})();
   function cloudStatus(d=window.HouseOpsLive?.getStatus()||{}){
     const el=$("paymentCloudStatus");if(el)el.textContent=d.message||"尚未啟用雲端同步";
-    if(d.user&&!$("historyCloudEmail").value)$("historyCloudEmail").value=d.user;
+    if(d.user)$("historyCloudEmail").value=d.user;
+    if(d.mode==="online"&&d.remembered)feedback("historyCloudFeedback","此裝置已恢復 Firebase 登入，可使用最新同步資料。");
     const editor=d.mode==="online"&&d.role==="editor";
     document.body.classList.toggle("can-edit",editor);
     $("paymentEditSave").disabled=!editor;
@@ -159,13 +160,14 @@
   $("historyCloudLogin").onsubmit=async e=>{
     e.preventDefault();feedback("historyCloudFeedback","正在登入…");
     try{
-      await HouseOpsLive.login($("historyCloudEmail").value,$("historyCloudPassword").value);
+      await HouseOpsLive.login($("historyCloudEmail").value,$("historyCloudPassword").value,{remember:$("historyCloudRemember").checked});
       $("historyCloudPassword").value="";
-      feedback("historyCloudFeedback","登入成功，正在載入加密修改紀錄。");
+      feedback("historyCloudFeedback",$("historyCloudRemember").checked?"已驗證並記住此裝置，下次將自動恢復登入。":"已驗證，本次工作階段有效。");
     }catch(err){feedback("historyCloudFeedback",err?.message||"登入失敗",true)}
   };
   window.addEventListener("house-ops-live-state",e=>cloudStatus(e.detail));
   window.addEventListener("house-ops-live-change",e=>{if(session===e.detail?.session)render(session)});
+  $("historyCloudRemember").checked=HouseOpsLive.rememberOnThisDevice();
   cloudStatus();
   window.HouseHistoryDebug={normalize,filtered,paint};
 })();
