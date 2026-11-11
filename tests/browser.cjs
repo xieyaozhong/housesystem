@@ -455,6 +455,16 @@ async function main(){
       };
       const key=await crypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
       const session=await HouseSecureApp.loadWithKey(key);
+      // Confirm the Nov 11 settlement rule before exercising the older vendor
+      // bank-detail workflow with explicitly re-opened synthetic test rows.
+      const autoSettledYidai=session.ops.weekly_accounts
+        .filter(x=>x.party==="一代家電").every(x=>x.status==="paid");
+      const autoSettledXu=session.ops.weekly_accounts
+        .find(x=>x.id==="vendor-xuzhiteng-jingcheng301-drain-20261013")?.status==="paid";
+      for(const row of session.ops.weekly_accounts){
+        if(row.party==="一代家電"||row.id==="vendor-xuzhiteng-jingcheng301-drain-20261013")
+          row.status="pending";
+      }
       await render(session);
       const pair=session.ops.weekly_accounts.filter(x=>x.party==="鄭國峰（水電）");
       const visible=groupedPending(session.ops.weekly_accounts.filter(x=>x.status!=="paid")).filter(x=>x.party==="鄭國峰（水電）");
@@ -485,6 +495,7 @@ async function main(){
       });
       const yidaiEncryptedStored=!String(localStorage.getItem("house_ops_finance_account_v1:vendor-yidai-wuchang5c-aircon-20261015")).includes(exampleAccount);
       return {
+        autoSettledYidai,autoSettledXu,
         items:pair.length,grouped:visible.length,
         total:pair.reduce((sum,x)=>sum+Number(x.amount||0),0),
         rooms:pair.map(x=>x.property_label).join("、"),
@@ -516,6 +527,7 @@ async function main(){
       };
     });
     assert.deepEqual(lightingCheck,{
+      autoSettledYidai:true,autoSettledXu:true,
       items:2,grouped:0,total:1500,rooms:"中清11-1B、一中7B",
       receipts:0,matchingBank:true,allPaid:true,zhongqingPending:false,
       xuRepair:{party:"徐志騰（包通）",room:"精誠301",item:"通浴室管道",
