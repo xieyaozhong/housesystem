@@ -123,7 +123,7 @@ $("#syncConfigForm").onsubmit=e=>{
 $("#syncLoginForm").onsubmit=async e=>{
  e.preventDefault();configMessage("正在驗證同步帳號…");
  try{await HouseOpsLive.login($("#syncEmail").value,$("#syncPassword").value,{remember:$("#syncRemember").checked});
-   $("#syncPassword").value="";configMessage($("#syncRemember").checked?"已驗證並記住此裝置，之後可自動恢復 Firebase 登入。":"已驗證，本次瀏覽器工作階段有效。")}
+   $("#syncPassword").value="";configMessage(HouseOpsLive.rememberOnThisDevice()?"已驗證並記住此裝置，之後可自動恢復 Firebase 登入。":"已驗證，登入僅對本次瀏覽器工作階段有效；如使用私密瀏覽，無法保留自動登入。")}
  catch(err){configMessage(err?.message||"登入失敗",true)}
 };
 $("#syncLogoutBtn").onclick=async()=>{try{await HouseOpsLive.logout();configMessage("已登出雲端")}catch(err){configMessage(err?.message||"登出失敗",true)}};
