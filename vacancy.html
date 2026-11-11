@@ -135,5 +135,6 @@ try{const cfg=HouseCore.readConfig()||HouseOpsLive.defaultFirebaseConfig();if(cf
 }}catch(err){configMessage(err.message,true)}
 try{$("#syncRemember").checked=HouseOpsLive.rememberOnThisDevice()}catch(_){$("#syncRemember").checked=true}
 livePaint();
+HouseOpsLive.prepare().catch(err=>configMessage(err?.message||"Firebase 初始化失敗，請檢查網路連線。",true));
 async function unlock(){try{render(await HouseSecureApp.unlock($("#pw").value));$("#pw").value=""}catch(e){$("#err").textContent=e?.message||"無法解鎖"}}$("#q").oninput=()=>S&&paint();$("#rentQ").oninput=()=>S&&paintRent();$("#unlock").onclick=unlock;$("#pw").onkeydown=e=>{if(e.key==="Enter")unlock()};$("#forget").onclick=async()=>{await HouseSecureApp.forget();location.reload()};(async()=>{const s=await HouseSecureApp.auto();if(s)render(s)})();
 </script></body></html>
