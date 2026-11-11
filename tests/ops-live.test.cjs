@@ -9,7 +9,7 @@ const source=fs.readFileSync(require("node:path").join(__dirname,"../house-ops-l
  .replace('import(SDK+"firebase-auth.js")','Promise.resolve(window.__testSDK.auth)')
  .replace('import(SDK+"firebase-firestore.js")','Promise.resolve(window.__testSDK.db)');
 function fixture(role="editor",options={}){
- const saved=new Map(),listeners=new Set(),events=[],preferences=new Map(),persistence=[];
+ const saved=options.sharedStore||new Map(),listeners=new Set(),events=[],preferences=new Map(),persistence=[];
  let boundProject=options.otherProject?"other-project":options.newDevice?null:"house-52015",storedConfig=null;
  if(options.corruptConfig)preferences.set("house_firebase_config_v1",JSON.stringify({
    projectId:boundProject,authDomain:"https://broken.example/path"
@@ -17,7 +17,7 @@ function fixture(role="editor",options={}){
  const localStorage={getItem:k=>preferences.get(k)||null,setItem:(k,v)=>preferences.set(k,String(v))};
  const user={uid:"test-"+role,email:role==="editor"?"admin@example.com":"viewer@example.com",
   getIdTokenResult:async()=>({claims:{email:role==="editor"?"admin@example.com":"viewer@example.com",email_verified:true}})};
- const identity={currentUser:user,authStateReady:async()=>{}};
+ const identity={currentUser:role==="guest"?null:user,authStateReady:async()=>{}};
  const publish=listener=>listener({metadata:{fromCache:false,hasPendingWrites:false},
   docs:[...saved].map(([id,value])=>({id,data:()=>value}))});
  const appSDK={getApps:()=>[],initializeApp:()=>({name:"housesystem-sync"})};
@@ -148,4 +148,28 @@ test("A malformed configuration from another Firebase project is never overwritt
  await assert.rejects(()=>x.live.prepare(),/authDomain/);
  assert.equal(x.getSavedConfig(),null);
  assert.equal(x.preferences.get("house_firebase_config_v1"),before);
+});
+
+test("Supervisor unlocks with house password only and sees encrypted administrator updates",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const admin=fixture("editor"),first=admin.state(key);
+ await admin.live.connect(first);await online(admin.live);
+ await admin.live.saveRoom({room:"平德501",status:"vacant",deposit:26000,address:"已更新房間"});
+ const viewer=fixture("guest",{newDevice:true,sharedStore:admin.store}),second=viewer.state(key);
+ assert.equal(viewer.live.getStatus().role,"viewer");
+ assert.equal(viewer.getSavedConfig(),null);
+ await viewer.live.connect(second);await online(viewer.live);
+ assert.equal(viewer.live.getStatus().role,"viewer");
+ assert.equal(viewer.live.getStatus().user,"");
+ assert.equal(second.ops.vacancies.find(x=>x.room==="平德501")?.rent,13000);
+ assert.equal(second.ops.vacancies.find(x=>x.room==="平德501")?.address,"已更新房間");
+ await assert.rejects(()=>viewer.live.saveRoom({room:"平德501",status:"rented",deposit:26000}),/唯讀/);
+ assert.equal(admin.store.size,1);
+});
+test("Public supervisor read never changes protected checkout or member rules",()=>{
+ const rules=fs.readFileSync(require("node:path").join(__dirname,"../firestore.rules"),"utf8");
+ assert.match(rules,/match \/housesystem_ops_edits\/\{recordId\} \{\s*allow read: if true;/);
+ assert.match(rules,/allow create, update: if isVerifiedOwner\(\)/);
+ assert.match(rules,/match \/housesystem_checkouts\/\{recordId\} \{\s*allow read: if isHouseSystemMember\(\)/);
+ assert.match(rules,/match \/\{document=\*\*\} \{\s*allow read, write: if false;/);
 });
