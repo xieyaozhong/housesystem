@@ -12,7 +12,7 @@ const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
 const ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let s=null,app=null,auth=null,db=null,F=null,A=null,unsubscribe=null,authUnsubscribe=null,initPromise=null;
 let patches=new Map(),serial=Promise.resolve(),connection=0;
-let state={mode:"setup",message:"尚未連結 Firebase。請先設定雲端連線。",user:"",lastSync:"",count:0};
+let state={mode:"setup",role:"viewer",message:"尚未連結 Firebase。請先設定雲端連線。",user:"",lastSync:"",count:0};
 function notify(){
  window.dispatchEvent(new CustomEvent("house-ops-live-state",{detail:{...state}}));
 }
@@ -124,9 +124,14 @@ async function subscribe(){
  stop();
  if(!s?.key)return;
  if(!(await init()))return;
- if(!auth.currentUser){status("login","請使用已授權的 Firebase 帳號登入，即可跨裝置同步。",{user:""});return}
+ if(!auth.currentUser){status("login","請使用已授權的 Firebase 帳號登入，即可跨裝置同步。",{user:"",role:"viewer"});return}
+ // The UI uses a verified Firebase token. Actual writes are enforced again
+ // by Firestore rules; hiding editing controls alone is never authorization.
+ const token=await auth.currentUser.getIdTokenResult();
+ const claims=token.claims||{},ownerEmail=window.HouseCore?.ADMIN_EMAIL;
+ const role=claims.email===ownerEmail&&claims.email_verified===true?"editor":"viewer";
  const g=connection, session=s, cryptoKey=session.key;
- status("connecting","正在下載並驗證加密房務修改紀錄…",{user:auth.currentUser.email||""});
+ status("connecting","正在下載並驗證加密房務修改紀錄…",{user:auth.currentUser.email||"",role});
  unsubscribe=F.onSnapshot(F.collection(db,COLL),{includeMetadataChanges:true},snapshot=>{
   serial=serial.then(async()=>{
    if(g!==connection||s!==session)return;
@@ -142,7 +147,7 @@ async function subscribe(){
    if(g!==connection||s!==session)return;
    patches=incoming;
    render();
-   status("online","雲端已同步｜可在此頁修改，其他裝置會自動更新。",{lastSync:new Date().toISOString(),count:patches.size});
+   status("online",role==="editor"?"編輯模式｜資料已同步，儲存後其他授權裝置立即更新。":"唯讀模式｜已同步最新房務資料。",{lastSync:new Date().toISOString(),count:patches.size,role});
   }).catch(error);
  },error);
 }
@@ -155,7 +160,7 @@ async function connect(session){
  }
  await init();
  if(auth&&db&&auth.currentUser&&!unsubscribe)await subscribe();
- else if(auth&&!auth.currentUser)status("login","請登入 Firebase 同步帳號才能修改資料");
+ else if(auth&&!auth.currentUser)status("login","請登入已授權的 Firebase 帳號查看同步資料",{role:"viewer"});
 }
 async function login(email,password){
  if(!(await init()))throw Error("請先儲存 Firebase 設定");
@@ -165,7 +170,7 @@ async function login(email,password){
 }
 async function logout(){
  if(auth)await A.signOut(auth);
- stop();status("login","已登出雲端帳號；本機加密資料仍受管理密碼保護。",{user:""});
+ stop();status("login","已登出雲端帳號；本機加密資料仍受管理密碼保護。",{user:"",role:"viewer"});
 }
 function configure(cfg){
  if(!window.HouseCore)throw Error("網站尚未載入 Firebase 設定功能");
@@ -175,6 +180,7 @@ function configure(cfg){
 function writable(){
  if(!s?.key)throw Error("請先解鎖家總管管理密碼");
  if(!db||!auth?.currentUser)throw Error("請先連線並登入 Firebase 同步帳號");
+ if(state.role!=="editor")throw Error("唯讀帳號無權修改資料。請在編輯專用手機使用管理員帳號。");
  if(state.mode!=="online"||!navigator.onLine)throw Error("尚未取得雲端同步確認，請確認網路與 Firebase 權限");
 }
 async function save(p){
@@ -183,7 +189,7 @@ async function save(p){
  await F.setDoc(doc,data);
  patches.set(p.kind+":"+norm(p.key),p);
  render();
- status("online","資料已儲存至 Firebase，其他已連線裝置將自動更新。",{lastSync:new Date().toISOString(),count:patches.size});
+ status("online","編輯模式｜資料已儲存至 Firebase，其他已連線裝置將自動更新。",{lastSync:new Date().toISOString(),count:patches.size,role:"editor"});
  return p;
 }
 async function saveRoom(data){
