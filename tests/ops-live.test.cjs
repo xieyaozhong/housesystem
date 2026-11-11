@@ -114,8 +114,11 @@ test("This browser can remember verified Firebase login without storing a passwo
  assert.equal(x.preferences.get("house_ops_remember_firebase_login_v1"),"no");
 });
 
-test("A fresh browser auto-configures the confirmed Firebase project without manual key entry",async()=>{
+test("A fresh browser auto-configures Firebase before the management password is unlocked",async()=>{
  const x=fixture("editor",{newDevice:true});
+ assert.equal(x.getSavedConfig(),null);
+ await x.live.prepare();
+ assert.equal(x.live.getStatus().mode,"locked");
  const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
  await x.live.connect(x.state(key));await online(x.live);
  assert.equal(x.getSavedConfig().projectId,"house-52015");
