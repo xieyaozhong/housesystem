@@ -176,7 +176,7 @@ async function showReadyAuthState(){
  if(!auth||s?.key)return;
  const current=auth.currentUser,remembered=localStorage.getItem(REMEMBER_KEY)==="yes";
  if(!current){
-  status("login","已連線 house-52015。請輸入同步帳號密碼登入。",{user:"",role:"viewer",remembered});
+  status("locked","主管唯讀模式｜輸入家總管管理密碼後，自動讀取最新同步資料。",{user:"",role:"viewer",remembered});
   return;
  }
  const token=await current.getIdTokenResult(),claims=token.claims||{};
@@ -192,15 +192,16 @@ async function subscribe(){
  stop();
  if(!s?.key)return;
  if(!(await init()))return;
- if(!auth.currentUser){status("login","請使用已授權的 Firebase 帳號登入，即可跨裝置同步。",{user:"",role:"viewer"});return}
- // The UI uses a verified Firebase token. Actual writes are enforced again
- // by Firestore rules; hiding editing controls alone is never authorization.
- const token=await auth.currentUser.getIdTokenResult();
- const claims=token.claims||{},ownerEmail=window.HouseCore?.ADMIN_EMAIL;
+ // Encrypted-only Firestore ops can be fetched without a Firebase account.
+ // The password-derived AES key was proven by unlocking the local vault.
+ // Firebase Security Rules still require verified admin email for writes.
+ const current=auth?.currentUser||null;
+ const token=current?await current.getIdTokenResult():null;
+ const claims=token?.claims||{},ownerEmail=window.HouseCore?.ADMIN_EMAIL;
  const role=claims.email===ownerEmail&&claims.email_verified===true?"editor":"viewer";
  const remembered=localStorage.getItem(REMEMBER_KEY)==="yes";
  const g=connection, session=s, cryptoKey=session.key;
- status("connecting","正在下載並驗證加密房務修改紀錄…",{user:auth.currentUser.email||"",role,remembered});
+ status("connecting",role==="editor"?"正在同步管理員加密修改紀錄…":"正在取得加密更新並用家總管密碼解鎖…",{user:current?.email||"",role,remembered});
  unsubscribe=F.onSnapshot(F.collection(db,COLL),{includeMetadataChanges:true},snapshot=>{
   serial=serial.then(async()=>{
    if(g!==connection||s!==session)return;
@@ -216,7 +217,7 @@ async function subscribe(){
    if(g!==connection||s!==session)return;
    patches=incoming;
    render();
-   status("online",role==="editor"?"編輯模式｜資料已同步，儲存後其他授權裝置立即更新。":"唯讀模式｜已同步最新房務資料。",{lastSync:new Date().toISOString(),count:patches.size,role,remembered});
+   status("online",role==="editor"?"編輯模式｜資料已同步，儲存後主管裝置自動更新。":"主管唯讀模式｜已同步最新房務與付款狀態（不需 Firebase 登入）。",{lastSync:new Date().toISOString(),count:patches.size,role,remembered});
   }).catch(error);
  },error);
 }
@@ -228,8 +229,7 @@ async function connect(session){
   if(auth&&db){await subscribe();return}
  }
  await init();
- if(auth&&db&&auth.currentUser&&!unsubscribe)await subscribe();
- else if(auth&&!auth.currentUser)status("login","請登入已授權的 Firebase 帳號查看同步資料",{role:"viewer"});
+ if(auth&&db&&!unsubscribe)await subscribe();
 }
 async function login(email,password,options={}){
  if(!(await init()))throw Error("請先儲存 Firebase 設定");
@@ -258,8 +258,8 @@ function configure(cfg){
 }
 function writable(){
  if(!s?.key)throw Error("請先解鎖家總管管理密碼");
- if(!db||!auth?.currentUser)throw Error("請先連線並登入 Firebase 同步帳號");
- if(state.role!=="editor")throw Error("唯讀帳號無權修改資料。請在編輯專用手機使用管理員帳號。");
+ if(state.role!=="editor")throw Error("主管唯讀模式無法編輯資料，請在管理員手機登入 Firebase。");
+ if(!db||!auth?.currentUser)throw Error("請先在管理員裝置登入 Firebase。");
  if(state.mode!=="online"||!navigator.onLine)throw Error("尚未取得雲端同步確認，請確認網路與 Firebase 權限");
 }
 async function save(p){
