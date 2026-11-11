@@ -28,10 +28,41 @@ service cloud.firestore {
     // plaintext is decrypted on the device using the house management password.
     // Keep sensitive data in other collections protected and use a strong password.
     // Only the verified admin may create or update encrypted modifications.
+    // a = vendor accounts; c = checkouts; r = rooms; p = payment status.
     match /housesystem_ops_edits/{recordId} {
       allow read: if true;
       allow create, update: if isVerifiedOwner() &&
-        recordId.matches('^[rp]-[0-9a-f]{64}$') &&
+        recordId.matches('^[rpac]-[0-9a-f]{64} &&
+        request.resource.data.keys().hasOnly([
+          'v', 'iv', 'ct', 'type', 'clientUpdatedAt', 'updatedAt'
+        ]) &&
+        request.resource.data.keys().hasAll([
+          'v', 'iv', 'ct', 'type', 'clientUpdatedAt', 'updatedAt'
+        ]) &&
+        request.resource.data.v == 1 &&
+        request.resource.data.type == 'ops-edit-v1' &&
+        request.resource.data.iv is string &&
+        request.resource.data.iv.size() <= 100 &&
+        request.resource.data.ct is string &&
+        request.resource.data.ct.size() <= 120000 &&
+        request.resource.data.clientUpdatedAt is string &&
+        request.resource.data.clientUpdatedAt.size() <= 50 &&
+        request.resource.data.updatedAt is timestamp;
+      allow delete: if false;
+    }
+
+    // Member accounts are created only through Firebase Console or Admin SDK.
+    match /housesystem_members/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+) &&
         request.resource.data.keys().hasOnly([
           'v', 'iv', 'ct', 'type', 'clientUpdatedAt', 'updatedAt'
         ]) &&
