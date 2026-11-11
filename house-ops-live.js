@@ -46,7 +46,14 @@ function calculateCheckout(data){
 const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
 const ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let s=null,app=null,auth=null,db=null,F=null,A=null,unsubscribe=null,authUnsubscribe=null,initPromise=null;
-let patches=new Map(),serial=Promise.resolve(),connection=0;
+let patches=new Map(),serial=Promise.resolve(),connection=0,lastClientTimestamp=0;
+// Distinct monotonically increasing timestamps prevent two immediate edits
+// (for example, marking a refund paid then correcting its amount) from
+// applying in the wrong order when the device clock has millisecond ties.
+function nextTimestamp(){
+ lastClientTimestamp=Math.max(Date.now(),lastClientTimestamp+1);
+ return new Date(lastClientTimestamp).toISOString();
+}
 let state={mode:"setup",role:"viewer",message:"尚未連結 Firebase。請先設定雲端連線。",user:"",lastSync:"",count:0,remembered:false};
 function notify(){
  window.dispatchEvent(new CustomEvent("house-ops-live-state",{detail:{...state}}));
@@ -349,7 +356,7 @@ async function saveRoom(data){
  if(rate!==null&&rate>1000)throw Error("電費每度金額不合理");
  const address=String(data.address||"").trim(),note=String(data.note||"").trim();
  if(address.length>300||note.length>2000)throw Error("地址或備註內容過長");
- return save({v:1,kind:"room",key:room,updated_at:new Date().toISOString(),
+ return save({v:1,kind:"room",key:room,updated_at:nextTimestamp(),
   changes:{status:statusValue,deposit,rent,power_rate:rate,address,note}});
 }
 async function savePayment(data){
@@ -359,7 +366,7 @@ async function savePayment(data){
  if(paidDate&&!/^\d{4}-\d{2}-\d{2}$/.test(paidDate))throw Error("付款日期格式不正確");
  const row=s?.ops?.weekly_accounts?.find(x=>x.id===id&&["refund","vendor"].includes(x.kind));
  if(!row)throw Error("找不到這筆帳務，無法修改");
- return save({v:1,kind:"payment",key:id,updated_at:new Date().toISOString(),
+ return save({v:1,kind:"payment",key:id,updated_at:nextTimestamp(),
   changes:{status:statusValue,paid_date:statusValue==="paid"?paidDate:""}});
 }
 async function saveAccount(data){
@@ -386,7 +393,7 @@ async function saveAccount(data){
  const bank=(bankCode||bankName||bankAccount)?{bank_code:bankCode,bank_name:bankName,bank_account:bankAccount,bank_account_last4:bankAccount.slice(-4),secure_local:false}:
   previousBank?.edited_online?{bank_code:previousBank.bank_code||"",bank_name:previousBank.bank_name||"",
    bank_account:previousBank.bank_account||"",bank_account_last4:previousBank.bank_account_last4||"",secure_local:false}:null;
- return save({v:1,kind:"account",key:id,updated_at:new Date().toISOString(),changes:{row,bank}});
+ return save({v:1,kind:"account",key:id,updated_at:nextTimestamp(),changes:{row,bank}});
 }
 async function saveCheckout(data){
  const room=safeText(data.room,100),date=safeText(data.checkout_date,10),due=safeText(data.refund_due_date,10);
@@ -427,7 +434,7 @@ async function saveCheckout(data){
   bank_account_last4:bankAccount.slice(-4),secure_local:false}:
   previousBank?.edited_online?{bank_code:previousBank.bank_code||"",bank_name:previousBank.bank_name||"",
    bank_account:previousBank.bank_account||"",bank_account_last4:previousBank.bank_account_last4||"",secure_local:false}:null;
- return save({v:1,kind:"checkout",key:id,updated_at:new Date().toISOString(),changes:{checkout:record,weekly,bank}});
+ return save({v:1,kind:"checkout",key:id,updated_at:nextTimestamp(),changes:{checkout:record,weekly,bank}});
 }
 window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,calculateCheckout,
  defaultEmail:DEFAULT_EDITOR,defaultFirebaseConfig:()=>({...DEFAULT_FIREBASE_CONFIG}),rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)!=="no"};
