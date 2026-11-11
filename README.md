@@ -42,6 +42,15 @@
 
 此網站及其原始碼是公開內容。不要提交真實登入密碼、管理密碼、Service Account 私鑰或解密後的房務資料。Firebase Web App 四個連線欄位屬於公開設定；存取控制依靠 Authentication 與 Firestore 規則。配對連結的 fragment 包含公開設定與 Email，不包含密碼、解鎖金鑰或房務紀錄。
 
+## 手機管理員自動登入與其他裝置唯讀（2026-11-11）
+
+- 管理員 Email 已指定為 `handsomeboy784@gmail.com`。必須先在 Firebase Authentication 建立同一帳號、驗證 Email 並完成正常登入，程式碼設定不能取代身分驗證。
+- 在手機空房頁輸入管理員帳號與 Firebase 密碼，勾選「記住這台裝置」。成功後由 Firebase Auth 的 `browserLocalPersistence` 安全保存此瀏覽器工作階段，其他瀏覽器不會因此登入；網站不會保存 Firebase 密碼。
+- 同一手機同一瀏覽器下次開啟網站，Firebase 嘗試自動恢復工作階段；房務主檔仍需使用管理密碼解鎖，或使用該瀏覽器先前已存入 IndexedDB 的加密金鑰。清除網站資料、登出或瀏覽器限制儲存時需重新登入。
+- 其他裝置使用授權會員帳號，新的 `housesystem_ops_edits` 集合是會員唯讀、已驗證管理員可寫；網站不以 Email 預填或按鈕隱藏取代 Firestore 權限驗證。
+- 權限以已驗證 Firebase **帳號**判斷，不是硬體綁定；若其他裝置也使用管理員帳號驗證成功，仍可編輯。需要真正單一手機白名單須額外設計可由伺服器驗證的裝置憑證。
+- GitHub Pages 靜態檔案更新不會自動建立 Firebase 管理員帳號，也不代表已部署 Firebase 規則。管理者須在 Firebase 後台完成專案連線及規則發布後，才可確認跨裝置同步。
+
 ## 第一次設定 Firebase
 
 以下工作需要管理員在 Firebase Console 完成，發布 Pages 不會自動完成：
