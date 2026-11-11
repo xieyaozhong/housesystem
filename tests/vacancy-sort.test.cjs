@@ -46,8 +46,36 @@ test("Vacancy page uses sort helper for cards and counts, and build includes it"
  const html=fs.readFileSync(path.resolve(__dirname,"../vacancy.html"),"utf8");
  const manifest=fs.readFileSync(path.resolve(__dirname,"../scripts/build.mjs"),"utf8");
  assert.match(html,/<script src="vacancy-sort\.js(?:\?[^"]+)?"\s*><\/script>/);
- assert.ok(html.includes('HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented).filter('));
- assert.ok(html.includes('const available=HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented)'));
+ assert.ok(html.includes('HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented,o.vacancy_card_order).filter('));
+ assert.ok(html.includes('const available=HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented,o.vacancy_card_order)'));
  assert.ok(html.includes("最新在上方"));
  assert.ok(manifest.includes("'vacancy-sort.js'"));
+ assert.ok(manifest.includes("'vacancy-drag.js'"));
+ assert.match(html,/data-vacancy-room=/);
+ assert.match(html,/card-drag-handle/);
+});
+
+test("Manual card order overrides checkout recency and is stable across pages",()=>{
+ const rooms=[
+  {room:"A",since:"2026-10-10"},
+  {room:"B",since:"2026-11-09"},
+  {room:"C",since:"2026-11-08"}
+ ];
+ const manual=["C","A","B"];
+ assert.deepEqual(Array.from(sort(rooms,[],[],manual),r=>r.room),manual);
+ assert.deepEqual(Array.from(sort(rooms,[],[]),r=>r.room),["B","C","A"]);
+});
+test("Newly vacant rooms appear first, without discarding existing custom order",()=>{
+ const rooms=[{room:"A",since:"2026-11-03"},{room:"B",since:"2026-11-05"},
+  {room:"新退租",since:"2026-11-12"}];
+ assert.deepEqual(Array.from(sort(rooms,[],[],["A","B"]),r=>r.room),["新退租","A","B"]);
+});
+test("Rented rooms are hidden even if previously present in shared sort order",()=>{
+ const rooms=[{room:"A",since:"2026-11-03"},{room:"B",since:"2026-11-05"}];
+ const rented=[{room:"A",status:"rented"}];
+ assert.deepEqual(Array.from(sort(rooms,[],rented,["A","B"]),r=>r.room),["B"]);
+});
+test("Same room with punctuation and alternate Shaanxi characters retains its manual position",()=>{
+ const rooms=[{room:"陜西703"},{room:"其他A"}];
+ assert.deepEqual(Array.from(sort(rooms,[],[],["陝西-703","其他A"]),r=>r.room),["陜西703","其他A"]);
 });
