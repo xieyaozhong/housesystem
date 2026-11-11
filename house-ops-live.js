@@ -148,10 +148,27 @@ async function init(){
   await auth.authStateReady();
   authUnsubscribe=A.onAuthStateChanged(auth,()=>{
    if(s)subscribe().catch(error);
+   else showReadyAuthState().catch(error);
   });
   return true;
  })().catch(e=>{initPromise=null;error(e);throw e});
  return initPromise;
+}
+async function showReadyAuthState(){
+ if(!auth||s?.key)return;
+ const current=auth.currentUser,remembered=localStorage.getItem(REMEMBER_KEY)==="yes";
+ if(!current){
+  status("login","已連線 house-52015。請輸入同步帳號密碼登入。",{user:"",role:"viewer",remembered});
+  return;
+ }
+ const token=await current.getIdTokenResult(),claims=token.claims||{};
+ const role=claims.email===window.HouseCore?.ADMIN_EMAIL&&claims.email_verified===true?"editor":"viewer";
+ status("locked",role==="editor"?"Firebase 管理員已登入，請解鎖家總管管理密碼以同步。":"Firebase 已登入，請解鎖家總管管理密碼以讀取資料。",{user:current.email||"",role,remembered});
+}
+async function prepare(){
+ if(!(await init()))return false;
+ await showReadyAuthState();
+ return true;
 }
 async function subscribe(){
  stop();
@@ -208,7 +225,8 @@ async function login(email,password,options={}){
  }else await A.setPersistence(auth,A.browserSessionPersistence);
  await A.signInWithEmailAndPassword(auth,email.trim(),password);
  localStorage.setItem(REMEMBER_KEY,persisted?"yes":"no");
- await subscribe();
+ if(s?.key)await subscribe();
+ else await showReadyAuthState();
 }
 async function logout(){
  if(auth)await A.signOut(auth);
@@ -259,7 +277,7 @@ async function savePayment(data){
  return save({v:1,kind:"payment",key:id,updated_at:new Date().toISOString(),
   changes:{status:statusValue,paid_date:statusValue==="paid"?paidDate:""}});
 }
-window.HouseOpsLive={connect,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,
+window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,
  defaultEmail:DEFAULT_EDITOR,defaultFirebaseConfig:()=>({...DEFAULT_FIREBASE_CONFIG}),rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)!=="no"};
 for(const name of ["unlock","auto","loadWithKey"]){
  const original=api[name];
