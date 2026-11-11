@@ -114,10 +114,28 @@ function stop(){
 async function init(){
  if(initPromise)return initPromise;
  initPromise=(async()=>{
-  let config=window.HouseCore?.readConfig();
+  let config=null;
+  try{
+   config=window.HouseCore?.readConfig();
+  }catch(e){
+   // An earlier manual entry might have a malformed authDomain. Only repair
+   // a saved configuration already identifying the same project. Never wipe
+   // room data, trusted keys or a different project's binding.
+   const raw=localStorage.getItem(window.HouseCore?.CONFIG_KEY||"house_firebase_config_v1");
+   const bound=localStorage.getItem("house_data_project_v1");
+   let existing=null;
+   try{existing=raw?JSON.parse(raw):null}catch(_){}
+   if(existing?.projectId!==DEFAULT_FIREBASE_CONFIG.projectId ||
+      (bound&&bound!==DEFAULT_FIREBASE_CONFIG.projectId)){
+     status("error","既有 Firebase 設定損壞或屬於其他專案；未覆寫舊資料。請檢查 Firebase 專案設定。");
+     throw e;
+   }
+   config=window.HouseCore?.saveConfig(DEFAULT_FIREBASE_CONFIG);
+   status("connecting","已修復 house-52015 舊版 Firebase 網域設定，正在連線…");
+  }
   if(!config){
-   // Configure the confirmed project on this browser only if it has not
-   // already been bound to a different Firebase project.
+   // First-time setup uses the confirmed Web App config. Project binding in
+   // HouseCore still rejects previously bound different Firebase projects.
    try{config=window.HouseCore?.saveConfig(DEFAULT_FIREBASE_CONFIG)}
    catch(e){status("error","此裝置已有不同的 Firebase 專案綁定，未覆寫舊資料。");throw e}
   }
