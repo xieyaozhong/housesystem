@@ -1,50 +1,53 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isHouseSystemMember() {
+
+    function isVerifiedOwner() {
       return request.auth != null &&
-        (
-          (request.auth.token.email == 'handsomeboy784@gmail.com' && request.auth.token.email_verified == true) ||
-          exists(/databases/$(database)/documents/housesystem_members/$(request.auth.uid))
-        );
+        request.auth.token.email == 'handsomeboy784@gmail.com' &&
+        request.auth.token.email_verified == true;
     }
 
+    // Read-only accounts must be explicitly approved through the server-side
+    // housesystem_members allowlist. Browsers cannot add themselves.
+    function isHouseSystemMember() {
+      return request.auth != null && (
+        isVerifiedOwner() ||
+        exists(/databases/$(database)/documents/housesystem_members/$(request.auth.uid))
+      );
+    }
+
+    // Shared checkout records remain encrypted in Firestore.
     match /housesystem_checkouts/{recordId} {
-      allow read, write: if isHouseSystemMember();
+      allow read: if isHouseSystemMember();
+      allow create, update, delete: if isVerifiedOwner();
     }
 
-    // Real-time admin edits: room/payment names and values exist only inside AES-GCM ciphertext.
-    // Doc IDs are hashes; only verified admin or whitelisted staff may read/write.
+    // Live room and payment edits are AES-GCM encrypted. Document IDs are
+    // deterministic hashes of room/payment identifiers, not plaintext.
     match /housesystem_ops_edits/{recordId} {
       allow read: if isHouseSystemMember();
-      allow create, update: if isHouseSystemMember() &&
-        recordId.matches('^[rp]-[0-9a-f]{64}
-    // 會員白名單請由 Firebase Console / Admin SDK 建立，前端不可自行新增
-    match /housesystem_members/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      allow write: if false;
-    }
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
-}
-) &&
-        request.resource.data.keys().hasOnly(['v', 'iv', 'ct', 'type', 'clientUpdatedAt', 'updatedAt']) &&
-        request.resource.data.keys().hasAll(['v', 'iv', 'ct', 'type', 'clientUpdatedAt', 'updatedAt']) &&
+      allow create, update: if isVerifiedOwner() &&
+        recordId.matches('^[rp]-[0-9a-f]{64}$') &&
+        request.resource.data.keys().hasOnly([
+          'v', 'iv', 'ct', 'type', 'clientUpdatedAt', 'updatedAt'
+        ]) &&
+        request.resource.data.keys().hasAll([
+          'v', 'iv', 'ct', 'type', 'clientUpdatedAt', 'updatedAt'
+        ]) &&
         request.resource.data.v == 1 &&
         request.resource.data.type == 'ops-edit-v1' &&
-        request.resource.data.iv is string && request.resource.data.iv.size() <= 100 &&
-        request.resource.data.ct is string && request.resource.data.ct.size() <= 120000 &&
+        request.resource.data.iv is string &&
+        request.resource.data.iv.size() <= 100 &&
+        request.resource.data.ct is string &&
+        request.resource.data.ct.size() <= 120000 &&
         request.resource.data.clientUpdatedAt is string &&
         request.resource.data.clientUpdatedAt.size() <= 50 &&
         request.resource.data.updatedAt is timestamp;
       allow delete: if false;
     }
 
-    // 指定管理員 Email 需先完成 Firebase Email 驗證；其他帳號由會員文件白名單授權。
-    // 會員白名單請由 Firebase Console / Admin SDK 建立，前端不可自行新增
+    // Member accounts are created only through Firebase Console or Admin SDK.
     match /housesystem_members/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
