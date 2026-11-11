@@ -61,7 +61,7 @@ cards.addEventListener("pointerdown",event=>{
   startY:event.clientY,original:names(),moved:false};
  if(handle.setPointerCapture)handle.setPointerCapture(event.pointerId);
 });
-cards.addEventListener("pointermove",event=>{
+document.addEventListener("pointermove",event=>{
  const g=gesture;
  if(!g||event.pointerId!==g.pointerId)return;
  if(!g.moved&&Math.hypot(event.clientX-g.startX,event.clientY-g.startY)<7)return;
@@ -75,6 +75,8 @@ cards.addEventListener("pointermove",event=>{
  const before=Math.abs(event.clientY-(r.top+r.height/2))<r.height/3?
   event.clientX<r.left+r.width/2:event.clientY<r.top+r.height/2;
  cards.insertBefore(g.card,before?target:target.nextSibling);
+ // Moving a captured element in the DOM may drop capture on iOS Safari.
+ // Global pointer listeners keep the gesture alive even if that happens.
 });
 function finish(event,cancelled=false){
  const g=gesture;
@@ -86,11 +88,8 @@ function finish(event,cancelled=false){
  if(cancelled){restore(g.original);report("已取消調整卡片順序。");return}
  if(g.moved)commit(g.original);
 }
-cards.addEventListener("pointerup",event=>finish(event));
-cards.addEventListener("pointercancel",event=>finish(event,true));
-cards.addEventListener("lostpointercapture",event=>{
- if(gesture&&event.pointerId===gesture.pointerId)finish(event,true);
-});
+document.addEventListener("pointerup",event=>finish(event));
+document.addEventListener("pointercancel",event=>finish(event,true));
 cards.addEventListener("keydown",event=>{
  const handle=event.target.closest(".card-drag-handle");
  if(!handle||!["ArrowUp","ArrowDown"].includes(event.key))return;
