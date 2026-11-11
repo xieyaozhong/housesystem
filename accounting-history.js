@@ -125,7 +125,10 @@
   function cloudStatus(d=window.HouseOpsLive?.getStatus()||{}){
     const el=$("paymentCloudStatus");if(el)el.textContent=d.message||"尚未啟用雲端同步";
     if(d.user&&!$("historyCloudEmail").value)$("historyCloudEmail").value=d.user;
-    $("paymentEditSave").disabled=d.mode!=="online";
+    const editor=d.mode==="online"&&d.role==="editor";
+    document.body.classList.toggle("can-edit",editor);
+    $("paymentEditSave").disabled=!editor;
+    if(!editor){$("paymentEditPanel").hidden=true;editPaymentId=null;}
   }
   const feedback=(id,text,error=false)=>{
     const el=$(id);if(!el)return;el.textContent=text;el.classList.toggle("error",error);
