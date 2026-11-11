@@ -203,3 +203,39 @@ test("New and edited vendor accounts synchronize ciphertext to a supervisor",asy
  await assert.rejects(()=>supervisor.live.saveAccount({id,party:"修改",description:"無權",
   amount:1,settlement_date:"2026-11-10"}),/唯讀/);
 });
+
+test("Checkout creates linked refund and vacancy; editing after payment resets stale paid date",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const admin=fixture(),state=admin.state(key);await admin.live.connect(state);await online(admin.live);
+ const details={room:"平德501",address:"測試地址",checkout_date:"2026-11-11",
+  refund_due_date:"2026-11-17",deposit:26000,meter_previous:2591,meter_current:2751,
+  power_rate:5.5,penalty:13000};
+ const saved=await admin.live.saveCheckout(details),id=saved.key;
+ const checkout=state.ops.checkouts.find(x=>x.id===id);
+ const refund=state.ops.weekly_accounts.find(x=>x.id===id.replace(/^checkout-/,"refund-"));
+ assert.equal(checkout.refund_amount,12120);
+ assert.equal(refund.amount,12120);
+ assert.equal(refund.due_date,"2026-11-17");
+ assert.equal(state.ops.rented.find(x=>x.room==="平德501"),undefined);
+ assert.equal(state.ops.vacancies.find(x=>x.room==="平德501").since,"2026-11-11");
+ await admin.live.savePayment({id:refund.id,status:"paid",paid_date:"2026-11-12"});
+ assert.equal(checkout.refund_status,"paid");
+ await admin.live.saveCheckout({...details,id,penalty:14000});
+ assert.equal(state.ops.checkouts.filter(x=>x.id===id).length,1);
+ assert.equal(state.ops.checkouts.find(x=>x.id===id).refund_amount,11120);
+ assert.equal(state.ops.checkouts.find(x=>x.id===id).refund_paid_date,undefined);
+ assert.equal(state.ops.weekly_accounts.find(x=>x.id===refund.id).paid_date,undefined);
+ const supervisor=fixture("guest",{newDevice:true,sharedStore:admin.store}),view=supervisor.state(key);
+ await supervisor.live.connect(view);await online(supervisor.live);
+ assert.equal(view.ops.checkouts.find(x=>x.id===id).refund_amount,11120);
+ assert.equal(view.ops.vacancies.find(x=>x.room==="平德501").since,"2026-11-11");
+ await assert.rejects(()=>supervisor.live.saveCheckout({...details,id}),/唯讀/);
+});
+test("Earlier historical checkout cannot erase a later current rental",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const admin=fixture(),state=admin.state(key);await admin.live.connect(state);await online(admin.live);
+ await admin.live.saveRoom({room:"平德501",status:"rented",deposit:26000});
+ await admin.live.saveCheckout({room:"平德501",checkout_date:"2026-10-30",deposit:26000,
+  electricity_usage:160,power_rate:5.5});
+ assert.equal(state.ops.rented.some(x=>x.room==="平德501"),true);
+});
