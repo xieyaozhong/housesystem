@@ -7,6 +7,15 @@ if(!api)throw new Error("HouseSecureApp must load before house-ops-live.js");
 const COLL="housesystem_ops_edits",SDK="https://www.gstatic.com/firebasejs/12.19.0/";
 const REMEMBER_KEY="house_ops_remember_firebase_login_v1";
 const DEFAULT_EDITOR="handsomeboy784@gmail.com";
+// Firebase Web App identifiers are intentionally public; access is protected
+// by Authentication, the published Firestore rules and AES-GCM encryption.
+// These values must never include an account password or service account key.
+const DEFAULT_FIREBASE_CONFIG=Object.freeze({
+ apiKey:"AIzaSyAGWcz8cV3W_mFcE1iz-kZPxhqVQRK7YS8",
+ authDomain:"house-52015.firebaseapp.com",
+ projectId:"house-52015",
+ appId:"1:1033044359440:web:5e76cd43eda6e8bf660d95"
+});
 const te=new TextEncoder(),td=new TextDecoder();
 const norm=s=>String(s||"").trim().replace(/[\s_－-]/g,"").replace(/[陜陕]/g,"陝").toUpperCase();
 const positive=x=>x!==undefined&&x!==null&&String(x).trim()!==""&&Number.isFinite(Number(x))&&Number(x)>0?Number(x):null;
@@ -105,9 +114,18 @@ function stop(){
 async function init(){
  if(initPromise)return initPromise;
  initPromise=(async()=>{
-  const config=window.HouseCore?.readConfig();
-  if(!config){status("setup","尚未設定 Firebase。請在下方輸入 Firebase 專案設定。");return false}
-  status("connecting","正在連結 Firebase…");
+  let config=window.HouseCore?.readConfig();
+  if(!config){
+   // Configure the confirmed project on this browser only if it has not
+   // already been bound to a different Firebase project.
+   try{config=window.HouseCore?.saveConfig(DEFAULT_FIREBASE_CONFIG)}
+   catch(e){status("error","此裝置已有不同的 Firebase 專案綁定，未覆寫舊資料。");throw e}
+  }
+  if(config?.projectId!==DEFAULT_FIREBASE_CONFIG.projectId){
+   status("error","此裝置已綁定其他 Firebase 專案；為防止混用房務資料，請勿繼續儲存。");
+   return false;
+  }
+  status("connecting","正在連結 house-52015 Firebase…");
   const [appSDK,authSDK,firestoreSDK]=await Promise.all([
    import(SDK+"firebase-app.js"),import(SDK+"firebase-auth.js"),import(SDK+"firebase-firestore.js")
   ]);
@@ -242,7 +260,7 @@ async function savePayment(data){
   changes:{status:statusValue,paid_date:statusValue==="paid"?paidDate:""}});
 }
 window.HouseOpsLive={connect,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,
- defaultEmail:DEFAULT_EDITOR,rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)!=="no"};
+ defaultEmail:DEFAULT_EDITOR,defaultFirebaseConfig:()=>({...DEFAULT_FIREBASE_CONFIG}),rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)!=="no"};
 for(const name of ["unlock","auto","loadWithKey"]){
  const original=api[name];
  if(typeof original!=="function")continue;
