@@ -233,7 +233,7 @@ async function savePayment(data){
   changes:{status:statusValue,paid_date:statusValue==="paid"?paidDate:""}});
 }
 window.HouseOpsLive={connect,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,
- defaultEmail:DEFAULT_EDITOR,rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)==="yes"};
+ defaultEmail:DEFAULT_EDITOR,rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)!=="no"};
 for(const name of ["unlock","auto","loadWithKey"]){
  const original=api[name];
  if(typeof original!=="function")continue;
