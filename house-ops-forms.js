@@ -49,13 +49,30 @@ function showMasterChoices(name){
  node.hidden=!matches.length;
  listNode(name==="room"?"address":"room").hidden=true;
 }
+function updateCheckoutPowerBilling(){
+ if(!checkoutForm)return;
+ const taipower=field("power_billing").value==="taipower";
+ $("checkoutPowerRateLabel").hidden=taipower;
+ $("checkoutTaipowerFeeLabel").hidden=!taipower;
+ field("power_rate").disabled=taipower;
+ field("actual_electricity_fee").disabled=!taipower;
+}
+function setPropertyPower(item){
+ if(!item)return;
+ if(item.power_billing==="taipower"){
+  field("power_billing").value="taipower";
+  field("power_rate").value="";
+ }else if(item.power_billing==="fixed"||item.power_rate!=null){
+  field("power_billing").value="fixed";
+  if(item.power_rate!=null)field("power_rate").value=item.power_rate;
+ }
+ updateCheckoutPowerBilling();
+}
 function chooseMaster(item){
  if(!checkoutForm||!item)return;
  fill(checkoutForm,{room:item.code,address:item.address,master_id:item.id||""});
  if(item.deposit!=null&&!field("deposit").value)field("deposit").value=item.deposit;
- if(item.power_rate!=null&&(field("power_rate").value===""||field("power_rate").value==="5.5")){
-  field("power_rate").value=item.power_rate;
- }
+ setPropertyPower(item);
  hideMasterChoices();masterHint();previewCheckout();
  field("room").focus();
 }
@@ -67,9 +84,7 @@ function linkExistingMaster(){
   field("master_id").value=String(selected.id);
   if(!field("address").value&&selected.address)field("address").value=selected.address;
   if(!field("deposit").value&&selected.deposit!=null)field("deposit").value=selected.deposit;
-  if(selected.power_rate!=null&&(field("power_rate").value===""||field("power_rate").value==="5.5")){
-   field("power_rate").value=selected.power_rate;
-  }
+  setPropertyPower(selected);
  }else field("master_id").value="";
  masterHint();
 }
@@ -139,17 +154,20 @@ function autofillRoom(){
  const historic=(session.ops.checkouts||[]).filter(x=>key(x.room)===room).sort((a,b)=>String(b.checkout_date).localeCompare(String(a.checkout_date)))[0];
  const record=existing||historic||{};
  const chosenDeposit=record.deposit??(Number(record.rent)>0?Number(record.rent)*2:null);
- for(const [name,val] of Object.entries({address:record.address,deposit:chosenDeposit,power_rate:record.power_rate})){
+ for(const [name,val] of Object.entries({address:record.address,deposit:chosenDeposit})){
   const el=checkoutForm.elements.namedItem(name);
   if(el&&val!=null&&!el.value)el.value=val;
  }
+ if(record.power_billing||record.power_rate!=null)setPropertyPower(record);
  masterHint();previewCheckout();
 }
 function previewCheckout(){
  if(!checkoutForm)return;
  try{
   const c=window.HouseOpsLive.calculateCheckout(values(checkoutForm));
-  $("checkoutEditorPreview").textContent="電費 "+c.units+" 度 × "+c.rate+" 元 = "+N(c.electricityFee)+
+  $("checkoutEditorPreview").textContent=(c.powerBilling==="taipower"?
+   "台電帳單實際結清電費 "+N(c.electricityFee):
+   "電費 "+c.units+" 度 × "+c.rate+" 元 = "+N(c.electricityFee))+
    (c.creditMode==="credit"?"（加回）":"（扣除）")+"｜應退 "+N(c.refundAmount)+
    (c.owedAmount?"｜另需補繳 "+N(c.owedAmount):"");
   $("checkoutEditorPreview").classList.remove("error");
@@ -162,7 +180,8 @@ function resetCheckout(){
  if(!checkoutForm)return;
  checkoutForm.reset();
  fill(checkoutForm,{id:"",checkout_date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Taipei"}),
-  electricity_mode:"deduct",power_rate:"5.5"});
+  electricity_mode:"deduct",power_billing:"fixed",power_rate:"5.5",actual_electricity_fee:""});
+ updateCheckoutPowerBilling();
  field("master_id").value="";hideMasterChoices();masterHint();previewCheckout();
  note("checkoutEditorFeedback","新增退租：填入電表、押金及扣款項目，系統會計算退款；儲存後自動轉空房。");
 }
@@ -176,12 +195,17 @@ function editCheckout(id){
  fill(checkoutForm,{id:r.id,room:r.room,address:r.address,party:weekly.party,checkout_date:r.checkout_date,
   refund_due_date:r.refund_due_date,deposit:r.deposit,
   meter_previous:r.meter_previous,meter_current:r.meter_current,
-  electricity_usage:r.electricity_usage,power_rate:r.power_rate||5.5,
+  electricity_usage:r.electricity_usage,power_rate:r.power_rate??5.5,
+  power_billing:r.power_billing||"fixed",
+  actual_electricity_fee:r.power_billing==="taipower"?(r.actual_electricity_fee??r.electricity_fee):"",
   electricity_mode:r.electricity_credit_direction==="add_to_deposit"?"credit":"deduct",
   penalty:r.early_termination_penalty,cleaning:r.cleaning_fee,unpaid_rent:r.unpaid_rent,
   other_charge:r.other_charge,overpaid:r.overpaid,other_credit:r.other_credit,
   bank_code:bank.bank_code,bank_name:bank.bank_name,bank_account:bank.bank_account,note:r.note});
  field("master_id").value=r.master_id||"";linkExistingMaster();hideMasterChoices();
+ field("power_billing").value=r.power_billing||"fixed";
+ if(r.power_billing==="taipower")field("actual_electricity_fee").value=r.actual_electricity_fee??r.electricity_fee??"";
+ updateCheckoutPowerBilling();
  note("checkoutEditorFeedback","正在修改歷史退租："+r.room+"（"+r.checkout_date+"）。若退款金額變動，原已付款狀態將改為待重新核對。");
  previewCheckout();
  checkoutForm.scrollIntoView({behavior:"smooth",block:"start"});
@@ -234,6 +258,9 @@ if(form){
  resetAccount();
 }
 if(checkoutForm){
+ field("power_billing").addEventListener("change",()=>{
+  updateCheckoutPowerBilling();previewCheckout();
+ });
  for(const name of ["room","address"]){
   const input=field(name),node=listNode(name);
   input.addEventListener("input",()=>{
