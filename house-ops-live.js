@@ -136,11 +136,14 @@ function applyPatch(session,p){
    const properties=session.vault.properties;
    const stored=properties.find(x=>String(x.id)===String(master.id))||
      properties.find(x=>norm(x.code||x.room)===norm(master.code));
-   if(!stored&&master.action==="create"){
+   if(!stored&&["create","existing","update_address"].includes(master.action)){
+    // A later edit overwrites the original Firestore checkout document.
+    // Rebuild new master units from any later version as well, so supervisors
+    // who connect after that edit still see the matching property.
     properties.push({id:master.id,code:master.code,address:master.address,
      address_raw:master.address_raw||master.address,access:"",note:"",
-     source:"退租登記新增（雲端同步）",created_at:p.updated_at});
-   }else if(stored&&!stored.address&&master.address){
+     source:"退租主檔（雲端同步）",created_at:p.updated_at});
+   }else if(stored&&master.address&&(master.action==="update_address"||!stored.address)){
     stored.address=master.address;
     if(!stored.address_raw)stored.address_raw=master.address;
    }
@@ -443,11 +446,11 @@ function checkoutMaster(data,room,address){
  if(matched){
   const existing=exactId||matched;
   const targetAddress=safeText(existing.address,300);
-  if(address&&targetAddress&&norm(address)!==norm(targetAddress)){
-   throw Error("此套房名稱已存在主檔，但地址不同。為避免覆蓋其他房間，請先確認主檔，或為新地址使用不同的套房名稱");
-  }
-  return {master:{action:"existing",id:existing.id,code:existing.code||room,
-   address:targetAddress||address},room:existing.code||room,address:targetAddress||address};
+  const isChanged=Boolean(address&&targetAddress&&norm(address)!==norm(targetAddress));
+  return {master:{action:isChanged?"update_address":"existing",id:existing.id,
+   code:existing.code||room,address:isChanged?address:(targetAddress||address),
+   address_raw:existing.address_raw||targetAddress||address},
+   room:existing.code||room,address:isChanged?address:(targetAddress||address)};
  }
  if(selected)throw Error("找不到已選取的主檔物件，請重新搜尋");
  if(!address)throw Error("新套房尚未存在主檔，請填寫地址才可新增主檔並辦理退租");
