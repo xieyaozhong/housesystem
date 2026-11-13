@@ -87,7 +87,7 @@ $("#tb").addEventListener("click",async e=>{
   const parent=paidButton.closest(".pay-editor-action");
   const date=parent?.querySelector('input[type="date"]')?.value||"";
   if(!row)return;
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){
    $("#payFeedback").textContent="請先選擇實際付款日期。";
    $("#payFeedback").classList.add("error");return;
   }
