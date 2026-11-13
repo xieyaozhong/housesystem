@@ -16,12 +16,14 @@ function records(session){
    id:source==="master"?String(row.id??""):"",
    code,address,source,
    deposit:row.deposit??(Number(row.rent)>0?Number(row.rent)*2:null),
-   power_rate:row.power_rate??null
+   power_rate:row.power_rate??null,
+   power_billing:row.power_billing||null
   };
   if(existing){
    if(!existing.id&&more.id)existing.id=more.id;
    if(existing.deposit==null&&more.deposit!=null)existing.deposit=more.deposit;
    if(existing.power_rate==null&&more.power_rate!=null)existing.power_rate=more.power_rate;
+   if(!existing.power_billing&&more.power_billing)existing.power_billing=more.power_billing;
    if(source==="master")existing.source="master";
   }else found.set(key,more);
  };
