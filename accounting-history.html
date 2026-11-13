@@ -18,22 +18,22 @@
 .history-edit-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end}.history-edit-controls label{display:flex;flex-direction:column;gap:6px;color:#cbd9e9;font-size:12px}.history-edit-controls input,.history-edit-controls select{padding:10px;border:1px solid #34506b;border-radius:10px;background:#0b1d31;color:#fff;font-size:14px}.history-edit-controls input[type="checkbox"]{width:auto;min-width:17px;min-height:17px;padding:0;margin-right:7px;accent-color:#49bc97}.history-edit-controls label span{display:inline-flex;align-items:center;gap:6px}.history-edit-controls button,.history-edit-btn{border:1px solid #39765d;border-radius:9px;background:#123b31;color:#c5ffe3;padding:10px 12px;cursor:pointer;font-size:12px}.history-edit-btn{padding:6px 9px;white-space:nowrap}.history-edit-btn:disabled{opacity:.4}.history-edit-status{color:#a9c7e8;font-size:12px;margin:9px 0;line-height:1.6}.history-edit-feedback{color:#b9ffe1;font-size:12px;margin:8px 0;min-height:20px}.history-edit-feedback.error{color:#ffb9b9}body:not(.can-edit) .history-edit-btn,body:not(.can-edit) #paymentEditPanel{display:none!important} </style></head><body>
 <div class="lock" id="lock"><div class="lockbox"><div class="ey">HISTORY SECURE</div><h2>歷史帳務登入</h2><p>輸入管理密碼後查詢歷年帳務及零用金紀錄</p><div class="lockrow"><input id="pw" class="secure-input" type="password" autocomplete="current-password" placeholder="管理密碼"><button id="unlock" class="unlock-btn">解鎖</button></div><div id="err" class="lockerr"></div></div></div>
 <div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS · SECURE</small></div><nav class="nav"><a href="vacancy.html">空房系統</a><a href="checkout.html">退租紀錄</a><a href="weekly-accounting.html">每週帳務</a><a class="on" href="accounting-history.html">歷史帳務</a></nav><div class="foot"><button id="forget" class="secure-btn" style="width:100%">鎖定此裝置</button><a href="index.html">← 系統首頁</a></div></aside>
-<main class="main"><header class="top"><div><div class="ey">ACCOUNTING ARCHIVE</div><h1>歷史帳務查詢</h1><div class="sub">帳務不刪除，只依週二結算週期分類｜可查過往已付、未付、零用金及代墊</div></div><div class="chip" id="updated">● 已加密</div></header>
-<section class="stats"><div class="st"><span>查詢筆數</span><b id="nRows">0</b></div><div class="st"><span>帳務金額合計</span><b id="nAmount">$0</b></div><div class="st"><span>未付款項</span><b id="nUnpaid">$0</b></div><div class="st"><span>零用金淨額</span><b id="nPetty">$0</b></div></section>
+<main class="main"><header class="top"><div><div class="ey">ACCOUNTING ARCHIVE</div><h1>歷史帳務查詢</h1><div class="sub">已完成付款／退款的帳務在此永久保留，包含本期已付紀錄；未付款項無論跨幾週都留在每週帳務</div></div><div class="chip" id="updated">● 已加密</div></header>
+<section class="stats"><div class="st"><span>查詢筆數</span><b id="nRows">0</b></div><div class="st"><span>帳務金額合計</span><b id="nAmount">$0</b></div><div class="st"><span>已付款／退款筆數</span><b id="nUnpaid">0</b></div><div class="st"><span>零用金淨額</span><b id="nPetty">$0</b></div></section>
 <section class="panel" id="paymentEditPanel" hidden><h2>編輯付款紀錄</h2><p id="paymentEditLabel" class="history-note"></p>
 <form id="paymentEditForm" class="history-edit-controls">
 <label>付款狀態<select id="paymentEditStatus"><option value="paid">已付款</option><option value="pending">待付款</option></select></label>
 <label>實際付款日期（未知可空白）<input id="paymentEditDate" type="date"></label>
 <button id="paymentEditSave" type="submit">儲存並同步</button><button type="button" id="paymentEditCancel">取消</button>
 </form><p id="paymentEditFeedback" class="history-edit-feedback" role="status"></p></section>
-<section class="panel"><h2>查詢條件</h2><p class="history-note">每週三至隔週二為同一期；原有週五廠商結算日歸到下一個週二。日期範圍以週二結算日為準，資料保留原始單據日期。未排定日期的帳務也可透過「全部」查到。</p>
-<div class="history-controls"><label><input id="includeCurrent" type="checkbox">包含本期（預設僅歷史週期）</label><button type="button" id="clearFilters">清除篩選</button><button type="button" id="exportCsv">匯出查詢結果 CSV</button></div>
+<section class="panel"><h2>查詢條件</h2><p class="history-note">此頁只列已付廠商款、已完成退款與代管備用金紀錄。每週三至隔週二為同一期；原始日期與週二結算日均保留。<a href="weekly-accounting.html">未付款請到每週帳務</a>。</p>
+<div class="history-controls"><label><input id="includeCurrent" type="checkbox" checked>包含本期已付款（預設顯示）</label><button type="button" id="clearFilters">清除篩選</button><button type="button" id="exportCsv">匯出查詢結果 CSV</button></div>
 <div class="history-filter">
-<label>週二結算週期<select id="cycle"><option value="">全部歷史週期</option></select></label>
+<label>週二結算週期<select id="cycle"><option value="">全部已完成週期</option></select></label>
 <label>起始結算日<input id="startDate" type="date"></label>
 <label>截止結算日<input id="endDate" type="date"></label>
 <label>帳務類型<select id="kind"><option value="">全部類型</option><option value="vendor">廠商款</option><option value="refund">退租退款</option><option value="fund">零用金入帳</option><option value="advance">代墊</option><option value="advance_repaid">代墊歸還</option><option value="petty_expense">零用金支出</option></select></label>
-<label>付款狀態<select id="status"><option value="">全部狀態</option><option value="paid">已支付／已記帳</option><option value="pending">待付款／未結清</option></select></label>
+<label>付款狀態<select id="status"><option value="">全部已完成</option><option value="paid">已支付／已記帳</option></select></label>
 <label>關鍵字（廠商、房間、項目）<input id="keyword" type="search" placeholder="例如：明德2A、馬卡、冷氣"></label>
 </div><p class="sub" id="filterInfo">—</p></section>
 <section class="panel"><h2>帳務歷史明細</h2><div class="tbl"><table class="history-table"><thead><tr><th>週二結算日</th><th>原始日期</th><th>類型</th><th>收款人／代管人</th><th>物件</th><th>項目／摘要</th><th>金額</th><th>付款狀態</th><th>完成日期</th><th>銀行／末四碼</th><th>收據</th><th>雲端編輯</th></tr></thead><tbody id="historyTb"></tbody></table></div></section>
