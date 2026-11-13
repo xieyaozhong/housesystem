@@ -288,3 +288,59 @@ test("Card order rejects duplicate and incomplete room lists without modifying c
  await assert.rejects(()=>x.live.saveVacancyOrder(["Alpha","Unlisted"]),/名單已變更/);
  assert.equal(x.store.size,0);
 });
+
+test("New checkout suite creates master, vacancy and refund atomically, readable by password-only supervisor",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture(),a=editor.state(key);
+ await editor.live.connect(a);await online(editor.live);
+ const startCount=a.vault.properties.length;
+ const data={room:"新屋B12",address:"台中市測試路12號",checkout_date:"2026-11-12",
+  refund_due_date:"2026-11-17",deposit:24000,electricity_usage:100,power_rate:5.5};
+ const result=await editor.live.saveCheckout(data);
+ const fresh=a.vault.properties.find(x=>x.code==="新屋B12");
+ assert.equal(a.vault.properties.length,startCount+1);
+ assert.equal(fresh.address,data.address);
+ assert.equal(fresh.address_raw,data.address);
+ assert.equal(result.changes.master.action,"create");
+ assert.equal(a.ops.checkouts.find(x=>x.room===data.room).master_id,fresh.id);
+ assert.equal(a.ops.vacancies.find(x=>x.room===data.room).address,data.address);
+ assert.equal(a.ops.weekly_accounts.find(x=>x.property_label===data.room&&x.kind==="refund").amount,23450);
+ assert.equal(editor.store.size,1,"master and checkout must share one ciphertext");
+ const ciphertext=JSON.stringify([...editor.store.values()]);
+ assert.equal(ciphertext.includes("新屋B12"),false);
+ assert.equal(ciphertext.includes(data.address),false);
+ // Re-saving an existing checkout is idempotent and does not add a second master entry.
+ await editor.live.saveCheckout({...data,id:result.key,penalty:1000,master_id:fresh.id});
+ assert.equal(a.vault.properties.filter(x=>x.code===data.room).length,1);
+ assert.equal(a.ops.weekly_accounts.find(x=>x.property_label===data.room&&x.kind==="refund").amount,22450);
+ const supervisor=fixture("guest",{newDevice:true,sharedStore:editor.store}),b=supervisor.state(key);
+ await supervisor.live.connect(b);await online(supervisor.live);
+ assert.equal(b.vault.properties.find(x=>x.code===data.room)?.address,data.address);
+ assert.equal(b.ops.vacancies.find(x=>x.room===data.room)?.address,data.address);
+ await assert.rejects(()=>supervisor.live.saveCheckout({...data,room:"新屋B13"}),/唯讀/);
+});
+test("Master lookup reuses exact room and fills missing address without duplicates",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture(),a=editor.state(key);
+ await editor.live.connect(a);await online(editor.live);
+ const startCount=a.vault.properties.length;
+ const existing=a.vault.properties.find(x=>x.code==="平德501");
+ const saved=await editor.live.saveCheckout({room:"平德-501",checkout_date:"2026-11-13",
+  deposit:26000,electricity_usage:0,power_rate:5.5,master_id:existing.id});
+ assert.equal(saved.changes.master.action,"existing");
+ assert.equal(saved.changes.checkout.address,existing.address);
+ assert.equal(a.vault.properties.length,startCount);
+ assert.equal(a.ops.vacancies.find(x=>x.room==="平德501")?.address,existing.address);
+});
+test("Same room identifier with conflicting address cannot overwrite an unrelated master",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture(),a=editor.state(key);
+ await editor.live.connect(a);await online(editor.live);
+ const before=JSON.stringify(a.vault.properties);
+ const input={room:"平德501",address:"另一個新地址",checkout_date:"2026-11-13",
+  deposit:26000,electricity_usage:0,power_rate:5.5};
+ await assert.rejects(()=>editor.live.saveCheckout(input),/地址不同/);
+ await assert.rejects(()=>editor.live.saveCheckout({...input,room:"全新D6",address:""}),/填寫地址/);
+ assert.equal(JSON.stringify(a.vault.properties),before);
+ assert.equal(editor.store.size,0);
+});
