@@ -30,16 +30,19 @@ function calculateCheckout(data){
  if((previous===null)!==(current===null))throw Error("電表前期與本期讀數需同時填寫");
  if(previous!==null&&current<previous)throw Error("本期電表度數不可低於前期");
  const units=previous!==null?current-previous:money(data.electricity_usage);
- const rate=money(data.power_rate);
- if(rate>1000)throw Error("每度電費金額不合理");
- const electricityFee=Math.round(units*rate);
+ const powerBilling=data.power_billing==="taipower"?"taipower":"fixed";
+ const rate=powerBilling==="taipower"?null:money(data.power_rate);
+ if(rate!==null&&rate>1000)throw Error("每度電費金額不合理");
+ const actual=String(data.actual_electricity_fee??"").trim();
+ if(powerBilling==="taipower"&&!actual)throw Error("台電計費請輸入台電帳單實際結清電費（金額可填 0）");
+ const electricityFee=powerBilling==="taipower"?Math.round(money(actual)):Math.round(units*rate);
  const creditMode=data.electricity_mode==="credit"?"credit":"deduct";
  const penalty=money(data.penalty),cleaning=money(data.cleaning),
   unpaidRent=money(data.unpaid_rent),otherCharge=money(data.other_charge),
   overpaid=money(data.overpaid),otherCredit=money(data.other_credit);
  const signedElectricity=creditMode==="credit"?electricityFee:-electricityFee;
  const balance=Math.round(deposit+signedElectricity+overpaid+otherCredit-penalty-cleaning-unpaidRent-otherCharge);
- return {deposit,previous,current,units,rate,electricityFee,creditMode,
+ return {deposit,previous,current,units,rate,powerBilling,electricityFee,creditMode,
   penalty,cleaning,unpaidRent,otherCharge,overpaid,otherCredit,
   balance,refundAmount:Math.max(0,balance),owedAmount:Math.max(0,-balance)};
 }
@@ -88,11 +91,18 @@ function applyPatch(session,p){
   const master=(session.vault?.properties||[]).find(match)||{};
   if(master&&data.address)master.address=data.address;
   if(master&&data.note!==undefined)master.note=data.note;
+  if(master&&data.power_billing) {
+   master.power_billing=data.power_billing;
+   master.power_rate=data.power_billing==="taipower"?null:data.power_rate;
+  }
   const item={...prior,room:p.key,address:data.address||prior.address||master.address||"",
    status:data.status,source:"網頁編輯（雲端同步）",updated_at:p.updated_at};
   if(data.deposit!=null)item.deposit=data.deposit;
   if(data.rent!=null)item.rent=data.rent;
-  if(data.power_rate!=null)item.power_rate=data.power_rate;
+  if(data.power_billing){
+   item.power_billing=data.power_billing;
+   item.power_rate=data.power_billing==="taipower"?null:data.power_rate;
+  }else if(data.power_rate!=null)item.power_rate=data.power_rate;
   if(data.note!==undefined)item.note=data.note;
   delete item.rent_pending;delete item.lease_start_pending;
   delete item.rent_unverified;
@@ -142,10 +152,18 @@ function applyPatch(session,p){
     // who connect after that edit still see the matching property.
     properties.push({id:master.id,code:master.code,address:master.address,
      address_raw:master.address_raw||master.address,access:"",note:"",
+     power_billing:record.power_billing||"fixed",
+     power_rate:record.power_billing==="taipower"?null:record.power_rate,
      source:"退租主檔（雲端同步）",created_at:p.updated_at});
-   }else if(stored&&master.address&&(master.action==="update_address"||!stored.address)){
-    stored.address=master.address;
-    if(!stored.address_raw)stored.address_raw=master.address;
+   }else if(stored){
+    if(master.address&&(master.action==="update_address"||!stored.address)){
+     stored.address=master.address;
+     if(!stored.address_raw)stored.address_raw=master.address;
+    }
+    if(record.power_billing){
+     stored.power_billing=record.power_billing;
+     stored.power_rate=record.power_billing==="taipower"?null:record.power_rate;
+    }
    }
   }
   const old=ops.checkouts.find(x=>x.id===record.id);
@@ -167,7 +185,8 @@ function applyPatch(session,p){
    const prior=ops.vacancies.find(matches)||rented||{};
    const item={...prior,room:record.room,address:record.address||prior.address||"",
     status:"vacant",source:"退租轉空房",since:record.checkout_date,updated_at:p.updated_at,
-    rent:record.rent,deposit:record.deposit,power_rate:record.power_rate};
+    rent:record.rent,deposit:record.deposit,power_rate:record.power_rate,
+    power_billing:record.power_billing||"fixed"};
    ops.vacancies=ops.vacancies.filter(x=>!matches(x));
    ops.rented=ops.rented.filter(x=>!matches(x));
    ops.vacancies.push(item);
@@ -390,6 +409,8 @@ async function saveRoom(data){
  if(!room||room.length>100||/[\/]/.test(room))throw Error("房號必須介於 1 至 100 字，不可含斜線");
  if(!["vacant","rented"].includes(statusValue))throw Error("請選擇空房或已出租");
  let deposit=positive(data.deposit),rent=positive(data.rent),rate=positive(data.power_rate);
+ const billing=data.power_billing==="taipower"?"taipower":"fixed";
+ if(billing==="taipower")rate=null;
  if(deposit!==null)rent=deposit/2;
  else if(rent!==null)deposit=rent*2;
  if(deposit===null||deposit>100000000||!Number.isFinite(deposit))throw Error("請輸入押金或月租金以完成自動計算");
@@ -397,7 +418,7 @@ async function saveRoom(data){
  const address=String(data.address||"").trim(),note=String(data.note||"").trim();
  if(address.length>300||note.length>2000)throw Error("地址或備註內容過長");
  return save({v:1,kind:"room",key:room,updated_at:nextTimestamp(),
-  changes:{status:statusValue,deposit,rent,power_rate:rate,address,note}});
+  changes:{status:statusValue,deposit,rent,power_billing:billing,power_rate:rate,address,note}});
 }
 async function savePayment(data){
  const id=String(data.id||""),statusValue=data.status,paidDate=String(data.paid_date||"").trim();
@@ -479,7 +500,9 @@ async function saveCheckout(data){
   (calc.owedAmount?"（另需補繳 "+calc.owedAmount+" 元）":"");
  const record={id,room,address,master_id:linked.master.id,checkout_date:date,refund_due_date:due,
   deposit:calc.deposit,rent:calc.deposit/2,meter_previous:calc.previous,meter_current:calc.current,
-  electricity_usage:calc.units,power_rate:calc.rate,electricity_fee:calc.electricityFee,
+  electricity_usage:calc.units,power_billing:calc.powerBilling,
+  power_rate:calc.rate,electricity_fee:calc.electricityFee,
+  actual_electricity_fee:calc.powerBilling==="taipower"?calc.electricityFee:null,
   electricity_credit_direction:calc.creditMode==="credit"?"add_to_deposit":"deduct_from_deposit",
   electricity_credit:calc.creditMode==="credit"?calc.electricityFee:0,
   early_termination_penalty:calc.penalty,cleaning_fee:calc.cleaning,unpaid_rent:calc.unpaidRent,
