@@ -67,7 +67,7 @@ test("Pingde 501 loads across all five pages, full bank account and next Tuesday
  const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
  assert.ok(weekly.includes('r.property_label==="平德501"'));
  assert.ok(weekly.includes('bank_code:"700",bank_name:"中華郵政",bank_account:"00212730881019"'));
- assert.ok(weekly.includes("HouseAccounting.inCurrent(x,cycle)"));
+ assert.ok(weekly.includes("HouseAccounting.pendingPayables(S.ops.weekly_accounts)"));
  const checkout=fs.readFileSync(path.resolve(__dirname,"../checkout.html"),"utf8");
  assert.ok(checkout.includes('r.room==="平德501"&&r.refund_status!=="paid"?"00212730881019"'));
  const build=fs.readFileSync(path.resolve(__dirname,"../scripts/build.mjs"),"utf8");
