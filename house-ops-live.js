@@ -22,6 +22,57 @@ const positive=x=>x!==undefined&&x!==null&&String(x).trim()!==""&&Number.isFinit
 const money=x=>{const n=Number(String(x??"0").replace(/,/g,"").trim()||0);if(!Number.isFinite(n)||n<0||n>100000000)throw Error("金額必須為 0 至 100,000,000 元");return n};
 const validDate=x=>{const d=String(x||"");if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;const t=new Date(d+"T12:00:00Z");return !Number.isNaN(t.getTime())&&t.toISOString().slice(0,10)===d};
 const safeText=(x,max=500)=>{const v=String(x??"").trim();if(v.length>max)throw Error("欄位內容過長");return v};
+function deductionItems(value){
+ if(value===undefined||value===null||value==="")return [];
+ let items=value;
+ if(typeof items==="string"){
+  try{items=JSON.parse(items)}catch(_){throw Error("其他扣款名目資料無法讀取，請重新輸入")}
+ }
+ if(!Array.isArray(items)||items.length>30)throw Error("其他扣款最多可以新增 30 筆");
+ return items.map(item=>{
+  if(!item||typeof item!=="object")throw Error("其他扣款資料格式不正確");
+  const label=safeText(item.label,80);
+  const raw=String(item.amount??"").trim();
+  if(!label&&!raw)return null;
+  if(!label||!raw)throw Error("每一筆其他扣款都需輸入名目與金額");
+  if(/[\r\n｜＝]/.test(label))throw Error("扣款名目不能包含換行或計算分隔符號");
+  const amount=money(raw);
+  if(!Number.isInteger(amount)||amount<=0)throw Error("其他扣款請輸入大於零的整數金額");
+  return {label,amount};
+ }).filter(Boolean);
+}
+function refundFormula(calc){
+ const pieces=["押金"+calc.deposit];
+ const add=(name,amount,positive=false)=>{if(amount>0)pieces.push((positive?"＋":"－")+name+amount)};
+ add("電費",calc.electricityFee,calc.creditMode==="credit");
+ add("違約金／退租費",calc.penalty);
+ add("清潔費",calc.cleaning);
+ add("未繳租金",calc.unpaidRent);
+ add("其他扣款",calc.otherCharge);
+ for(const item of calc.deductionItems||[])add(item.label,item.amount);
+ add("多匯／溢繳",calc.overpaid,true);
+ add("其他加回款",calc.otherCredit,true);
+ return "退租退款｜"+pieces.join("")+"＝"+calc.balance+"元"+
+  (calc.owedAmount>0?"（應補繳"+calc.owedAmount+"元；應退款0元）":"");
+}
+function refundFormulaFromRecord(record){
+ if(!record||!Number.isFinite(Number(record.deposit))||Number(record.deposit)<=0)return null;
+ try{
+  const items=deductionItems(record.deduction_items);
+  const calc={deposit:money(record.deposit),electricityFee:money(record.electricity_fee),
+   creditMode:record.electricity_credit_direction==="add_to_deposit"?"credit":"deduct",
+   penalty:money(record.early_termination_penalty),cleaning:money(record.cleaning_fee),
+   unpaidRent:money(record.unpaid_rent),otherCharge:money(record.other_charge),
+   overpaid:money(record.overpaid),otherCredit:money(record.other_credit),
+   deductionItems:items};
+  calc.balance=Math.round(calc.deposit+(calc.creditMode==="credit"?calc.electricityFee:-calc.electricityFee)+
+   calc.overpaid+calc.otherCredit-calc.penalty-calc.cleaning-calc.unpaidRent-calc.otherCharge-
+   items.reduce((total,item)=>total+item.amount,0));
+  calc.refundAmount=Math.max(0,calc.balance);calc.owedAmount=Math.max(0,-calc.balance);
+  if(calc.refundAmount!==Number(record.refund_amount))return null;
+  return refundFormula(calc);
+ }catch(_){return null}
+}
 function calculateCheckout(data){
  const deposit=money(data.deposit);
  if(!deposit)throw Error("退租押金必須大於 0");
@@ -40,10 +91,14 @@ function calculateCheckout(data){
  const penalty=money(data.penalty),cleaning=money(data.cleaning),
   unpaidRent=money(data.unpaid_rent),otherCharge=money(data.other_charge),
   overpaid=money(data.overpaid),otherCredit=money(data.other_credit);
+ const itemList=deductionItems(data.deduction_items);
+ const itemTotal=itemList.reduce((sum,item)=>sum+item.amount,0);
  const signedElectricity=creditMode==="credit"?electricityFee:-electricityFee;
- const balance=Math.round(deposit+signedElectricity+overpaid+otherCredit-penalty-cleaning-unpaidRent-otherCharge);
+ const balance=Math.round(deposit+signedElectricity+overpaid+otherCredit-
+  penalty-cleaning-unpaidRent-otherCharge-itemTotal);
  return {deposit,previous,current,units,rate,powerBilling,electricityFee,creditMode,
   penalty,cleaning,unpaidRent,otherCharge,overpaid,otherCredit,
+  deductionItems:itemList,itemTotal,
   balance,refundAmount:Math.max(0,balance),owedAmount:Math.max(0,-balance)};
 }
 const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
@@ -496,8 +551,7 @@ async function saveCheckout(data){
  const wasPaid=unchanged&&old.refund_status==="paid";
  const statusValue=calc.refundAmount===0?"no_refund":wasPaid?"paid":"pending";
  const note=safeText(data.note,2000),tenant=safeText(data.party,150);
- const description="退租退款｜押金"+calc.deposit+"－費用與扣款＋加回款項＝"+calc.refundAmount+"元"+
-  (calc.owedAmount?"（另需補繳 "+calc.owedAmount+" 元）":"");
+ const description=refundFormula(calc);
  const record={id,room,address,master_id:linked.master.id,checkout_date:date,refund_due_date:due,
   deposit:calc.deposit,rent:calc.deposit/2,meter_previous:calc.previous,meter_current:calc.current,
   electricity_usage:calc.units,power_billing:calc.powerBilling,
@@ -506,12 +560,13 @@ async function saveCheckout(data){
   electricity_credit_direction:calc.creditMode==="credit"?"add_to_deposit":"deduct_from_deposit",
   electricity_credit:calc.creditMode==="credit"?calc.electricityFee:0,
   early_termination_penalty:calc.penalty,cleaning_fee:calc.cleaning,unpaid_rent:calc.unpaidRent,
-  other_charge:calc.otherCharge,overpaid:calc.overpaid,other_credit:calc.otherCredit,
-  refund_amount:calc.refundAmount,calculated_refund_amount:calc.refundAmount,
+  other_charge:calc.otherCharge,deduction_items:calc.deductionItems,
+  overpaid:calc.overpaid,other_credit:calc.otherCredit,
+  calculation_text:description,refund_amount:calc.refundAmount,calculated_refund_amount:calc.refundAmount,
   owed_amount:calc.owedAmount,reconciliation_status:"calculated",refund_status:statusValue,note};
  if(wasPaid&&old.refund_paid_date)record.refund_paid_date=old.refund_paid_date;
  const weekly={id:refundId,kind:"refund",party:tenant||room+"房客",property_label:room,
-  description,amount:calc.refundAmount,settlement_date:date,due_date:due,
+  description,calculation_text:description,amount:calc.refundAmount,settlement_date:date,due_date:due,
   status:statusValue==="paid"?"paid":"pending",__deleted:calc.refundAmount===0};
  if(wasPaid&&old.refund_paid_date)weekly.paid_date=old.refund_paid_date;
  const bankCode=safeText(data.bank_code,12),bankName=safeText(data.bank_name,100),bankAccount=safeText(data.bank_account,35);
@@ -557,7 +612,7 @@ async function saveVacancyOrder(order){
  return save({v:1,kind:"vacancy_order",key:"global",updated_at:nextTimestamp(),
   changes:{order:keys}});
 }
-window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,savePetty,saveVacancyOrder,calculateCheckout,
+window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,savePetty,saveVacancyOrder,calculateCheckout,refundFormula,refundFormulaFromRecord,
  defaultEmail:DEFAULT_EDITOR,defaultFirebaseConfig:()=>({...DEFAULT_FIREBASE_CONFIG}),rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)!=="no"};
 for(const name of ["unlock","auto","loadWithKey"]){
  const original=api[name];
