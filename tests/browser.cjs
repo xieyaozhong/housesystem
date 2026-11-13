@@ -108,6 +108,36 @@ async function main(){
     assert.equal(taipowerCheckout.fixedVisible,true);
     assert.equal(taipowerCheckout.actualHidden,true);
 
+    // The editor can add and remove named deductions on iPhone, and the
+    // live refund preview must include every amount (not just a generic sum).
+    const namedDeductions=await p.evaluate(()=>{
+      const form=document.getElementById("checkoutEditorForm");
+      document.getElementById("checkoutEditorReset").click();
+      const set=(name,value)=>{const node=form.elements.namedItem(name);node.value=value;
+        node.dispatchEvent(new Event("input",{bubbles:true}));
+        node.dispatchEvent(new Event("change",{bubbles:true}));};
+      set("room","測試A101");set("deposit","56000");
+      set("power_billing","taipower");set("actual_electricity_fee","3910");
+      for(const [label,amount] of [["水費","368"],["瓦斯費","673"]]){
+        document.getElementById("checkoutDeductionAdd").click();
+        const row=document.querySelector("#checkoutDeductionRows").lastElementChild;
+        const name=row.querySelector("[data-deduction-label]"),fee=row.querySelector("[data-deduction-amount]");
+        name.value=label;fee.value=amount;fee.dispatchEvent(new Event("input",{bubbles:true}));
+      }
+      const rows=document.querySelectorAll("#checkoutDeductionRows .checkout-deduction-row").length;
+      const formula=document.getElementById("checkoutEditorPreview").textContent;
+      document.querySelector("#checkoutDeductionRows [data-remove-deduction]")?.click();
+      const afterRemove=document.getElementById("checkoutEditorPreview").textContent;
+      document.getElementById("checkoutEditorReset").click();
+      const afterReset=document.querySelectorAll("#checkoutDeductionRows .checkout-deduction-row").length;
+      return {rows,formula,afterRemove,afterReset,fit:document.documentElement.scrollWidth<=innerWidth+2};
+    });
+    assert.equal(namedDeductions.rows,2);
+    assert.match(namedDeductions.formula,/押金56000－電費3910－水費368－瓦斯費673＝51049元/);
+    assert.match(namedDeductions.afterRemove,/押金56000－電費3910－瓦斯費673＝51417元/);
+    assert.equal(namedDeductions.afterReset,0);
+    assert.equal(namedDeductions.fit,true);
+
     // Paid transactions live in history (including the current period).
     // Unpaid transactions must remain on the weekly page regardless of age.
     await p.goto(origin+'/accounting-history.html');
@@ -225,6 +255,44 @@ async function main(){
     assert.equal(pendingCheck.groups,2);
     assert.deepEqual(pendingCheck.afterIds,['current-refund','old-pending-2']);
     assert.match(pendingCheck.paidDate,/^\d{4}-\d{2}-\d{2}$/);
+
+    // Existing weekly "複製完整資訊" contains an auditable itemized refund.
+    await p.goto(origin+'/weekly-accounting.html');
+    await p.waitForLoadState('networkidle');
+    const copiedRefund=await p.evaluate(async()=>{
+      const invoice={id:"refund-copy",kind:"refund",party:"租屋房客",
+        property_label:"總太美樂地-D15-5",description:"退租退款｜押金56000－費用與扣款＋加回款項＝51049元",
+        amount:51049,status:"pending",due_date:"2026-11-17",settlement_date:"2026-11-11"};
+      const checkout={id:"checkout-copy",room:"總太美樂地-D15-5",checkout_date:"2026-11-11",
+        deposit:56000,electricity_fee:3910,refund_amount:51049,
+        deduction_items:[{label:"水費",amount:368},{label:"瓦斯費",amount:673}]};
+      const session={ops:{updated_at:"2026-11-13T12:00:00+08:00",
+        weekly_accounts:[invoice],checkouts:[checkout]},
+        finance:{accounts:[{id:"refund-copy",bank_code:"006",bank_name:"合作金庫",
+          bank_account:"1885899008567",edited_online:true}]},vault:{properties:[]}};
+      HouseSecureApp.unlock=async()=>session;
+      Object.defineProperty(navigator,"clipboard",{configurable:true,value:{
+        writeText:async value=>{window.__copiedRefundText=value}
+      }});
+      document.querySelector("#unlock").click();
+      await new Promise(resolve=>setTimeout(resolve,80));
+      const copy=document.querySelector('#tb button[data-copy="full"]');
+      copy?.click();
+      await new Promise(resolve=>setTimeout(resolve,40));
+      return {button:Boolean(copy),value:window.__copiedRefundText||""};
+    });
+    assert.equal(copiedRefund.button,true);
+    assert.equal(copiedRefund.value,[
+      "類型：退租退款",
+      "收款人：租屋房客",
+      "物件：總太美樂地-D15-5",
+      "項目：退租退款｜押金56000－電費3910－水費368－瓦斯費673＝51049元",
+      "金額：$51,049",
+      "銀行：006（合作金庫）",
+      "銀行帳號：1885899008567",
+      "退款期限：2026-11-17",
+      "原結算日：2026-11-11"
+    ].join("\n"));
 
     const opsSource=fs.readFileSync(path.join(root,'ops-secure.js'),'utf8');
     const financeSource=fs.readFileSync(path.join(root,'finance-secure.js'),'utf8');
