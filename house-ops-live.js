@@ -127,6 +127,24 @@ function applyPatch(session,p){
  }else if(p.kind==="checkout"){
   const record=p.changes?.checkout,weekly=p.changes?.weekly;
   if(!record||!weekly||record.id!==p.key||!validDate(record.checkout_date)||weekly.kind!=="refund")return;
+  // Master entry and checkout share one encrypted Firestore document. A new
+  // unit is created atomically with its refund and vacancy, never by typing.
+  const master=p.changes?.master;
+  if(master&&master.code&&norm(master.code)===norm(record.room)){
+   session.vault||={properties:[]};
+   session.vault.properties||=[];
+   const properties=session.vault.properties;
+   const stored=properties.find(x=>String(x.id)===String(master.id))||
+     properties.find(x=>norm(x.code||x.room)===norm(master.code));
+   if(!stored&&master.action==="create"){
+    properties.push({id:master.id,code:master.code,address:master.address,
+     address_raw:master.address_raw||master.address,access:"",note:"",
+     source:"退租登記新增（雲端同步）",created_at:p.updated_at});
+   }else if(stored&&!stored.address&&master.address){
+    stored.address=master.address;
+    if(!stored.address_raw)stored.address_raw=master.address;
+   }
+  }
   const old=ops.checkouts.find(x=>x.id===record.id);
   if(old){Object.assign(old,record);if(record.refund_status!=="paid")delete old.refund_paid_date}
   else ops.checkouts.push({...record});
@@ -414,9 +432,34 @@ async function saveAccount(data){
    bank_account:previousBank.bank_account||"",bank_account_last4:previousBank.bank_account_last4||"",secure_local:false}:null;
  return save({v:1,kind:"account",key:id,updated_at:nextTimestamp(),changes:{row,bank}});
 }
+function checkoutMaster(data,room,address){
+ const properties=s?.vault?.properties||[];
+ const selected=String(data.master_id??"").trim();
+ const matched=properties.find(p=>norm(p.code||p.room)===norm(room));
+ const exactId=selected?properties.find(p=>String(p.id)===selected):null;
+ if(selected&&(!exactId||norm(exactId.code||exactId.room)!==norm(room))){
+  throw Error("選取的主檔物件與套房名稱不一致，請重新選擇建議項目");
+ }
+ if(matched){
+  const existing=exactId||matched;
+  const targetAddress=safeText(existing.address,300);
+  if(address&&targetAddress&&norm(address)!==norm(targetAddress)){
+   throw Error("此套房名稱已存在主檔，但地址不同。為避免覆蓋其他房間，請先確認主檔，或為新地址使用不同的套房名稱");
+  }
+  return {master:{action:"existing",id:existing.id,code:existing.code||room,
+   address:targetAddress||address},room:existing.code||room,address:targetAddress||address};
+ }
+ if(selected)throw Error("找不到已選取的主檔物件，請重新搜尋");
+ if(!address)throw Error("新套房尚未存在主檔，請填寫地址才可新增主檔並辦理退租");
+ const id="web-"+Date.now()+"-"+Math.random().toString(36).slice(2,9);
+ return {master:{action:"create",id,code:room,address,address_raw:address},
+  room,address};
+}
 async function saveCheckout(data){
- const room=safeText(data.room,100),date=safeText(data.checkout_date,10),due=safeText(data.refund_due_date,10);
- if(!room||/[\/]/.test(room)||!validDate(date)||(due&&!validDate(due)))throw Error("請填正確房號、退租日期及退款日");
+ const typedRoom=safeText(data.room,100),typedAddress=safeText(data.address,300),
+  date=safeText(data.checkout_date,10),due=safeText(data.refund_due_date,10);
+ if(!typedRoom||/[\/]/.test(typedRoom)||!validDate(date)||(due&&!validDate(due)))throw Error("請填正確房號、退租日期及退款日");
+ const linked=checkoutMaster(data,typedRoom,typedAddress),room=linked.room,address=linked.address;
  const calc=calculateCheckout(data);
  const old=s?.ops?.checkouts?.find(x=>x.id===data.id)||
   s?.ops?.checkouts?.find(x=>norm(x.room)===norm(room)&&x.checkout_date===date);
@@ -428,7 +471,7 @@ async function saveCheckout(data){
  const unchanged=old&&Number(old.refund_amount)===calc.refundAmount;
  const wasPaid=unchanged&&old.refund_status==="paid";
  const statusValue=calc.refundAmount===0?"no_refund":wasPaid?"paid":"pending";
- const note=safeText(data.note,2000),address=safeText(data.address,300),tenant=safeText(data.party,150);
+ const note=safeText(data.note,2000),tenant=safeText(data.party,150);
  const description="退租退款｜押金"+calc.deposit+"－費用與扣款＋加回款項＝"+calc.refundAmount+"元"+
   (calc.owedAmount?"（另需補繳 "+calc.owedAmount+" 元）":"");
  const record={id,room,address,checkout_date:date,refund_due_date:due,
@@ -453,7 +496,7 @@ async function saveCheckout(data){
   bank_account_last4:bankAccount.slice(-4),secure_local:false}:
   previousBank?.edited_online?{bank_code:previousBank.bank_code||"",bank_name:previousBank.bank_name||"",
    bank_account:previousBank.bank_account||"",bank_account_last4:previousBank.bank_account_last4||"",secure_local:false}:null;
- return save({v:1,kind:"checkout",key:id,updated_at:nextTimestamp(),changes:{checkout:record,weekly,bank}});
+ return save({v:1,kind:"checkout",key:id,updated_at:nextTimestamp(),changes:{checkout:record,weekly,bank,master:linked.master}});
 }
 async function savePetty(data){
  const existingId=String(data.id||"").trim();
