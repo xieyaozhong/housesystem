@@ -73,6 +73,41 @@ async function main(){
     assert.equal(lookupCheck.masterUnchanged,true);
     assert.match(lookupCheck.newHint,/主檔尚無此套房/);
 
+    // Taipower electricity follows master selection and shows a bill amount
+    // instead of wrongly multiplying by the legacy fixed per-unit rate.
+    const taipowerCheckout=await p.evaluate(()=>{
+      const session={vault:{properties:[{id:102,code:"台電A6",address:"台中市和平路6號",
+        rent:12000,power_rate:null,power_billing:"taipower"}]},
+        ops:{vacancies:[],rented:[],checkouts:[],weekly_accounts:[]},finance:{accounts:[]}};
+      HouseOpsForms.setSession(session);
+      const form=document.getElementById("checkoutEditorForm"),room=form.elements.namedItem("room");
+      document.getElementById("checkoutEditorReset").click();
+      room.value="台電";
+      room.dispatchEvent(new Event("input",{bubbles:true}));
+      const choice=document.querySelector("#checkoutRoomMatches button");
+      const choiceExists=Boolean(choice);
+      choice?.click();
+      const mode=form.elements.namedItem("power_billing").value;
+      const fixedHidden=getComputedStyle(document.getElementById("checkoutPowerRateLabel")).display==="none";
+      const actualVisible=getComputedStyle(document.getElementById("checkoutTaipowerFeeLabel")).display!=="none";
+      form.elements.namedItem("actual_electricity_fee").value="1260";
+      form.elements.namedItem("actual_electricity_fee").dispatchEvent(new Event("input",{bubbles:true}));
+      const preview=document.getElementById("checkoutEditorPreview").textContent;
+      form.elements.namedItem("power_billing").value="fixed";
+      form.elements.namedItem("power_billing").dispatchEvent(new Event("change",{bubbles:true}));
+      const fixedVisible=getComputedStyle(document.getElementById("checkoutPowerRateLabel")).display!=="none";
+      const actualHidden=getComputedStyle(document.getElementById("checkoutTaipowerFeeLabel")).display==="none";
+      return {choiceExists,mode,fixedHidden,actualVisible,preview,fixedVisible,actualHidden};
+    });
+    assert.equal(taipowerCheckout.choiceExists,true);
+    assert.equal(taipowerCheckout.mode,"taipower");
+    assert.equal(taipowerCheckout.fixedHidden,true);
+    assert.equal(taipowerCheckout.actualVisible,true);
+    assert.match(taipowerCheckout.preview,/台電帳單實際結清電費/);
+    assert.match(taipowerCheckout.preview,/1,260/);
+    assert.equal(taipowerCheckout.fixedVisible,true);
+    assert.equal(taipowerCheckout.actualHidden,true);
+
     // Paid transactions live in history (including the current period).
     // Unpaid transactions must remain on the weekly page regardless of age.
     await p.goto(origin+'/accounting-history.html');
@@ -221,6 +256,8 @@ async function main(){
     assert.equal(vacancy.includes('HOUSE_PUBLIC_DATA'),false,'vacancy must only use encrypted data');
     assert.equal(vacancy.includes('<span>月租金</span>'),true,'vacancy cards must label the monthly rent');
     assert.equal(vacancy.includes('元／度'),true,'vacancy cards must render electricity rate when present');
+    assert.equal(vacancy.includes('id="editPowerBilling"'),true,'vacancy editor must offer Taipower option');
+    assert.equal(vacancy.includes('<th>電費方式</th>'),true,'property master must show electricity billing');
     assert.equal(vacancy.includes('<th>月租</th><th>電費</th>'),true,'rented list must show rent and electricity columns');
     const secureApp=fs.readFileSync(path.join(root,'secure-app.js'),'utf8');
     assert.equal(secureApp.includes('rent:12500'),true,'latest rented room must retain monthly rent');
