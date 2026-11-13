@@ -26,10 +26,15 @@
   function pettyPeriod(r){return tuesday(r.date)}
   function start(cycle){return addDays(cycle,-6)}
   function label(cycle){return cycle?(start(cycle)+" ～ "+cycle+"（週二結算）"):"未排定"}
+  // Payment state, not settlement date, decides which operational screen owns
+  // a payable. Old pending balances must remain actionable across Tuesdays.
+  const activePayable=r=>r&&r.__deleted!==true;
+  const pendingPayables=rows=>(rows||[]).filter(r=>activePayable(r)&&r.status!=="paid");
+  const completedPayables=rows=>(rows||[]).filter(r=>activePayable(r)&&r.status==="paid");
   const inCurrent=(r,cycle=current())=>period(r)===cycle;
   function sortRows(rows){
     return rows.slice().sort((a,b)=>String(period(b)).localeCompare(String(period(a)))||
       String(dated(b)).localeCompare(String(dated(a)))||String(a.party||"").localeCompare(String(b.party||"")));
   }
-  window.HouseAccounting={addDays,tuesday,todayTaiwan,current,dated,period,pettyPeriod,start,label,inCurrent,sortRows};
+  window.HouseAccounting={addDays,tuesday,todayTaiwan,current,dated,period,pettyPeriod,start,label,inCurrent,sortRows,pendingPayables,completedPayables};
 })();
