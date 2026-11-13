@@ -196,7 +196,7 @@ function previewCheckout(){
  try{
   const c=window.HouseOpsLive.calculateCheckout(values(checkoutForm));
   $("checkoutEditorPreview").textContent="退款算法："+window.HouseOpsLive.refundFormula(c)+
-   "｜"+(c.powerBilling==="taipower"?"台電帳單實際電費 "+N(c.electricityFee):
+   "｜"+(c.powerBilling==="taipower"?"台電帳單實際結清電費 "+N(c.electricityFee):
    "電費 "+c.units+" 度 × "+c.rate+" 元＝"+N(c.electricityFee));
   $("checkoutEditorPreview").classList.remove("error");
  }catch(e){
