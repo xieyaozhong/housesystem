@@ -52,7 +52,7 @@ test("Minsheng 303 repair is in all management pages, Tuesday ledger, and histor
  const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
  assert.ok(weekly.includes('vendor.startsWith("鴻茂")'));
  assert.ok(weekly.includes('bank_code:"013",bank_name:"國泰世華銀行",bank_account:"0000699514776613"'));
- assert.ok(weekly.includes("HouseAccounting.inCurrent(x,cycle)"));
+ assert.ok(weekly.includes("HouseAccounting.pendingPayables(S.ops.weekly_accounts)"));
  assert.ok(weekly.includes("function receiptCell(r)"));
  const history=fs.readFileSync(path.resolve(__dirname,"../accounting-history.js"),"utf8");
  assert.ok(history.includes("s.ops.weekly_accounts"));
