@@ -147,7 +147,7 @@ async function main(){
     assert.equal(pendingCheck.buttons,3);
     assert.equal(pendingCheck.groups,2);
     assert.deepEqual(pendingCheck.afterIds,['current-refund','old-pending-2']);
-    assert.match(pendingCheck.paidDate,/^\\d{4}-\\d{2}-\\d{2}$/);
+    assert.match(pendingCheck.paidDate,/^\d{4}-\d{2}-\d{2}$/);
 
     const opsSource=fs.readFileSync(path.join(root,'ops-secure.js'),'utf8');
     const financeSource=fs.readFileSync(path.join(root,'finance-secure.js'),'utf8');
