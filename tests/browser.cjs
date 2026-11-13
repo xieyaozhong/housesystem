@@ -33,6 +33,46 @@ async function main(){
       assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,name+' must fit mobile width');
     }
 
+    // Checkout editor: suggestions appear while typing and select matching
+    // property IDs and addresses without writing anything to Firebase.
+    await p.goto(origin+'/checkout.html');
+    await p.waitForLoadState('networkidle');
+    const lookupCheck=await p.evaluate(()=>{
+      HouseOpsLive.getStatus=()=>({mode:"online",role:"editor"});
+      const session={vault:{properties:[
+        {id:101,code:"東門5F",address:"台中市東門路50號",rent:12000,power_rate:5}
+      ]},ops:{vacancies:[],rented:[],checkouts:[],weekly_accounts:[]},finance:{accounts:[]}};
+      HouseOpsForms.setSession(session);
+      const form=document.getElementById("checkoutEditorForm");
+      const room=form.elements.namedItem("room"),address=form.elements.namedItem("address");
+      room.value="東門";
+      room.dispatchEvent(new Event("input",{bubbles:true}));
+      const roomOptions=[...document.querySelectorAll("#checkoutRoomMatches button")];
+      const roomCount=roomOptions.length;
+      const roomLabel=roomOptions[0]?.textContent||"";
+      roomOptions[0]?.click();
+      const chosen={room:room.value,address:address.value,masterId:form.elements.namedItem("master_id").value,
+        deposit:form.elements.namedItem("deposit").value,rate:form.elements.namedItem("power_rate").value};
+      room.value="";
+      room.dispatchEvent(new Event("input",{bubbles:true}));
+      address.value="東門路";
+      address.dispatchEvent(new Event("input",{bubbles:true}));
+      const addressCount=document.querySelectorAll("#checkoutAddressMatches button").length;
+      // Merely typing new information must never mutate the property master.
+      room.value="全新X9";room.dispatchEvent(new Event("input",{bubbles:true}));
+      address.value="新屋路99號";address.dispatchEvent(new Event("input",{bubbles:true}));
+      return {roomCount,roomLabel,chosen,addressCount,masterUnchanged:session.vault.properties.length===1,
+       newHint:document.querySelector("#checkoutMasterHint").textContent};
+    });
+    assert.equal(lookupCheck.roomCount,1);
+    assert.match(lookupCheck.roomLabel,/東門5F/);
+    assert.deepEqual(lookupCheck.chosen,{
+      room:"東門5F",address:"台中市東門路50號",masterId:"101",deposit:"24000",rate:"5"
+    });
+    assert.equal(lookupCheck.addressCount,1);
+    assert.equal(lookupCheck.masterUnchanged,true);
+    assert.match(lookupCheck.newHint,/主檔尚無此套房/);
+
     // Paid transactions live in history (including the current period).
     // Unpaid transactions must remain on the weekly page regardless of age.
     await p.goto(origin+'/accounting-history.html');
