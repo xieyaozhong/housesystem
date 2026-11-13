@@ -332,15 +332,18 @@ test("Master lookup reuses exact room and fills missing address without duplicat
  assert.equal(a.vault.properties.length,startCount);
  assert.equal(a.ops.vacancies.find(x=>x.room==="平德501")?.address,existing.address);
 });
-test("Same room identifier with conflicting address cannot overwrite an unrelated master",async()=>{
+test("Updating a known room's address updates its master without duplicating the room",async()=>{
  const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
  const editor=fixture(),a=editor.state(key);
  await editor.live.connect(a);await online(editor.live);
- const before=JSON.stringify(a.vault.properties);
+ const initialCount=a.vault.properties.length;
  const input={room:"平德501",address:"另一個新地址",checkout_date:"2026-11-13",
   deposit:26000,electricity_usage:0,power_rate:5.5};
- await assert.rejects(()=>editor.live.saveCheckout(input),/地址不同/);
+ const saved=await editor.live.saveCheckout(input);
+ assert.equal(saved.changes.master.action,"update_address");
+ assert.equal(a.vault.properties.length,initialCount);
+ assert.equal(a.vault.properties.find(x=>x.code==="平德501").address,input.address);
+ assert.equal(a.ops.vacancies.find(x=>x.room==="平德501").address,input.address);
  await assert.rejects(()=>editor.live.saveCheckout({...input,room:"全新D6",address:""}),/填寫地址/);
- assert.equal(JSON.stringify(a.vault.properties),before);
- assert.equal(editor.store.size,0);
+ assert.equal(editor.store.size,1);
 });
