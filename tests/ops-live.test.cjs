@@ -347,3 +347,47 @@ test("Updating a known room's address updates its master without duplicating the
  await assert.rejects(()=>editor.live.saveCheckout({...input,room:"全新D6",address:""}),/填寫地址/);
  assert.equal(editor.store.size,1);
 });
+
+test("Taipower checkout deducts actual invoice amount, never multiplies a fixed room rate",()=>{
+ const calc=fixture().live.calculateCheckout;
+ const result=calc({deposit:24000,meter_previous:100,meter_current:350,
+  power_billing:"taipower",power_rate:5.5,actual_electricity_fee:1287,penalty:3000});
+ assert.equal(result.powerBilling,"taipower");
+ assert.equal(result.rate,null);
+ assert.equal(result.units,250);
+ assert.equal(result.electricityFee,1287);
+ assert.equal(result.refundAmount,19713);
+ const reverse=calc({deposit:22000,power_billing:"taipower",
+  actual_electricity_fee:297,electricity_mode:"credit"});
+ assert.equal(reverse.refundAmount,22297);
+ assert.throws(()=>calc({deposit:22000,power_billing:"taipower",power_rate:5.5,
+  electricity_usage:300}),/台電帳單實際結清電費/);
+ assert.equal(calc({deposit:22000,power_billing:"taipower",
+  actual_electricity_fee:"0"}).refundAmount,22000);
+ const legacy=calc({deposit:24000,power_rate:5.5,electricity_usage:100});
+ assert.equal(legacy.refundAmount,23450);
+});
+test("Taipower room setting, master and checkout synchronize to supervisor without an exposed tariff",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture(),session=editor.state(key);
+ await editor.live.connect(session);await online(editor.live);
+ await editor.live.saveRoom({room:"平德501",status:"rented",deposit:26000,
+  power_billing:"taipower",power_rate:5.5,address:"舊址"});
+ assert.equal(session.ops.rented.find(x=>x.room==="平德501").power_billing,"taipower");
+ assert.equal(session.ops.rented.find(x=>x.room==="平德501").power_rate,null);
+ assert.equal(session.vault.properties.find(x=>x.code==="平德501").power_billing,"taipower");
+ await editor.live.saveCheckout({room:"平德501",checkout_date:"2026-11-13",deposit:26000,
+  power_billing:"taipower",actual_electricity_fee:1298,electricity_usage:200});
+ const checked=session.ops.checkouts.find(x=>x.room==="平德501"&&x.checkout_date==="2026-11-13");
+ assert.equal(checked.electricity_fee,1298);
+ assert.equal(checked.power_rate,null);
+ assert.equal(checked.refund_amount,24702);
+ assert.equal(session.ops.vacancies.find(x=>x.room==="平德501").power_billing,"taipower");
+ const supervisor=fixture("guest",{newDevice:true,sharedStore:editor.store});
+ const viewer=supervisor.state(key);
+ await supervisor.live.connect(viewer);await online(supervisor.live);
+ assert.equal(viewer.vault.properties.find(x=>x.code==="平德501").power_billing,"taipower");
+ assert.equal(viewer.ops.vacancies.find(x=>x.room==="平德501").power_billing,"taipower");
+ assert.equal(viewer.ops.checkouts.find(x=>x.room==="平德501"&&x.checkout_date==="2026-11-13").electricity_fee,1298);
+ await assert.rejects(()=>supervisor.live.saveRoom({room:"平德501",status:"vacant",deposit:26000,power_billing:"fixed"}),/唯讀/);
+});
