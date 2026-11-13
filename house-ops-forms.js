@@ -110,8 +110,38 @@ function fill(form,values){
   if(el)el.value=value==null?"":String(value);
  }
 }
+function checkoutDeductions(){
+ const root=$("checkoutDeductionRows");
+ if(!root)return[];
+ return [...root.querySelectorAll(".checkout-deduction-row")].map(row=>({
+  label:row.querySelector("[data-deduction-label]")?.value||"",
+  amount:row.querySelector("[data-deduction-amount]")?.value||""
+ }));
+}
+function addCheckoutDeduction(item={}){
+ const root=$("checkoutDeductionRows");
+ if(!root)return;
+ if(root.children.length>=30){note("checkoutEditorFeedback","其他扣款最多新增 30 筆",true);return}
+ const row=document.createElement("div");
+ row.className="checkout-deduction-row";
+ row.innerHTML='<label>扣款名目<input type="text" data-deduction-label maxlength="80" placeholder="例：水費、瓦斯費" aria-label="其他扣款名目"></label>'+
+  '<label>扣款金額<input type="number" data-deduction-amount min="1" step="1" placeholder="金額" inputmode="numeric" aria-label="其他扣款金額"></label>'+
+  '<button type="button" class="checkout-deduction-remove" data-remove-deduction aria-label="移除這筆扣款">移除</button>';
+ row.querySelector("[data-deduction-label]").value=String(item.label??"");
+ row.querySelector("[data-deduction-amount]").value=String(item.amount??"");
+ root.appendChild(row);
+ $("checkoutDeductionAdd").disabled=root.children.length>=30;
+}
+function loadCheckoutDeductions(items){
+ const root=$("checkoutDeductionRows");if(!root)return;
+ root.replaceChildren();
+ for(const item of Array.isArray(items)?items:[])addCheckoutDeduction(item);
+ $("checkoutDeductionAdd").disabled=root.children.length>=30;
+}
 function values(form){
- return Object.fromEntries(new FormData(form).entries());
+ const data=Object.fromEntries(new FormData(form).entries());
+ if(form===checkoutForm)data.deduction_items=checkoutDeductions();
+ return data;
 }
 function paintAccounts(){
  if(!form||!session)return;
@@ -165,11 +195,9 @@ function previewCheckout(){
  if(!checkoutForm)return;
  try{
   const c=window.HouseOpsLive.calculateCheckout(values(checkoutForm));
-  $("checkoutEditorPreview").textContent=(c.powerBilling==="taipower"?
-   "台電帳單實際結清電費 "+N(c.electricityFee):
-   "電費 "+c.units+" 度 × "+c.rate+" 元 = "+N(c.electricityFee))+
-   (c.creditMode==="credit"?"（加回）":"（扣除）")+"｜應退 "+N(c.refundAmount)+
-   (c.owedAmount?"｜另需補繳 "+N(c.owedAmount):"");
+  $("checkoutEditorPreview").textContent="退款算法："+window.HouseOpsLive.refundFormula(c)+
+   "｜"+(c.powerBilling==="taipower"?"台電帳單實際電費 "+N(c.electricityFee):
+   "電費 "+c.units+" 度 × "+c.rate+" 元＝"+N(c.electricityFee));
   $("checkoutEditorPreview").classList.remove("error");
  }catch(e){
   $("checkoutEditorPreview").textContent=e.message||"請輸入押金與費用";
@@ -179,6 +207,7 @@ function previewCheckout(){
 function resetCheckout(){
  if(!checkoutForm)return;
  checkoutForm.reset();
+ loadCheckoutDeductions([]);
  fill(checkoutForm,{id:"",checkout_date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Taipei"}),
   electricity_mode:"deduct",power_billing:"fixed",power_rate:"5.5",actual_electricity_fee:""});
  updateCheckoutPowerBilling();
@@ -202,6 +231,7 @@ function editCheckout(id){
   penalty:r.early_termination_penalty,cleaning:r.cleaning_fee,unpaid_rent:r.unpaid_rent,
   other_charge:r.other_charge,overpaid:r.overpaid,other_credit:r.other_credit,
   bank_code:bank.bank_code,bank_name:bank.bank_name,bank_account:bank.bank_account,note:r.note});
+ loadCheckoutDeductions(r.deduction_items||[]);
  field("master_id").value=r.master_id||"";linkExistingMaster();hideMasterChoices();
  field("power_billing").value=r.power_billing||"fixed";
  if(r.power_billing==="taipower")field("actual_electricity_fee").value=r.actual_electricity_fee??r.electricity_fee??"";
@@ -258,6 +288,18 @@ if(form){
  resetAccount();
 }
 if(checkoutForm){
+ $("checkoutDeductionAdd").addEventListener("click",()=>{
+  addCheckoutDeduction();
+  $("checkoutDeductionRows").lastElementChild?.querySelector("[data-deduction-label]")?.focus();
+  previewCheckout();
+ });
+ $("checkoutDeductionRows").addEventListener("click",event=>{
+  const button=event.target.closest("[data-remove-deduction]");
+  if(!button)return;
+  button.closest(".checkout-deduction-row")?.remove();
+  $("checkoutDeductionAdd").disabled=false;
+  previewCheckout();
+ });
  field("power_billing").addEventListener("change",()=>{
   updateCheckoutPowerBilling();previewCheckout();
  });
