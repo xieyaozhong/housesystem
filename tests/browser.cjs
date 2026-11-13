@@ -605,13 +605,13 @@ async function main(){
       yidaiCount:3,yidaiGrouped:1,yidaiAmount:58000,
       yidaiRooms:"五常5C、五權五202、市政愛悅",
       yidaiItems:[["五常5C","冷氣更換",23500],["五權五202","冷氣更換",23500],["市政愛悅","裝電視",11000]],
-      yidaiPending:true,yidaiReceipts:0,yidaiBankCode:true,yidaiAccountIds:true,yidaiSecureCount:1,
+      yidaiPending:true,yidaiReceipts:3,yidaiBankCode:true,yidaiAccountIds:true,yidaiSecureCount:1,
       yidaiSecureEntry:false,
       yidaiDirectBank:{bank_code:"808",bank_name:"玉山銀行",bank_account:"0222440022171"},
       xuDirectBank:{bank_code:"053",bank_name:"台中銀行（北太平分行）",bank_account:"025200180300"},
-      yidaiDirectCopyReady:false,yidaiAccountsInitiallyEmpty:true,
-      yidaiSharedAfterSave:true,yidaiAccountCopyEnabled:false,yidaiEncryptedStored:true
-    },'completed Zheng Guofeng transfers must no longer appear in pending and bank details remain linked');
+      yidaiDirectCopyReady:true,yidaiAccountsInitiallyEmpty:true,
+      yidaiSharedAfterSave:true,yidaiAccountCopyEnabled:true,yidaiEncryptedStored:true
+    },'paid transfers remain hidden; older unpaid invoices retain copy buttons and receipts across cycles');
 
     await p.goto(origin+'/mobile-login.html');
     await p.waitForURL(origin+'/index.html');
