@@ -474,7 +474,7 @@ async function saveCheckout(data){
  const note=safeText(data.note,2000),tenant=safeText(data.party,150);
  const description="退租退款｜押金"+calc.deposit+"－費用與扣款＋加回款項＝"+calc.refundAmount+"元"+
   (calc.owedAmount?"（另需補繳 "+calc.owedAmount+" 元）":"");
- const record={id,room,address,checkout_date:date,refund_due_date:due,
+ const record={id,room,address,master_id:linked.master.id,checkout_date:date,refund_due_date:due,
   deposit:calc.deposit,rent:calc.deposit/2,meter_previous:calc.previous,meter_current:calc.current,
   electricity_usage:calc.units,power_rate:calc.rate,electricity_fee:calc.electricityFee,
   electricity_credit_direction:calc.creditMode==="credit"?"add_to_deposit":"deduct_from_deposit",
