@@ -415,11 +415,11 @@ test("New itemized checkout syncs calculation and bank to weekly ledger and supe
  const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
  const editor=fixture(),session=editor.state(key);
  await editor.live.connect(session);await online(editor.live);
- const data={room:"總太美樂地-D15-5",address:"台中市範例路88號",
+ const data={room:"測試社區-D15-5",address:"台中市範例路88號",
   checkout_date:"2026-11-11",refund_due_date:"2026-11-17",
   party:"租屋房客",deposit:56000,power_billing:"taipower",actual_electricity_fee:3910,
   deduction_items:[{label:"水費",amount:368},{label:"瓦斯費",amount:673}],
-  bank_code:"006",bank_name:"合作金庫",bank_account:"1885899008567"};
+  bank_code:"006",bank_name:"合作金庫",bank_account:"0000000000000"};
  const saved=await editor.live.saveCheckout(data);
  const record=session.ops.checkouts.find(x=>x.id===saved.key);
  const row=session.ops.weekly_accounts.find(x=>x.id===saved.key.replace(/^checkout-/,"refund-"));
@@ -432,8 +432,8 @@ test("New itemized checkout syncs calculation and bank to weekly ledger and supe
  assert.equal(row.settlement_date,"2026-11-11");
  assert.equal(row.description,"退租退款｜押金56000－電費3910－水費368－瓦斯費673＝51049元");
  assert.equal(editor.live.refundFormulaFromRecord(record),row.description);
- assert.equal(session.finance.accounts.find(x=>x.id===row.id).bank_account,"1885899008567");
- assert.equal(JSON.stringify([...editor.store.values()]).includes("1885899008567"),false);
+ assert.equal(session.finance.accounts.find(x=>x.id===row.id).bank_account,"0000000000000");
+ assert.equal(JSON.stringify([...editor.store.values()]).includes("0000000000000"),false);
  const supervisor=fixture("guest",{newDevice:true,sharedStore:editor.store});
  const viewer=supervisor.state(key);await supervisor.live.connect(viewer);await online(supervisor.live);
  assert.equal(viewer.ops.weekly_accounts.find(x=>x.id===row.id)?.description,row.description);
