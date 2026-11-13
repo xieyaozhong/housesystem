@@ -65,7 +65,7 @@ test("Mingde 4D refund appears in weekly, checkout and searchable history",()=>{
   assert.ok(html.includes('<script src="mingde4d-checkout.js"></script>'),page);
  }
  const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
- assert.ok(weekly.includes("HouseAccounting.inCurrent(x,cycle)"));
+ assert.ok(weekly.includes("HouseAccounting.pendingPayables(S.ops.weekly_accounts)"));
  assert.ok(weekly.includes('function secureFinanceId(r)'));
  assert.ok(weekly.includes('r.property_label==="明德4D"'));
  assert.ok(weekly.includes('bank_code:"822",bank_name:"中國信託",bank_account:"613540670976"'));
