@@ -7,6 +7,74 @@ const E=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt
 const N=n=>"NT$ "+Math.round(Number(n)||0).toLocaleString("zh-TW");
 const key=s=>String(s||"").trim().replace(/[\s_－-]/g,"").replace(/[陜陕]/g,"陝").toUpperCase();
 let session=null;
+const masterSearch=window.HousePropertyLookup;
+const choiceLists={room:[],address:[]};
+const field=name=>checkoutForm?.elements.namedItem(name);
+const listNode=name=>$(name==="room"?"checkoutRoomMatches":"checkoutAddressMatches");
+function hideMasterChoices(){
+ for(const name of ["room","address"]){
+  const node=listNode(name);if(node){node.hidden=true;node.innerHTML=""}
+  choiceLists[name]=[];
+ }
+}
+function masterHint(){
+ if(!checkoutForm||!masterSearch)return;
+ const room=field("room").value.trim(),address=field("address").value.trim();
+ const hint=$("checkoutMasterHint");if(!hint)return;
+ const matches=room&&session?masterSearch.byRoom(session,room).filter(r=>r.id):[];
+ const matched=matches.find(x=>String(x.id)===field("master_id").value)||matches[0];
+ hint.classList.remove("error");
+ if(!room){
+  hint.textContent="輸入套房名稱或地址，即時搜尋物件主檔並選擇正確房間。";
+ }else if(matched){
+  if(address&&matched.address&&masterSearch.norm(address)!==masterSearch.norm(matched.address)){
+   hint.textContent="這個套房名稱已存在，但主檔地址不同；請選擇建議物件或為新地址使用不同套房名稱，避免覆蓋錯誤房間。";
+   hint.classList.add("error");
+  }else hint.textContent="已對應主檔："+matched.code+"｜"+(matched.address||"地址尚未建立");
+ }else if(address){
+  hint.textContent="主檔尚無此套房。確認退租時可同時新增「"+room+"｜"+address+"」到物件主檔。";
+ }else{
+  hint.textContent="主檔查無此套房，請填寫地址；儲存退租時會建立新的主檔物件。";
+ }
+}
+function showMasterChoices(name){
+ if(!checkoutForm||!masterSearch||!session||!isEditor())return hideMasterChoices();
+ const input=field(name),node=listNode(name);
+ if(!input||!node)return;
+ const word=input.value.trim(),matches=word?masterSearch.search(session,word,12):[];
+ choiceLists[name]=matches;
+ node.innerHTML=matches.map((item,i)=>
+  '<button type="button" role="option" data-property-index="'+i+'"><b>'+E(item.code)+
+  '</b><small>'+E(item.address||"主檔尚未填地址")+(item.id?"｜主檔 #"+E(item.id):"｜既有房務紀錄")+'</small></button>'
+ ).join("");
+ node.hidden=!matches.length;
+ listNode(name==="room"?"address":"room").hidden=true;
+}
+function chooseMaster(item){
+ if(!checkoutForm||!item)return;
+ fill(checkoutForm,{room:item.code,address:item.address,master_id:item.id||""});
+ if(item.deposit!=null&&!field("deposit").value)field("deposit").value=item.deposit;
+ if(item.power_rate!=null&&(field("power_rate").value===""||field("power_rate").value==="5.5")){
+  field("power_rate").value=item.power_rate;
+ }
+ hideMasterChoices();masterHint();previewCheckout();
+ field("room").focus();
+}
+function linkExistingMaster(){
+ if(!checkoutForm||!session||!masterSearch)return;
+ const room=field("room").value.trim(),options=room?masterSearch.byRoom(session,room).filter(x=>x.id):[];
+ const selected=options.find(x=>masterSearch.norm(x.address)===masterSearch.norm(field("address").value))||options[0];
+ if(selected){
+  field("master_id").value=String(selected.id);
+  if(!field("address").value&&selected.address)field("address").value=selected.address;
+  if(!field("deposit").value&&selected.deposit!=null)field("deposit").value=selected.deposit;
+  if(selected.power_rate!=null&&(field("power_rate").value===""||field("power_rate").value==="5.5")){
+   field("power_rate").value=selected.power_rate;
+  }
+ }else field("master_id").value="";
+ masterHint();
+}
+
 function isEditor(){
  const status=window.HouseOpsLive?.getStatus()||{};
  return status.mode==="online"&&status.role==="editor"&&!document.body.classList.contains("supervisor-view")&&new URLSearchParams(location.search).get("view")!=="supervisor";
@@ -66,6 +134,7 @@ function paintCheckouts(){
 }
 function autofillRoom(){
  if(!checkoutForm||!session)return;
+ linkExistingMaster();
  const room=key(checkoutForm.elements.namedItem("room").value);
  const existing=[...(session.ops.rented||[]),...(session.ops.vacancies||[])].find(x=>key(x.room)===room);
  const historic=(session.ops.checkouts||[]).filter(x=>key(x.room)===room).sort((a,b)=>String(b.checkout_date).localeCompare(String(a.checkout_date)))[0];
@@ -75,7 +144,7 @@ function autofillRoom(){
   const el=checkoutForm.elements.namedItem(name);
   if(el&&val!=null&&!el.value)el.value=val;
  }
- previewCheckout();
+ masterHint();previewCheckout();
 }
 function previewCheckout(){
  if(!checkoutForm)return;
@@ -95,7 +164,7 @@ function resetCheckout(){
  checkoutForm.reset();
  fill(checkoutForm,{id:"",checkout_date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Taipei"}),
   electricity_mode:"deduct",power_rate:"5.5"});
- previewCheckout();
+ field("master_id").value="";hideMasterChoices();masterHint();previewCheckout();
  note("checkoutEditorFeedback","新增退租：填入電表、押金及扣款項目，系統會計算退款；儲存後自動轉空房。");
 }
 function editCheckout(id){
@@ -113,6 +182,7 @@ function editCheckout(id){
   penalty:r.early_termination_penalty,cleaning:r.cleaning_fee,unpaid_rent:r.unpaid_rent,
   other_charge:r.other_charge,overpaid:r.overpaid,other_credit:r.other_credit,
   bank_code:bank.bank_code,bank_name:bank.bank_name,bank_account:bank.bank_account,note:r.note});
+ field("master_id").value=r.master_id||"";linkExistingMaster();hideMasterChoices();
  note("checkoutEditorFeedback","正在修改歷史退租："+r.room+"（"+r.checkout_date+"）。若退款金額變動，原已付款狀態將改為待重新核對。");
  previewCheckout();
  checkoutForm.scrollIntoView({behavior:"smooth",block:"start"});
@@ -143,7 +213,7 @@ function editPetty(id){
 }
 function setSession(next){
  session=next;
- paintAccess();paintAccounts();paintCheckouts();paintPetty();
+ paintAccess();paintAccounts();paintCheckouts();paintPetty();masterHint();
 }
 window.HouseOpsForms={setSession,paintAccess};
 window.addEventListener("house-ops-live-state",paintAccess);
@@ -165,16 +235,47 @@ if(form){
  resetAccount();
 }
 if(checkoutForm){
+ for(const name of ["room","address"]){
+  const input=field(name),node=listNode(name);
+  input.addEventListener("input",()=>{
+   field("master_id").value="";
+   showMasterChoices(name);masterHint();
+  });
+  input.addEventListener("focus",()=>showMasterChoices(name));
+  input.addEventListener("keydown",event=>{
+   if(event.key==="ArrowDown"&&!node.hidden){
+    event.preventDefault();node.querySelector("button")?.focus();
+   }else if(event.key==="Escape")hideMasterChoices();
+  });
+  node.addEventListener("keydown",event=>{
+   if(event.key==="Escape"){event.preventDefault();hideMasterChoices();input.focus()}
+  });
+  node.addEventListener("click",event=>{
+   const btn=event.target.closest("button[data-property-index]");
+   if(btn)chooseMaster(choiceLists[name][Number(btn.dataset.propertyIndex)]);
+  });
+ }
+ document.addEventListener("click",event=>{
+  if(!event.target.closest("#checkoutEditorForm .property-picker-field"))hideMasterChoices();
+ });
  checkoutForm.addEventListener("input",previewCheckout);
  checkoutForm.addEventListener("change",previewCheckout);
- checkoutForm.elements.namedItem("room").addEventListener("change",autofillRoom);
+ checkoutForm.elements.namedItem("room").addEventListener("change",()=>{
+  if(!field("master_id").value)autofillRoom();
+ });
+ field("address").addEventListener("change",masterHint);
  checkoutForm.addEventListener("submit",async e=>{
   e.preventDefault();if(!isEditor())return note("checkoutEditorFeedback","尚未取得管理員雲端編輯權限",true);
+  const input=values(checkoutForm);
+  const matched=masterSearch?.byRoom(session,input.room).some(x=>x.id);
+  if(!matched&&!window.confirm("這個套房不在主檔中，確認新增「"+input.room+"｜"+input.address+"」到物件主檔並辦理退租？"))return;
   const button=checkoutForm.querySelector('button[type="submit"]');button.disabled=true;
-  note("checkoutEditorFeedback","正在加密儲存退租、退款帳務與空房狀態…");
+  note("checkoutEditorFeedback","正在加密儲存退租、退款帳務、空房狀態及主檔資料…");
   try{
-   await HouseOpsLive.saveCheckout(values(checkoutForm));
-   note("checkoutEditorFeedback","退租已儲存：退款金額、週帳與空房已同步更新。");
+   const saved=await HouseOpsLive.saveCheckout(input);
+   note("checkoutEditorFeedback",saved.changes?.master?.action==="create"?
+    "退租、退款帳務及空房已同步，並已新增物件主檔："+saved.changes.master.code+"｜"+saved.changes.master.address:
+    "退租已儲存：主檔已配對、退款帳務與空房均已同步更新。");
    paintCheckouts();
   }catch(err){note("checkoutEditorFeedback",err.message||"儲存失敗",true)}
   finally{paintAccess()}
