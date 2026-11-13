@@ -21,15 +21,14 @@ function masterHint(){
  if(!checkoutForm||!masterSearch)return;
  const room=field("room").value.trim(),address=field("address").value.trim();
  const hint=$("checkoutMasterHint");if(!hint)return;
- const matches=room&&session?masterSearch.byRoom(session,room).filter(r=>r.id):[];
+ const matches=room&&session?masterSearch.byRoom(session,room).filter(r=>r.source==="master"||r.id):[];
  const matched=matches.find(x=>String(x.id)===field("master_id").value)||matches[0];
  hint.classList.remove("error");
  if(!room){
   hint.textContent="輸入套房名稱或地址，即時搜尋物件主檔並選擇正確房間。";
  }else if(matched){
   if(address&&matched.address&&masterSearch.norm(address)!==masterSearch.norm(matched.address)){
-   hint.textContent="這個套房名稱已存在，但主檔地址不同；請選擇建議物件或為新地址使用不同套房名稱，避免覆蓋錯誤房間。";
-   hint.classList.add("error");
+   hint.textContent="這個套房名稱已存在於主檔，但地址不同。儲存退租前將要求確認更新原主檔地址，不會建立重複房號。";
   }else hint.textContent="已對應主檔："+matched.code+"｜"+(matched.address||"地址尚未建立");
  }else if(address){
   hint.textContent="主檔尚無此套房。確認退租時可同時新增「"+room+"｜"+address+"」到物件主檔。";
@@ -62,7 +61,7 @@ function chooseMaster(item){
 }
 function linkExistingMaster(){
  if(!checkoutForm||!session||!masterSearch)return;
- const room=field("room").value.trim(),options=room?masterSearch.byRoom(session,room).filter(x=>x.id):[];
+ const room=field("room").value.trim(),options=room?masterSearch.byRoom(session,room).filter(x=>x.source==="master"||x.id):[];
  const selected=options.find(x=>masterSearch.norm(x.address)===masterSearch.norm(field("address").value))||options[0];
  if(selected){
   field("master_id").value=String(selected.id);
@@ -267,14 +266,18 @@ if(checkoutForm){
  checkoutForm.addEventListener("submit",async e=>{
   e.preventDefault();if(!isEditor())return note("checkoutEditorFeedback","尚未取得管理員雲端編輯權限",true);
   const input=values(checkoutForm);
-  const matched=masterSearch?.byRoom(session,input.room).some(x=>x.id);
-  if(!matched&&!window.confirm("這個套房不在主檔中，確認新增「"+input.room+"｜"+input.address+"」到物件主檔並辦理退租？"))return;
+  const match=masterSearch?.byRoom(session,input.room).find(x=>x.source==="master"||x.id);
+  if(!match&&!window.confirm("這個套房不在主檔中，確認新增「"+input.room+"｜"+input.address+"」到物件主檔並辦理退租？"))return;
+  if(match&&input.address&&match.address&&masterSearch.norm(input.address)!==masterSearch.norm(match.address)&&
+   !window.confirm("確認將「"+match.code+"」的主檔地址由「"+match.address+"」更新為「"+input.address+"」？這不會建立重複房號。"))return;
   const button=checkoutForm.querySelector('button[type="submit"]');button.disabled=true;
   note("checkoutEditorFeedback","正在加密儲存退租、退款帳務、空房狀態及主檔資料…");
   try{
    const saved=await HouseOpsLive.saveCheckout(input);
    note("checkoutEditorFeedback",saved.changes?.master?.action==="create"?
     "退租、退款帳務及空房已同步，並已新增物件主檔："+saved.changes.master.code+"｜"+saved.changes.master.address:
+    saved.changes?.master?.action==="update_address"?
+    "退租、空房與退款帳務已同步，物件主檔地址也已更新。":
     "退租已儲存：主檔已配對、退款帳務與空房均已同步更新。");
    paintCheckouts();
   }catch(err){note("checkoutEditorFeedback",err.message||"儲存失敗",true)}
