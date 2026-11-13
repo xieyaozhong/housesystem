@@ -9,7 +9,7 @@
   let session=null,entries=[],lastFiltered=[],editPaymentId=null;
   function normalize(s){
     const finance=new Map((s.finance.accounts||[]).map(x=>[x.id,x]));
-    const payable=(s.ops.weekly_accounts||[]).filter(x=>x&&!x.__deleted).map(r=>{
+    const payable=H.completedPayables(s.ops.weekly_accounts).map(r=>{
       const bank=finance.get(r.id)||{},cycle=H.period(r);
       const bankLast4=bank.bank_account_last4||String(bank.bank_account||"").slice(-4);
       return {
@@ -67,10 +67,10 @@
     const petty=lastFiltered.filter(r=>r.isPetty);
     $("nRows").textContent=lastFiltered.length.toLocaleString("zh-TW");
     $("nAmount").textContent=M(payables.reduce((sum,r)=>sum+r.amount,0));
-    $("nUnpaid").textContent=M(payables.filter(r=>r.status!=="paid").reduce((sum,r)=>sum+r.amount,0));
+    $("nUnpaid").textContent=payables.length.toLocaleString("zh-TW");
     $("nPetty").textContent=M(petty.reduce((sum,r)=>sum+r.amount,0));
     $("filterInfo").textContent="顯示 "+lastFiltered.length+" 筆｜本週二 "+H.current()+
-      "｜帳務合計不含零用金；零用金淨額獨立計算";
+      "｜本頁只保留已付款／已退款與零用金紀錄；尚未付款請到每週帳務";
     $("historyTb").innerHTML=lastFiltered.map(r=>{
       const status=r.isPetty?"已記帳":r.status==="paid"?"已付款":"未付款";
       const bank=r.bankCode?[r.bankCode,r.bankName].filter(Boolean).join(" ")+" "+
@@ -115,7 +115,7 @@
     $(id).addEventListener(id==="keyword"?"input":"change",paint);
   $("clearFilters").onclick=()=>{
     for(const id of ["cycle","startDate","endDate","kind","status","keyword"])$(id).value="";
-    $("includeCurrent").checked=false;paint();
+    $("includeCurrent").checked=true;paint();
   };
   $("exportCsv").onclick=exportCsv;
   $("unlock").onclick=unlock;
