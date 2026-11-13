@@ -95,7 +95,7 @@ test("paid refund accounts are omitted from current public weekly payment page",
  for(const room of ["明德2D","明德3B","中清11-3A"]){
    assert.equal(weekly.includes('if(r.property_label==="'+room+'")return{bank_code:'),false);
  }
- assert.equal(weekly.includes('S.ops.weekly_accounts.filter(x=>x.status!=="paid")'),true);
+ assert.equal(weekly.includes('HouseAccounting.pendingPayables(S.ops.weekly_accounts)'),true);
 });
 
 const newCheckoutScript=fs.readFileSync(path.resolve(__dirname,"../zhongqing1a-checkout.js"),"utf8");
@@ -278,7 +278,7 @@ test("history archive page is included in all management navigation and publishe
     assert.ok(html.includes('accounting-history.html'),filename+" history link");
   }
   const weekly=fs.readFileSync(path.resolve(__dirname,"../weekly-accounting.html"),"utf8");
-  assert.ok(weekly.includes('HouseAccounting.inCurrent(x,cycle)'));
+  assert.ok(weekly.includes('HouseAccounting.pendingPayables(S.ops.weekly_accounts)'));
   assert.ok(weekly.includes('HouseAccounting.pettyPeriod(x)===HouseAccounting.current()'));
   const history=fs.readFileSync(path.resolve(__dirname,"../accounting-history.html"),"utf8");
   assert.ok(history.includes('id="cycle"'));
