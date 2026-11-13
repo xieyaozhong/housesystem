@@ -33,8 +33,8 @@ async function main(){
       assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,name+' must fit mobile width');
     }
 
-    // History page: no plaintext before login, retain older paid/unpaid transactions,
-    // and exclude current-week records by default while allowing explicit inclusion.
+    // Paid transactions live in history (including the current period).
+    // Unpaid transactions must remain on the weekly page regardless of age.
     await p.goto(origin+'/accounting-history.html');
     await p.waitForLoadState('networkidle');
     const historyCheck=await p.evaluate(async()=>{
@@ -50,36 +50,104 @@ async function main(){
             description:"舊維修",amount:1000,settlement_date:oldFriday,status:"paid",paid_date:previous},
           {id:"vendor-old-pending",kind:"vendor",party:"歷史未付廠商",property_label:"B102",
             description:"舊欠款",amount:500,settlement_date:oldFriday,status:"pending"},
-          {id:"refund-current",kind:"refund",party:"本期退款房客",property_label:"C103",
+          {id:"refund-current",kind:"refund",party:"本期退款未付",property_label:"C103",
             description:"押金退還",amount:2222,settlement_date:H.addDays(cycle,-5),
-            due_date:cycle,status:"pending"}
+            due_date:cycle,status:"pending"},
+          {id:"refund-current-paid",kind:"refund",party:"本期退款已付",property_label:"D104",
+            description:"已完成押金退還",amount:2000,settlement_date:H.addDays(cycle,-5),
+            due_date:cycle,status:"paid",paid_date:cycle}
         ]},finance:{accounts:[]},vault:{properties:[]}
       });
       document.querySelector('#unlock').click();
       await new Promise(resolve=>setTimeout(resolve,30));
+      const includedByDefault=document.querySelector('#includeCurrent').checked;
       const archive=HouseHistoryDebug.filtered();
       const archiveAmount=document.querySelector('#nAmount').textContent;
-      const archiveUnpaid=document.querySelector('#nUnpaid').textContent;
+      const archivePaidCount=document.querySelector('#nUnpaid').textContent;
+      document.querySelector('#includeCurrent').click();
+      const priorOnly=HouseHistoryDebug.filtered();
       document.querySelector('#includeCurrent').click();
       const total=HouseHistoryDebug.filtered();
       document.querySelector('#kind').value='refund';
       document.querySelector('#kind').dispatchEvent(new Event('change'));
       const refunds=HouseHistoryDebug.filtered();
-      document.querySelector('#keyword').value='本期退款';
+      document.querySelector('#keyword').value='本期退款已付';
       document.querySelector('#keyword').dispatchEvent(new Event('input'));
       const search=HouseHistoryDebug.filtered();
-      return {archiveIds:archive.map(x=>x.id).sort(),
-        archiveAmount,archiveUnpaid,totalCount:total.length,
-        refundCount:refunds.length,searchIds:search.map(x=>x.id),
-        cycle:HouseAccounting.period({kind:"vendor",settlement_date:oldFriday}),expected:previous};
+      return {
+        includedByDefault,
+        archiveIds:archive.map(x=>x.id).sort(),
+        archiveAmount,archivePaidCount,priorOnly:priorOnly.map(x=>x.id).sort(),
+        totalCount:total.length,refundCount:refunds.length,searchIds:search.map(x=>x.id),
+        cycle:HouseAccounting.period({kind:"vendor",settlement_date:oldFriday}),expected:previous
+      };
     });
-    assert.deepEqual(historyCheck.archiveIds,['old-fund','vendor-old-paid','vendor-old-pending']);
-    assert.equal(historyCheck.archiveAmount,"$1,500");
-    assert.equal(historyCheck.archiveUnpaid,"$500");
-    assert.equal(historyCheck.totalCount,5);
+    assert.equal(historyCheck.includedByDefault,true);
+    assert.deepEqual(historyCheck.archiveIds,[
+      'current-fund','old-fund','refund-current-paid','vendor-old-paid'
+    ]);
+    assert.equal(historyCheck.archiveAmount,"$3,000");
+    assert.equal(historyCheck.archivePaidCount,"2");
+    assert.deepEqual(historyCheck.priorOnly,['old-fund','vendor-old-paid']);
+    assert.equal(historyCheck.totalCount,4);
     assert.equal(historyCheck.refundCount,1);
-    assert.deepEqual(historyCheck.searchIds,['refund-current']);
+    assert.deepEqual(historyCheck.searchIds,['refund-current-paid']);
     assert.equal(historyCheck.cycle,historyCheck.expected);
+
+    await p.goto(origin+'/weekly-accounting.html');
+    await p.waitForLoadState('networkidle');
+    const pendingCheck=await p.evaluate(async()=>{
+      const H=HouseAccounting,cycle=H.current(),previous=H.addDays(cycle,-7);
+      const date=H.addDays(previous,-4);
+      const session={
+        ops:{updated_at:"2026-11-12T10:00:00+08:00",weekly_accounts:[
+          {id:"old-pending-1",kind:"vendor",party:"跨期修繕廠商",
+            property_label:"A101",description:"空調",amount:500,settlement_date:date,status:"pending"},
+          {id:"old-pending-2",kind:"vendor",party:"跨期修繕廠商",
+            property_label:"B102",description:"電燈",amount:150,settlement_date:date,status:"pending"},
+          {id:"current-refund",kind:"refund",party:"本期房客",
+            property_label:"C103",description:"押金",amount:2222,settlement_date:cycle,status:"pending"},
+          {id:"old-paid",kind:"vendor",party:"已付廠商",
+            property_label:"D104",description:"已付款",amount:1000,settlement_date:date,status:"paid"},
+          {id:"void-unpaid",kind:"refund",party:"作廢退款",
+            property_label:"X999",description:"已作廢",amount:300,settlement_date:date,status:"pending",__deleted:true}
+        ]},
+        finance:{accounts:[]},vault:{properties:[]}
+      };
+      HouseSecureApp.unlock=async()=>session;
+      document.querySelector('#unlock').click();
+      await new Promise(resolve=>setTimeout(resolve,60));
+      const before={
+        ids:DISPLAY.flatMap(r=>r._items?r._items.map(i=>i.id):[r.id]).sort(),
+        count:document.querySelector('#sPending').textContent,
+        vendors:document.querySelector('#sVendor').textContent,
+        refunds:document.querySelector('#sRefund').textContent,
+        overdue:document.querySelector('#olderPending').textContent,
+        buttons:document.querySelectorAll('#tb button[data-mark-paid]').length,
+        groups:DISPLAY.length
+      };
+      HouseOpsLive.getStatus=()=>({role:"editor",mode:"online"});
+      HouseOpsLive.savePayment=async data=>{
+        const row=session.ops.weekly_accounts.find(r=>r.id===data.id);
+        if(row){row.status=data.status;row.paid_date=data.paid_date}
+        await render(session);
+      };
+      window.confirm=()=>true;
+      const payButton=document.querySelector('#tb button[data-mark-paid="old-pending-1"]');
+      if(payButton)payButton.click();
+      await new Promise(resolve=>setTimeout(resolve,70));
+      return {...before,afterIds:DISPLAY.flatMap(r=>r._items?r._items.map(i=>i.id):[r.id]).sort(),
+        paidDate:session.ops.weekly_accounts.find(r=>r.id==="old-pending-1")?.paid_date};
+    });
+    assert.deepEqual(pendingCheck.ids,['current-refund','old-pending-1','old-pending-2']);
+    assert.equal(pendingCheck.count,'3');
+    assert.equal(pendingCheck.vendors,'$650');
+    assert.equal(pendingCheck.refunds,'$2,222');
+    assert.match(pendingCheck.overdue,/2 筆跨期/);
+    assert.equal(pendingCheck.buttons,3);
+    assert.equal(pendingCheck.groups,2);
+    assert.deepEqual(pendingCheck.afterIds,['current-refund','old-pending-2']);
+    assert.match(pendingCheck.paidDate,/^\\d{4}-\\d{2}-\\d{2}$/);
 
     const opsSource=fs.readFileSync(path.join(root,'ops-secure.js'),'utf8');
     const financeSource=fs.readFileSync(path.join(root,'finance-secure.js'),'utf8');
