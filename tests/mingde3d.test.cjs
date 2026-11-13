@@ -62,8 +62,8 @@ test("Mingde 3D checkout is published in management and historic views",()=>{
  assert.ok(weekly.includes('r.property_label==="明德3D"'));
  assert.ok(weekly.includes('bank_code:"700",bank_name:"中華郵政"'));
  assert.ok(weekly.includes('bank_account:"00812060051667"'));
- assert.ok(weekly.includes("HouseAccounting.inCurrent(x,cycle)"));
- assert.ok(weekly.includes('r.status!=="paid"'));
+ assert.ok(weekly.includes("HouseAccounting.pendingPayables(S.ops.weekly_accounts)"));
+ assert.ok(weekly.includes('HouseAccounting.pendingPayables(S.ops.weekly_accounts)'));
  const build=fs.readFileSync(path.resolve(__dirname,"../scripts/build.mjs"),"utf8");
  assert.ok(build.includes("'mingde3d-checkout.js'"));
  const src=fs.readFileSync(path.resolve(__dirname,"../accounting-periods.js"),"utf8");
