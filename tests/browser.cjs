@@ -261,15 +261,15 @@ async function main(){
     await p.waitForLoadState('networkidle');
     const copiedRefund=await p.evaluate(async()=>{
       const invoice={id:"refund-copy",kind:"refund",party:"租屋房客",
-        property_label:"總太美樂地-D15-5",description:"退租退款｜押金56000－費用與扣款＋加回款項＝51049元",
+        property_label:"測試社區-D15-5",description:"退租退款｜押金56000－費用與扣款＋加回款項＝51049元",
         amount:51049,status:"pending",due_date:"2026-11-17",settlement_date:"2026-11-11"};
-      const checkout={id:"checkout-copy",room:"總太美樂地-D15-5",checkout_date:"2026-11-11",
+      const checkout={id:"checkout-copy",room:"測試社區-D15-5",checkout_date:"2026-11-11",
         deposit:56000,electricity_fee:3910,refund_amount:51049,
         deduction_items:[{label:"水費",amount:368},{label:"瓦斯費",amount:673}]};
       const session={ops:{updated_at:"2026-11-13T12:00:00+08:00",
         weekly_accounts:[invoice],checkouts:[checkout]},
         finance:{accounts:[{id:"refund-copy",bank_code:"006",bank_name:"合作金庫",
-          bank_account:"1885899008567",edited_online:true}]},vault:{properties:[]}};
+          bank_account:"0000000000000",edited_online:true}]},vault:{properties:[]}};
       HouseSecureApp.unlock=async()=>session;
       Object.defineProperty(navigator,"clipboard",{configurable:true,value:{
         writeText:async value=>{window.__copiedRefundText=value}
@@ -285,11 +285,11 @@ async function main(){
     assert.equal(copiedRefund.value,[
       "類型：退租退款",
       "收款人：租屋房客",
-      "物件：總太美樂地-D15-5",
+      "物件：測試社區-D15-5",
       "項目：退租退款｜押金56000－電費3910－水費368－瓦斯費673＝51049元",
       "金額：$51,049",
       "銀行：006（合作金庫）",
-      "銀行帳號：1885899008567",
+      "銀行帳號：0000000000000",
       "退款期限：2026-11-17",
       "原結算日：2026-11-11"
     ].join("\n"));
