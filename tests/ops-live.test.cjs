@@ -391,3 +391,57 @@ test("Taipower room setting, master and checkout synchronize to supervisor witho
  assert.equal(viewer.ops.checkouts.find(x=>x.room==="平德501"&&x.checkout_date==="2026-11-13").electricity_fee,1298);
  await assert.rejects(()=>supervisor.live.saveRoom({room:"平德501",status:"vacant",deposit:26000,power_billing:"fixed"}),/唯讀/);
 });
+
+test("Custom water/gas charges produce an exact auditable refund formula and total",()=>{
+ const ops=fixture().live;
+ const c=ops.calculateCheckout({deposit:56000,power_billing:"taipower",actual_electricity_fee:3910,
+  deduction_items:[{label:"水費",amount:368},{label:"瓦斯費",amount:673}]});
+ assert.equal(c.refundAmount,51049);
+ assert.equal(c.itemTotal,1041);
+ assert.deepEqual(Array.from(c.deductionItems,x=>x.label),["水費","瓦斯費"]);
+ assert.equal(ops.refundFormula(c),"退租退款｜押金56000－電費3910－水費368－瓦斯費673＝51049元");
+ const legacy=ops.calculateCheckout({deposit:12000,electricity_usage:10,power_rate:5.5,
+  cleaning:3000,other_charge:500,deduction_items:[{label:"水費",amount:250}]});
+ assert.equal(legacy.refundAmount,8195);
+ assert.equal(ops.refundFormula(legacy),"退租退款｜押金12000－電費55－清潔費3000－其他扣款500－水費250＝8195元");
+ assert.throws(()=>ops.calculateCheckout({deposit:10000,
+  deduction_items:[{label:"瓦斯費",amount:""}]}),/名目與金額/);
+ assert.throws(()=>ops.calculateCheckout({deposit:10000,
+  deduction_items:[{label:"",amount:30}]}),/名目與金額/);
+ assert.throws(()=>ops.calculateCheckout({deposit:10000,
+  deduction_items:[{label:"水費",amount:-1}]}),/金額/);
+});
+test("New itemized checkout syncs calculation and bank to weekly ledger and supervisor",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture(),session=editor.state(key);
+ await editor.live.connect(session);await online(editor.live);
+ const data={room:"總太美樂地-D15-5",address:"台中市範例路88號",
+  checkout_date:"2026-11-11",refund_due_date:"2026-11-17",
+  party:"租屋房客",deposit:56000,power_billing:"taipower",actual_electricity_fee:3910,
+  deduction_items:[{label:"水費",amount:368},{label:"瓦斯費",amount:673}],
+  bank_code:"006",bank_name:"合作金庫",bank_account:"1885899008567"};
+ const saved=await editor.live.saveCheckout(data);
+ const record=session.ops.checkouts.find(x=>x.id===saved.key);
+ const row=session.ops.weekly_accounts.find(x=>x.id===saved.key.replace(/^checkout-/,"refund-"));
+ assert.equal(record.refund_amount,51049);
+ assert.equal(record.deduction_items.length,2);
+ assert.equal(row.party,"租屋房客");
+ assert.equal(row.property_label,data.room);
+ assert.equal(row.amount,51049);
+ assert.equal(row.due_date,"2026-11-17");
+ assert.equal(row.settlement_date,"2026-11-11");
+ assert.equal(row.description,"退租退款｜押金56000－電費3910－水費368－瓦斯費673＝51049元");
+ assert.equal(editor.live.refundFormulaFromRecord(record),row.description);
+ assert.equal(session.finance.accounts.find(x=>x.id===row.id).bank_account,"1885899008567");
+ assert.equal(JSON.stringify([...editor.store.values()]).includes("1885899008567"),false);
+ const supervisor=fixture("guest",{newDevice:true,sharedStore:editor.store});
+ const viewer=supervisor.state(key);await supervisor.live.connect(viewer);await online(supervisor.live);
+ assert.equal(viewer.ops.weekly_accounts.find(x=>x.id===row.id)?.description,row.description);
+ assert.equal(viewer.ops.checkouts.find(x=>x.id===saved.key)?.deduction_items[1].label,"瓦斯費");
+ await assert.rejects(()=>supervisor.live.saveCheckout(data),/唯讀/);
+ const edited=await editor.live.saveCheckout({...data,id:saved.key,
+  deduction_items:[{label:"水費",amount:468},{label:"瓦斯費",amount:673}]});
+ assert.equal(edited.changes.weekly.amount,50949);
+ assert.equal(session.ops.checkouts.filter(x=>x.id===saved.key).length,1);
+ assert.equal(session.ops.weekly_accounts.find(x=>x.id===row.id).amount,50949);
+});
