@@ -47,3 +47,13 @@ test("Search remains read-only and never mutates decrypted master data",()=>{
  api.byRoom(session,"明德3D");
  assert.equal(JSON.stringify(session),before);
 });
+
+test("Taipower choice is carried from the matching master suite",()=>{
+ const api=helper();
+ const record={vault:{properties:[{id:11,code:"電力A6",address:"測試路6號",power_billing:"taipower",power_rate:null}]},
+ ops:{vacancies:[],rented:[],checkouts:[]}};
+ const match=api.search(record,"測試路")[0];
+ assert.equal(match.code,"電力A6");
+ assert.equal(match.power_billing,"taipower");
+ assert.equal(match.power_rate,null);
+});
