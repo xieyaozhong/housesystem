@@ -122,7 +122,8 @@ async function main(){
         count:document.querySelector('#sPending').textContent,
         vendors:document.querySelector('#sVendor').textContent,
         refunds:document.querySelector('#sRefund').textContent,
-        overdue:document.querySelector('#olderPending').textContent,
+        noOldLabel:document.querySelectorAll('.pending-overdue, #olderPending').length===0,
+        heading:document.querySelector('#tb').closest('section')?.querySelector('h2')?.textContent,
         buttons:document.querySelectorAll('#tb button[data-mark-paid]').length,
         groups:DISPLAY.length
       };
@@ -143,7 +144,8 @@ async function main(){
     assert.equal(pendingCheck.count,'3');
     assert.equal(pendingCheck.vendors,'$650');
     assert.equal(pendingCheck.refunds,'$2,222');
-    assert.match(pendingCheck.overdue,/2 筆跨期/);
+    assert.equal(pendingCheck.noOldLabel,true);
+    assert.equal(pendingCheck.heading,'待付款／待退款清單');
     assert.equal(pendingCheck.buttons,3);
     assert.equal(pendingCheck.groups,2);
     assert.deepEqual(pendingCheck.afterIds,['current-refund','old-pending-2']);
