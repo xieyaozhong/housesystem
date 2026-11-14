@@ -1,4 +1,8 @@
 <!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>家總管｜空房系統</title><link rel="stylesheet" href="public-style.css"><link rel="stylesheet" href="secure-style.css"><style>.monthly-rent{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:14px;padding:12px 14px;border:1px solid #285846;border-radius:12px;background:#102c25}.monthly-rent span{font-size:12px;color:#b8d9cf;font-weight:700}.monthly-rent strong{font-size:23px;letter-spacing:-.02em;color:#a0efd0;font-variant-numeric:tabular-nums}.monthly-rent strong.unknown{font-size:16px;color:#c5d0dd}.rent-cell{color:#a0efd0;font-weight:800;font-variant-numeric:tabular-nums}.rent-summary{margin:4px 0 12px;color:#a9c7e8;font-size:12px}.live-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:11px;align-items:end}.live-form label{display:flex;flex-direction:column;gap:5px;color:#c5d8ea;font-size:12px}.live-form input,.live-form select,.live-form textarea{width:100%;padding:11px;border:1px solid #34506b;border-radius:10px;background:#091a2b;color:#fff;font-size:14px}.live-form textarea{min-height:78px}.live-form button,.edit-btn,.live-actions button{border:1px solid #37745f;border-radius:10px;background:#143b30;color:#b9ffe1;padding:10px 12px;font-size:13px;font-weight:700;cursor:pointer}.live-form button:disabled{opacity:.45;cursor:not-allowed}.live-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.live-help{color:#91acc4;font-size:12px;line-height:1.7}.live-feedback{min-height:22px;color:#b9ffe1;font-size:12px}.live-feedback.error{color:#ffaaaa}.sync-settings{margin:10px 0}.sync-settings summary{cursor:pointer;color:#a8cfff;font-size:12px}.edit-btn{padding:6px 10px;background:#152d48;color:#b6d8ff;border-color:#2d516e}.edit-btn:disabled{opacity:.5}.live-info{font-size:12px;color:#a8cfff}body:not(.can-edit) .edit-btn,body:not(.can-edit) #roomEditPanel{display:none!important}
+body:not(.can-edit) .vacancy-delete-btn,body.supervisor-view .vacancy-delete-btn{display:none!important}
+.vacancy-card-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.vacancy-delete-btn{border:1px solid #95515b;border-radius:9px;background:#3e202a;color:#ffdbe1;padding:9px 12px;cursor:pointer;font-size:12px}
+.vacancy-delete-btn:disabled{opacity:.5;cursor:wait}
 body:not(.can-edit) .card-drag-handle,body.supervisor-view .card-drag-handle{display:none!important}
 .card-drag-handle{border:1px dashed #4f86a5;background:#132e40;border-radius:9px;color:#c9edff;padding:7px 10px;font-size:12px;font-weight:700;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
 .card-drag-handle:active{cursor:grabbing}
@@ -14,7 +18,7 @@ body:not(.can-edit) .card-drag-handle,body.supervisor-view .card-drag-handle{dis
 <div class="app"><aside class="side"><div class="brand">家總管<small>HOUSE OPS · SECURE</small></div><nav class="nav"><a class="on" href="vacancy.html">空房系統</a><a href="checkout.html">退租紀錄</a><a href="weekly-accounting.html">每週帳務</a><a href="accounting-history.html">歷史帳務</a></nav><div class="foot"><button id="forget" class="secure-btn" style="width:100%">鎖定此裝置</button><a href="index.html">← 系統首頁</a></div></aside>
 <main class="main"><header class="top"><div><div class="ey">FULL VACANCY CONTROL</div><h1>空房管理</h1><div class="sub">內部完整資料｜解鎖後顯示物件主檔、門禁、備註與房間狀態｜頁面版本 2026/11/11・雲端編輯</div></div><div class="chip" id="updated">● 已加密</div></header><section class="stats"><div class="st"><span>目前空房</span><b id="sVac">0</b></div><div class="st"><span>近期已出租</span><b id="sRent">0</b></div><div class="st"><span>退租轉空房</span><b id="sCheckout">0</b></div><div class="st"><span>主檔物件</span><b id="sProps">0</b></div></section>
 <section class="panel" id="roomEditPanel"><h2>編輯房間資料</h2>
-<p class="live-help">可新增房間，或在月租金總覽點「編輯」。押金與月租會自動互算（月租＝押金 ÷ 2）；點儲存才會寫入雲端。</p>
+<p class="live-help">可新增房間，或直接在空房卡片點「編輯房間」，修改地址、押金、租金、電費及備註；刪除空房只會移除卡片，不會刪掉主檔或退租帳務。</p>
 <form id="roomEditForm"><div class="live-form">
 <label>房間名稱<input id="editRoom" placeholder="例如：平德501" required maxlength="100"></label>
 <label>房間狀態<select id="editStatus"><option value="vacant">空房</option><option value="rented">已出租</option></select></label>
@@ -93,7 +97,7 @@ function paintRent(){
  $("#rentSummary").textContent="已顯示 "+filled+" 間月租金｜"+(rows.length-filled)+" 間待補登";
  $("#rentRows").innerHTML=a.map(x=>`<tr><td><b>${E(x.room)}</b></td><td>${E(x.address||"—")}</td><td>${E(x.depositInfo)}</td><td class="rent-cell">${E(rentText(x.rent))}</td><td>${E(x.status)}</td><td><button type="button" class="edit-btn" data-edit-room="${E(x.room)}">編輯</button></td></tr>`).join("")||'<tr><td colspan="6" class="sub">沒有符合資料</td></tr>';
 }
-function paint(){const o=S.ops,q=$("#q").value.trim().toLowerCase(),a=HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented,o.vacancy_card_order).filter(v=>[v.room,v.address,v.source].join(" ").toLowerCase().includes(q));$("#cards").innerHTML=a.map(v=>`<article class="card" data-vacancy-room="${E(v.room)}"><div class="card-handle-line"><span class="badge vac">目前空房</span><button class="card-drag-handle" type="button" aria-label="拖曳調整 ${E(v.room)} 的顯示順序，也可按上下方向鍵">⠿ 拖曳排序</button></div><h3>${E(v.room)}</h3><div class="addr">${E(v.address)}</div><div class="meta">${E(v.source||"")}${HouseVacancySort.date(v,o.checkouts)?"｜空房日期 "+E(HouseVacancySort.date(v,o.checkouts)):""}</div>${`<div class="monthly-rent"><span>月租金</span><strong class="${rentOf(v.room)==null?"unknown":""}">${rentOf(v.room)==null?"待補登":"NT$ "+E(Number(rentOf(v.room)).toLocaleString("zh-TW"))}</strong></div><button type="button" class="edit-btn" data-edit-room="${E(v.room)}" style="margin-top:9px">編輯房間</button>${powerText(v)!=="—"?`<div class="meta">電費 ${E(powerText(v))}</div>`:""}`}${v.rent_pending&&rentOf(v.room)===null?'<div class="meta">原押金資料待補</div>':""}</article>`).join("")||'<div class="sub">沒有符合資料</div>'}
+function paint(){const o=S.ops,q=$("#q").value.trim().toLowerCase(),a=HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented,o.vacancy_card_order).filter(v=>[v.room,v.address,v.source].join(" ").toLowerCase().includes(q));$("#cards").innerHTML=a.map(v=>`<article class="card" data-vacancy-room="${E(v.room)}"><div class="card-handle-line"><span class="badge vac">目前空房</span><button class="card-drag-handle" type="button" aria-label="拖曳調整 ${E(v.room)} 的顯示順序，也可按上下方向鍵">⠿ 拖曳排序</button></div><h3>${E(v.room)}</h3><div class="addr">${E(v.address)}</div><div class="meta">${E(v.source||"")}${HouseVacancySort.date(v,o.checkouts)?"｜空房日期 "+E(HouseVacancySort.date(v,o.checkouts)):""}</div>${`<div class="monthly-rent"><span>月租金</span><strong class="${rentOf(v.room)==null?"unknown":""}">${rentOf(v.room)==null?"待補登":"NT$ "+E(Number(rentOf(v.room)).toLocaleString("zh-TW"))}</strong></div><div class="vacancy-card-actions"><button type="button" class="edit-btn" data-edit-room="${E(v.room)}">編輯房間</button><button type="button" class="vacancy-delete-btn" data-delete-vacancy="${E(v.room)}">刪除空房</button></div>${powerText(v)!=="—"?`<div class="meta">電費 ${E(powerText(v))}</div>`:""}`}${v.rent_pending&&rentOf(v.room)===null?'<div class="meta">原押金資料待補</div>':""}</article>`).join("")||'<div class="sub">沒有符合資料</div>'}
 function render(session){S=session;const o=S.ops,v=S.vault;S.rentRows=allRentRows(o,v);S.rentIndex=new Map(S.rentRows.map(x=>[rentKey(x.room),x]));const rentMap=new Map(S.rentRows.map(x=>[rentKey(x.room),x.rent]));$("#lock").style.display="none";const available=HouseVacancySort.sort(o.vacancies,o.checkouts,o.rented,o.vacancy_card_order);$("#sVac").textContent=available.length;$("#sRent").textContent=o.rented.length;$("#sCheckout").textContent=available.filter(x=>x.source==="退租轉空房").length;$("#sProps").textContent=(v.properties||[]).length;$("#updated").textContent="● 更新 "+new Date(o.updated_at).toLocaleString("zh-TW");$("#rented").innerHTML=o.rented.map(r=>`<tr><td><b>${E(r.room)}</b></td><td>${E(r.address)}</td><td class="rent-cell">${E(rentText(rentMap.get(rentKey(r.room))))}</td><td>${E(powerText(r))}</td><td>${E(r.updated_at)}</td><td><span class="badge rent">已出租</span></td></tr>`).join("");$("#props").innerHTML=(v.properties||[]).map(p=>`<tr><td>#${E(p.id)}</td><td>${E(p.code||"—")}</td><td>${E(p.address||"—")}</td><td class="rent-cell">${E(rentText(rentMap.get(rentKey(p.code))))}</td><td>${E(powerText(p))}</td><td class="account">${E(p.access||"—")}</td><td>${E(p.note||"—")}</td><td>${E(p.address_raw||"—")}</td></tr>`).join("");paint();paintRent()}
 function livePaint(data=window.HouseOpsLive?.getStatus()||{}){
  $("#liveState").textContent=data.message||"尚未連線";
@@ -125,7 +129,27 @@ function openRoom(room){
  editMessage("");
  $("#roomEditPanel").scrollIntoView({behavior:"smooth",block:"start"});
 }
-$("#cards").addEventListener("click",e=>{const btn=e.target.closest("[data-edit-room]");if(btn)openRoom(btn.dataset.editRoom)});
+$("#cards").addEventListener("click",async e=>{
+ const deleteBtn=e.target.closest("[data-delete-vacancy]");
+ if(deleteBtn){
+  const state=HouseOpsLive.getStatus();
+  if(!S||state.mode!=="online"||state.role!=="editor")return;
+  const room=deleteBtn.dataset.deleteVacancy;
+  if(!confirm("確定刪除「"+room+"」的空房卡片？\n\n物件主檔、退租歷史與退款帳務將保留。"))return;
+  deleteBtn.disabled=true;
+  editMessage("正在同步刪除空房："+room);
+  try{
+   await HouseOpsLive.deleteVacancy(room);
+   editMessage("已移除空房「"+room+"」，主管與其他裝置同步更新；主檔與退租資料未刪除。");
+  }catch(err){
+   editMessage(err?.message||"無法刪除這間空房",true);
+   deleteBtn.disabled=false;
+  }
+  return;
+ }
+ const btn=e.target.closest("[data-edit-room]");
+ if(btn)openRoom(btn.dataset.editRoom);
+});
 $("#rentRows").addEventListener("click",e=>{const btn=e.target.closest("[data-edit-room]");if(btn)openRoom(btn.dataset.editRoom)});
 $("#newRoomBtn").onclick=()=>{const form=$("#roomEditForm");form.reset();updatePowerBilling();editMessage("已清空欄位，可輸入新房號。");$("#editRoom").focus()};
 $("#editPowerBilling").addEventListener("change",updatePowerBilling);
