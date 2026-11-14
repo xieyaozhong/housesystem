@@ -33,6 +33,47 @@ async function main(){
       assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),true,name+' must fit mobile width');
     }
 
+    // Vacancy editing and deletion are visible only to a synced manager.
+    await p.goto(origin+'/vacancy.html');
+    await p.waitForLoadState('networkidle');
+    const vacancyControls=await p.evaluate(async()=>{
+      const session={ops:{updated_at:"2026-11-14T04:00:00Z",
+        vacancies:[{room:"樣板A101",address:"測試街一號",status:"vacant",deposit:24000,
+          power_rate:5.5,rent:12000,source:"管理空房"}],rented:[],checkouts:[],weekly_accounts:[]},
+        vault:{properties:[{id:"test1",code:"樣板A101",address:"測試街一號"}]},
+        finance:{accounts:[]}};
+      render(session);
+      livePaint({mode:"online",role:"editor",remembered:false});
+      const card=document.querySelector('#cards article[data-vacancy-room="樣板A101"]');
+      const edit=card?.querySelector('[data-edit-room]');
+      const del=card?.querySelector('[data-delete-vacancy]');
+      const editVisible=Boolean(edit)&&getComputedStyle(edit).display!=="none";
+      const deleteVisible=Boolean(del)&&getComputedStyle(del).display!=="none";
+      edit?.click();
+      const selected={room:document.querySelector("#editRoom").value,
+        deposit:document.querySelector("#editDeposit").value,
+        address:document.querySelector("#editAddress").value};
+      HouseOpsLive.getStatus=()=>({mode:"online",role:"editor"});
+      HouseOpsLive.deleteVacancy=async room=>{window.__testDeletedVacancy=room;return true};
+      window.confirm=()=>true;
+      del?.click();
+      await new Promise(resolve=>setTimeout(resolve,20));
+      const deleted=window.__testDeletedVacancy||"";
+      livePaint({mode:"online",role:"viewer",remembered:false});
+      const readonlyHidden=getComputedStyle(del).display==="none"&&
+        getComputedStyle(edit).display==="none";
+      return {editVisible,deleteVisible,selected,deleted,readonlyHidden,
+        widthOk:document.documentElement.scrollWidth<=innerWidth+2};
+    });
+    assert.equal(vacancyControls.editVisible,true);
+    assert.equal(vacancyControls.deleteVisible,true);
+    assert.deepEqual(vacancyControls.selected,{
+      room:"樣板A101",deposit:"24000",address:"測試街一號"
+    });
+    assert.equal(vacancyControls.deleted,"樣板A101");
+    assert.equal(vacancyControls.readonlyHidden,true);
+    assert.equal(vacancyControls.widthOk,true);
+
     // Checkout editor: suggestions appear while typing and select matching
     // property IDs and addresses without writing anything to Firebase.
     await p.goto(origin+'/checkout.html');
