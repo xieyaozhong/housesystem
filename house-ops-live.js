@@ -101,10 +101,30 @@ function calculateCheckout(data){
   deductionItems:itemList,itemTotal,
   balance,refundAmount:Math.max(0,balance),owedAmount:Math.max(0,-balance)};
 }
+// A room only becomes vacant at 00:00 Taipei time after checkout day ends.
+function taiwanToday(now=new Date()){
+ const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Taipei",
+  year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(now);
+ const field=kind=>parts.find(p=>p.type===kind)?.value||"";
+ return field("year")+"-"+field("month")+"-"+field("day");
+}
+function nextTaiwanDay(ymd){
+ if(!validDate(ymd))return "";
+ const d=new Date(ymd+"T00:00:00Z");
+ d.setUTCDate(d.getUTCDate()+1);
+ return d.toISOString().slice(0,10);
+}
+function checkoutAvailability(date,day=taiwanToday()){
+ if(!validDate(date))return {status:"unknown",vacancy_date:"",available:false};
+ const tomorrow=nextTaiwanDay(date);
+ return {status:day>date?"vacant":day===date?"checkout_today":"scheduled",
+  vacancy_date:tomorrow,available:day>date};
+}
 const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
 const ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 let s=null,app=null,auth=null,db=null,F=null,A=null,unsubscribe=null,authUnsubscribe=null,initPromise=null;
 let patches=new Map(),serial=Promise.resolve(),connection=0,lastClientTimestamp=0;
+let watchedDay="",dayCheckTimer=null;
 // Distinct monotonically increasing timestamps prevent two immediate edits
 // (for example, marking a refund paid then correcting its amount) from
 // applying in the wrong order when the device clock has millisecond ties.
@@ -120,15 +140,73 @@ function status(mode,message,extra={}){
  state={...state,mode,message,...extra};notify();
 }
 const error=e=>status("error",e?.message||"同步發生錯誤，請確認網路與 Firebase 權限");
+function scheduledCheckoutRooms(session,day=taiwanToday()){
+ if(!session?.ops)return;
+ const ops=session.ops;
+ const events=[...patches.values()].sort((a,b)=>String(a.updated_at).localeCompare(String(b.updated_at)));
+ const checkoutByRoom=new Map();
+ for(const p of events){
+  if(p.kind==="checkout"&&p.changes?.checkout?.room&&validDate(p.changes.checkout.checkout_date)){
+   checkoutByRoom.set(norm(p.changes.checkout.room),p);
+  }
+ }
+ for(const [roomKey,patch] of checkoutByRoom){
+  const record=patch.changes.checkout,date=record.checkout_date,availability=checkoutAvailability(date,day);
+  // A newer room edit, re-rental or explicit deletion always wins over an
+  // older checkout. This prevents old history from resetting live room status.
+  const newer=events.some(p=>String(p.updated_at)>String(patch.updated_at)&&
+   (p.kind==="room"||p.kind==="room_delete")&&norm(p.key)===roomKey);
+  if(newer)continue;
+  const matches=x=>norm(x?.room||x?.code)===roomKey;
+  const rented=ops.rented?.find(matches);
+  const currentRentalDate=String(rented?.updated_at||rented?.since||"").slice(0,10);
+  if(rented&&rented.source!=="預定退房"&&currentRentalDate>date)continue;
+  const prior=ops.vacancies?.find(matches)||rented||{};
+  const next={...prior,room:record.room,address:record.address||prior.address||"",
+   status:availability.available?"vacant":"rented",
+   source:availability.available?"退租轉空房":"預定退房",
+   updated_at:patch.updated_at,
+   rent:record.rent,deposit:record.deposit,power_rate:record.power_rate,
+   power_billing:record.power_billing||"fixed"};
+  if(availability.available)next.since=availability.vacancy_date;
+  else {delete next.since;next.planned_checkout_date=date}
+  if(availability.available)delete next.planned_checkout_date;
+  ops.vacancies=ops.vacancies.filter(x=>!matches(x));
+  ops.rented=ops.rented.filter(x=>!matches(x));
+  (availability.available?ops.vacancies:ops.rented).push(next);
+ }
+}
 function render(){
  if(!s)return;
  for(const p of [...patches.values()].sort((a,b)=>String(a.updated_at).localeCompare(String(b.updated_at))))applyPatch(s,p);
+ scheduledCheckoutRooms(s);
+ watchedDay=taiwanToday();
  window.dispatchEvent(new CustomEvent("house-ops-live-change",{detail:{session:s}}));
+}
+function refreshCheckoutDay(){
+ const day=taiwanToday();
+ if(!s?.ops||day===watchedDay)return;
+ watchedDay=day;
+ render();
+}
+function ensureCheckoutClock(){
+ if(dayCheckTimer||typeof window.setInterval!=="function")return;
+ watchedDay=taiwanToday();
+ dayCheckTimer=window.setInterval(refreshCheckoutDay,30000);
+ window.addEventListener?.("focus",refreshCheckoutDay);
+ window.addEventListener?.("pageshow",refreshCheckoutDay);
+ if(typeof document!=="undefined")document.addEventListener?.("visibilitychange",refreshCheckoutDay);
 }
 function applyPatch(session,p){
  const ops=session.ops;if(!ops||!p)return;
  ops.vacancies||=[];ops.rented||=[];ops.weekly_accounts||=[];ops.checkouts||=[];
- if(p.kind==="vacancy_order"){
+ if(p.kind==="room_delete"){
+  const key=norm(p.key);
+  if(!key||p.changes?.deleted!==true)return;
+  // Delete only the live vacancy card. Never erase the property master,
+  // checkout history, deposits or linked payment data.
+  ops.vacancies=ops.vacancies.filter(row=>norm(row?.room||row?.code)!==key);
+ }else if(p.kind==="vacancy_order"){
   // This is encrypted with the same AES-GCM key as the room data. Never let a
   // shared order overwrite room status, rent or historical checkout records.
   const order=p.changes?.order;
@@ -233,19 +311,8 @@ function applyPatch(session,p){
    if(existing)Object.assign(existing,p.changes.bank,{id:weekly.id,edited_online:true});
    else session.finance.accounts.push({...p.changes.bank,id:weekly.id,edited_online:true});
   }
-  const key=norm(record.room),matches=x=>norm(x?.room||x?.code)===key;
-  const rented=ops.rented.find(matches);
-  // Do not turn a room vacant if its latest rental started after this checkout.
-  if(!rented||String(rented.updated_at||rented.since||"").slice(0,10)<=record.checkout_date){
-   const prior=ops.vacancies.find(matches)||rented||{};
-   const item={...prior,room:record.room,address:record.address||prior.address||"",
-    status:"vacant",source:"退租轉空房",since:record.checkout_date,updated_at:p.updated_at,
-    rent:record.rent,deposit:record.deposit,power_rate:record.power_rate,
-    power_billing:record.power_billing||"fixed"};
-   ops.vacancies=ops.vacancies.filter(x=>!matches(x));
-   ops.rented=ops.rented.filter(x=>!matches(x));
-   ops.vacancies.push(item);
-  }
+  // Occupancy is projected once after all cloud patches have been applied.
+  // In particular, no vacancy is created on or before checkout day.
  }else if(p.kind==="payment"){
   const statusValue=p.changes?.status;
   if(!["paid","pending"].includes(statusValue))return;
@@ -290,7 +357,7 @@ async function decrypt(doc,key){
   const raw=await crypto.subtle.decrypt({name:"AES-GCM",iv:ub64(d.iv)},key,ub64(d.ct));
   p=JSON.parse(td.decode(raw));
  }catch(_){throw Error("雲端資料解密失敗。請確認各裝置使用相同管理密碼")}
- if(!p||!["room","payment","account","checkout","petty","vacancy_order"].includes(p.kind)||typeof p.key!=="string"||typeof p.updated_at!=="string"||!p.changes||typeof p.changes!=="object")throw Error("雲端修改紀錄內容無效");
+ if(!p||!["room","payment","account","checkout","petty","vacancy_order","room_delete"].includes(p.kind)||typeof p.key!=="string"||typeof p.updated_at!=="string"||!p.changes||typeof p.changes!=="object")throw Error("雲端修改紀錄內容無效");
  if(await hash(p.kind,p.key)!==doc.id)throw Error("雲端修改紀錄識別碼異常");
  return p;
 }
@@ -411,6 +478,7 @@ async function subscribe(){
 }
 async function connect(session){
  if(!session?.key||!session?.ops)return;
+ ensureCheckoutClock();
  if(s!==session){
   s=session;
   for(const p of patches.values())applyPatch(s,p);
@@ -458,6 +526,15 @@ async function save(p){
  render();
  status("online","編輯模式｜資料已儲存至 Firebase，其他已連線裝置將自動更新。",{lastSync:new Date().toISOString(),count:patches.size,role:"editor"});
  return p;
+}
+async function deleteVacancy(room){
+ writable();
+ const name=safeText(room,100),key=norm(name);
+ if(!name||/[\\/]/.test(name))throw Error("請選擇有效空房");
+ const vacancy=s?.ops?.vacancies?.find(x=>norm(x?.room||x?.code)===key);
+ if(!vacancy)throw Error("找不到這間空房，請重新整理並確認出租狀態");
+ return save({v:1,kind:"room_delete",key:name,updated_at:nextTimestamp(),
+  changes:{deleted:true}});
 }
 async function saveRoom(data){
  const room=String(data.room||"").trim(),statusValue=data.status;
@@ -612,7 +689,7 @@ async function saveVacancyOrder(order){
  return save({v:1,kind:"vacancy_order",key:"global",updated_at:nextTimestamp(),
   changes:{order:keys}});
 }
-window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,savePetty,saveVacancyOrder,calculateCheckout,refundFormula,refundFormulaFromRecord,
+window.HouseOpsLive={connect,prepare,getStatus:()=>({...state}),login,logout,configure,saveRoom,savePayment,saveAccount,saveCheckout,savePetty,saveVacancyOrder,deleteVacancy,calculateCheckout,checkoutAvailability,refundFormula,refundFormulaFromRecord,
  defaultEmail:DEFAULT_EDITOR,defaultFirebaseConfig:()=>({...DEFAULT_FIREBASE_CONFIG}),rememberOnThisDevice:()=>localStorage.getItem(REMEMBER_KEY)!=="no"};
 for(const name of ["unlock","auto","loadWithKey"]){
  const original=api[name];
