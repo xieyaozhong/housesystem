@@ -538,3 +538,30 @@ test("Deleting a room that is already rented or missing is rejected",async()=>{
  await assert.rejects(()=>editor.live.deleteVacancy("平德501"),/找不到這間空房/);
  assert.equal(editor.store.size,0);
 });
+
+test("Editing rent and address before checkout does not cancel automatic following-day vacancy",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture("editor",{fixedNow:"2026-11-14T08:00:00Z"}),session=editor.state(key);
+ await editor.live.connect(session);await online(editor.live);
+ const checkout=await editor.live.saveCheckout({room:"平德501",address:"原房址",
+  checkout_date:"2026-11-20",deposit:26000,electricity_usage:0,power_rate:5.5});
+ const edit=await editor.live.saveRoom({room:"平德501",status:"rented",
+  deposit:28000,address:"新房址",note:"已換冷氣",power_billing:"taipower"});
+ assert.equal(edit.changes.preserve_checkout,true);
+ assert.equal(session.ops.rented.find(x=>x.room==="平德501")?.address,"新房址");
+ assert.equal(session.ops.rented.find(x=>x.room==="平德501")?.rent,14000);
+ editor.advanceClock("2026-11-20T15:59:59Z");
+ assert.equal(session.ops.vacancies.some(x=>x.room==="平德501"),false);
+ editor.advanceClock("2026-11-20T16:00:01Z");
+ const vacant=session.ops.vacancies.find(x=>x.room==="平德501");
+ assert.equal(vacant?.since,"2026-11-21");
+ assert.equal(vacant?.rent,14000);
+ assert.equal(vacant?.address,"新房址");
+ assert.equal(vacant?.power_billing,"taipower");
+ const guest=fixture("guest",{newDevice:true,sharedStore:editor.store,
+  fixedNow:"2026-11-20T16:01:00Z"}),view=guest.state(key);
+ await guest.live.connect(view);await online(guest.live);
+ assert.equal(view.ops.vacancies.find(x=>x.room==="平德501")?.address,"新房址");
+ assert.equal(view.ops.vacancies.find(x=>x.room==="平德501")?.since,"2026-11-21");
+ assert.equal(session.ops.checkouts.some(x=>x.id===checkout.key),true);
+});
