@@ -10,6 +10,12 @@ const source=fs.readFileSync(require("node:path").join(__dirname,"../house-ops-l
  .replace('import(SDK+"firebase-firestore.js")','Promise.resolve(window.__testSDK.db)');
 function fixture(role="editor",options={}){
  const saved=options.sharedStore||new Map(),listeners=new Set(),events=[],preferences=new Map(),persistence=[];
+ const timers=[];
+ let simulatedTime=options.fixedNow?Date.parse(options.fixedNow):null;
+ class SimulatedDate extends Date{
+  constructor(...args){super(...(args.length?args:simulatedTime===null?[]:[simulatedTime]))}
+  static now(){return simulatedTime===null?Date.now():simulatedTime}
+ }
  let boundProject=options.otherProject?"other-project":options.newDevice?null:"house-52015",storedConfig=null;
  if(options.corruptConfig)preferences.set("house_firebase_config_v1",JSON.stringify({
    projectId:boundProject,authDomain:"https://broken.example/path"
@@ -46,10 +52,13 @@ function fixture(role="editor",options={}){
     ADMIN_EMAIL:"admin@example.com"
   },
   __testSDK:{app:appSDK,auth:authSDK,db:dbSDK},
+  addEventListener:()=>{},
+  setInterval:fn=>{timers.push(fn);return timers.length},
   dispatchEvent:e=>events.push(e)};
  const sandbox={window,localStorage,crypto:webcrypto,TextEncoder,TextDecoder,btoa,atob,CustomEvent:
   class{constructor(type,options){this.type=type;this.detail=options?.detail}},
-  navigator:{onLine:true},location:{reload:()=>{}},queueMicrotask,Promise,Date,Map,Set,Error,Number,String,Array,Object};
+  navigator:{onLine:true},location:{reload:()=>{}},queueMicrotask,Promise,
+  Date:options.fixedNow?SimulatedDate:Date,Intl,Map,Set,Error,Number,String,Array,Object};
  vm.runInNewContext(source,sandbox,{filename:"house-ops-live.js"});
  const state=key=>({key,ops:{updated_at:"2026-11-10T08:00:00Z",
    vacancies:[],rented:[{room:"平德501",rent:13000,status:"rented"}],
@@ -57,7 +66,9 @@ function fixture(role="editor",options={}){
    weekly_accounts:[{id:"refund-fengjia701-20261029",kind:"refund",property_label:"逢甲701",
     settlement_date:"2026-10-29",status:"pending"}]},
    vault:{properties:[{code:"平德501",address:"舊址"}]},finance:{accounts:[]}});
- return {live:window.HouseOpsLive,store:saved,state,events,preferences,persistence,getSavedConfig:()=>storedConfig,getPetty:()=>window.HOUSE_PETTY_CASH_DATA?.entries||[]};
+ return {live:window.HouseOpsLive,store:saved,state,events,preferences,persistence,
+  getSavedConfig:()=>storedConfig,getPetty:()=>window.HOUSE_PETTY_CASH_DATA?.entries||[],
+  advanceClock:iso=>{simulatedTime=Date.parse(iso);for(const fn of timers)fn()},tick:()=>timers.forEach(fn=>fn())};
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function online(live){
@@ -444,4 +455,83 @@ test("New itemized checkout syncs calculation and bank to weekly ledger and supe
  assert.equal(edited.changes.weekly.amount,50949);
  assert.equal(session.ops.checkouts.filter(x=>x.id===saved.key).length,1);
  assert.equal(session.ops.weekly_accounts.find(x=>x.id===row.id).amount,50949);
+});
+
+test("Checkout day stays rented until midnight in Taipei, then automatically vacates next day",async()=>{
+ const date="2026-11-20";
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture("editor",{fixedNow:"2026-11-20T04:00:00Z"}),session=editor.state(key);
+ await editor.live.connect(session);await online(editor.live);
+ const status=editor.live.checkoutAvailability(date,"2026-11-20");
+ assert.equal(status.available,false);
+ assert.equal(status.status,"checkout_today");
+ assert.equal(status.vacancy_date,"2026-11-21");
+ const result=await editor.live.saveCheckout({room:"平德501",checkout_date:date,deposit:26000,
+  electricity_usage:10,power_rate:5.5,refund_due_date:"2026-11-24"});
+ assert.equal(session.ops.checkouts.some(r=>r.id===result.key),true,"checkout and refund are recorded immediately");
+ assert.equal(session.ops.rented.some(r=>r.room==="平德501"),true);
+ assert.equal(session.ops.vacancies.some(r=>r.room==="平德501"),false);
+ // 2026-11-20 15:59:59 Taipei time, still occupied.
+ editor.advanceClock("2026-11-20T15:59:59Z");
+ assert.equal(session.ops.vacancies.some(r=>r.room==="平德501"),false);
+ // 2026-11-21 00:00:01 Taipei time, fully vacated.
+ editor.advanceClock("2026-11-20T16:00:01Z");
+ assert.equal(session.ops.rented.some(r=>r.room==="平德501"),false);
+ const vacant=session.ops.vacancies.find(r=>r.room==="平德501");
+ assert.equal(vacant?.since,"2026-11-21");
+ assert.equal(vacant?.source,"退租轉空房");
+ assert.equal(editor.store.size,1,"midnight transition derives from saved checkout, no extra cloud write");
+ const supervisor=fixture("guest",{newDevice:true,sharedStore:editor.store,
+  fixedNow:"2026-11-20T16:10:00Z"}),view=supervisor.state(key);
+ await supervisor.live.connect(view);await online(supervisor.live);
+ assert.equal(view.ops.vacancies.find(r=>r.room==="平德501")?.since,"2026-11-21");
+});
+test("Future checkouts do not appear as vacant; date changes reconcile pending occupancy",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture("editor",{fixedNow:"2026-11-14T05:00:00Z"}),session=editor.state(key);
+ session.ops.vacancies.push({room:"預定房A",status:"vacant",address:"測試"});
+ await editor.live.connect(session);await online(editor.live);
+ const saved=await editor.live.saveCheckout({room:"預定房A",address:"測試",
+  checkout_date:"2026-12-01",deposit:10000,power_rate:5,electricity_usage:0});
+ assert.equal(session.ops.vacancies.some(r=>r.room==="預定房A"),false);
+ assert.equal(session.ops.rented.find(r=>r.room==="預定房A")?.source,"預定退房");
+ await editor.live.saveCheckout({id:saved.key,room:"預定房A",address:"測試",
+  checkout_date:"2026-12-04",deposit:10000,power_rate:5,electricity_usage:0});
+ editor.advanceClock("2026-12-01T16:01:00Z");
+ assert.equal(session.ops.vacancies.some(r=>r.room==="預定房A"),false);
+ editor.advanceClock("2026-12-04T16:01:00Z");
+ assert.equal(session.ops.vacancies.find(r=>r.room==="預定房A")?.since,"2026-12-05");
+});
+test("Admin can delete vacant card across devices without deleting property master, refunds or reappearing",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture("editor",{fixedNow:"2026-11-16T05:00:00Z"}),session=editor.state(key);
+ await editor.live.connect(session);await online(editor.live);
+ const checkout=await editor.live.saveCheckout({room:"平德501",checkout_date:"2026-11-14",
+  deposit:26000,electricity_usage:0,power_rate:5.5});
+ assert.equal(session.ops.vacancies.some(r=>r.room==="平德501"),true);
+ const beforeHistory=session.ops.checkouts.length,beforeFinance=session.ops.weekly_accounts.length,
+  beforeMaster=session.vault.properties.length;
+ const deletion=await editor.live.deleteVacancy("平德501");
+ assert.equal(deletion.kind,"room_delete");
+ assert.equal(session.ops.vacancies.some(r=>r.room==="平德501"),false);
+ assert.equal(session.ops.checkouts.length,beforeHistory);
+ assert.equal(session.ops.weekly_accounts.length,beforeFinance);
+ assert.equal(session.vault.properties.length,beforeMaster);
+ editor.tick(); // repeated render must not resurrect the prior checkout.
+ assert.equal(session.ops.vacancies.some(r=>r.room==="平德501"),false);
+ const viewer=fixture("guest",{newDevice:true,sharedStore:editor.store,
+  fixedNow:"2026-11-16T05:00:00Z"}),other=viewer.state(key);
+ await viewer.live.connect(other);await online(viewer.live);
+ assert.equal(other.ops.vacancies.some(r=>r.room==="平德501"),false);
+ assert.equal(other.ops.checkouts.some(r=>r.id===checkout.key),true);
+ await assert.rejects(()=>viewer.live.deleteVacancy("平德501"),/唯讀/);
+ await editor.live.saveRoom({room:"平德501",status:"vacant",deposit:26000,address:"手動恢復"});
+ assert.equal(session.ops.vacancies.find(r=>r.room==="平德501")?.address,"手動恢復");
+});
+test("Deleting a room that is already rented or missing is rejected",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture(),session=editor.state(key);
+ await editor.live.connect(session);await online(editor.live);
+ await assert.rejects(()=>editor.live.deleteVacancy("平德501"),/找不到這間空房/);
+ assert.equal(editor.store.size,0);
 });
