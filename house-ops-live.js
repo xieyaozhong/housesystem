@@ -154,20 +154,28 @@ function scheduledCheckoutRooms(session,day=taiwanToday()){
   const record=patch.changes.checkout,date=record.checkout_date,availability=checkoutAvailability(date,day);
   // A newer room edit, re-rental or explicit deletion always wins over an
   // older checkout. This prevents old history from resetting live room status.
-  const newer=events.some(p=>String(p.updated_at)>String(patch.updated_at)&&
-   (p.kind==="room"||p.kind==="room_delete")&&norm(p.key)===roomKey);
+  const laterRoomEdits=events.filter(p=>String(p.updated_at)>String(patch.updated_at)&&
+   p.kind==="room"&&norm(p.key)===roomKey);
+  const newer=events.some(p=>String(p.updated_at)>String(patch.updated_at)&&norm(p.key)===roomKey&&
+   (p.kind==="room_delete"||(p.kind==="room"&&p.changes?.preserve_checkout!==true)));
   if(newer)continue;
+  const lastDetailEdit=laterRoomEdits.filter(p=>p.changes?.preserve_checkout===true).at(-1);
   const matches=x=>norm(x?.room||x?.code)===roomKey;
   const rented=ops.rented?.find(matches);
   const currentRentalDate=String(rented?.updated_at||rented?.since||"").slice(0,10);
   if(rented&&rented.source!=="預定退房"&&currentRentalDate>date)continue;
   const prior=ops.vacancies?.find(matches)||rented||{};
-  const next={...prior,room:record.room,address:record.address||prior.address||"",
+  const keepManualDetails=Boolean(lastDetailEdit);
+  const next={...prior,room:record.room,
+   address:keepManualDetails?(prior.address||record.address||""):(record.address||prior.address||""),
    status:availability.available?"vacant":"rented",
    source:availability.available?"退租轉空房":"預定退房",
-   updated_at:patch.updated_at,
-   rent:record.rent,deposit:record.deposit,power_rate:record.power_rate,
-   power_billing:record.power_billing||"fixed"};
+   updated_at:keepManualDetails?lastDetailEdit.updated_at:patch.updated_at,
+   rent:keepManualDetails?(prior.rent??record.rent):record.rent,
+   deposit:keepManualDetails?(prior.deposit??record.deposit):record.deposit,
+   power_rate:keepManualDetails?(prior.power_rate??record.power_rate):record.power_rate,
+   power_billing:keepManualDetails?(prior.power_billing||record.power_billing||"fixed"):
+    (record.power_billing||"fixed")};
   if(availability.available)next.since=availability.vacancy_date;
   else {delete next.since;next.planned_checkout_date=date}
   if(availability.available)delete next.planned_checkout_date;
@@ -549,8 +557,16 @@ async function saveRoom(data){
  if(rate!==null&&rate>1000)throw Error("電費每度金額不合理");
  const address=String(data.address||"").trim(),note=String(data.note||"").trim();
  if(address.length>300||note.length>2000)throw Error("地址或備註內容過長");
+ const roomKey=norm(room);
+ const currentlyRented=s?.ops?.rented?.some(x=>norm(x?.room||x?.code)===roomKey);
+ const pendingCheckout=[...patches.values()].filter(p=>p.kind==="checkout"&&
+  norm(p.changes?.checkout?.room)===roomKey&&
+  checkoutAvailability(p.changes?.checkout?.checkout_date).available===false)
+  .sort((a,b)=>String(b.updated_at).localeCompare(String(a.updated_at)))[0];
+ const preserveCheckout=Boolean(pendingCheckout&&currentlyRented&&statusValue==="rented");
  return save({v:1,kind:"room",key:room,updated_at:nextTimestamp(),
-  changes:{status:statusValue,deposit,rent,power_billing:billing,power_rate:rate,address,note}});
+  changes:{status:statusValue,deposit,rent,power_billing:billing,power_rate:rate,address,note,
+   preserve_checkout:preserveCheckout}});
 }
 async function savePayment(data){
  const id=String(data.id||""),statusValue=data.status,paidDate=String(data.paid_date||"").trim();
