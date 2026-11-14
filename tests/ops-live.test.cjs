@@ -228,7 +228,7 @@ test("Checkout creates linked refund and vacancy; editing after payment resets s
  assert.equal(refund.amount,12120);
  assert.equal(refund.due_date,"2026-11-17");
  assert.equal(state.ops.rented.find(x=>x.room==="平德501"),undefined);
- assert.equal(state.ops.vacancies.find(x=>x.room==="平德501").since,"2026-11-11");
+ assert.equal(state.ops.vacancies.find(x=>x.room==="平德501").since,"2026-11-12");
  await admin.live.savePayment({id:refund.id,status:"paid",paid_date:"2026-11-12"});
  assert.equal(checkout.refund_status,"paid");
  await admin.live.saveCheckout({...details,id,penalty:14000});
@@ -239,7 +239,7 @@ test("Checkout creates linked refund and vacancy; editing after payment resets s
  const supervisor=fixture("guest",{newDevice:true,sharedStore:admin.store}),view=supervisor.state(key);
  await supervisor.live.connect(view);await online(supervisor.live);
  assert.equal(view.ops.checkouts.find(x=>x.id===id).refund_amount,11120);
- assert.equal(view.ops.vacancies.find(x=>x.room==="平德501").since,"2026-11-11");
+ assert.equal(view.ops.vacancies.find(x=>x.room==="平德501").since,"2026-11-12");
  await assert.rejects(()=>supervisor.live.saveCheckout({...details,id}),/唯讀/);
 });
 test("Earlier historical checkout cannot erase a later current rental",async()=>{
@@ -380,26 +380,29 @@ test("Taipower checkout deducts actual invoice amount, never multiplies a fixed 
 });
 test("Taipower room setting, master and checkout synchronize to supervisor without an exposed tariff",async()=>{
  const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
- const editor=fixture(),session=editor.state(key);
+ const editor=fixture("editor",{fixedNow:"2026-11-14T08:00:00Z"}),session=editor.state(key);
  await editor.live.connect(session);await online(editor.live);
  await editor.live.saveRoom({room:"平德501",status:"rented",deposit:26000,
   power_billing:"taipower",power_rate:5.5,address:"舊址"});
  assert.equal(session.ops.rented.find(x=>x.room==="平德501").power_billing,"taipower");
  assert.equal(session.ops.rented.find(x=>x.room==="平德501").power_rate,null);
  assert.equal(session.vault.properties.find(x=>x.code==="平德501").power_billing,"taipower");
- await editor.live.saveCheckout({room:"平德501",checkout_date:"2026-11-13",deposit:26000,
+ await editor.live.saveCheckout({room:"平德501",checkout_date:"2026-11-16",deposit:26000,
   power_billing:"taipower",actual_electricity_fee:1298,electricity_usage:200});
- const checked=session.ops.checkouts.find(x=>x.room==="平德501"&&x.checkout_date==="2026-11-13");
+ const checked=session.ops.checkouts.find(x=>x.room==="平德501"&&x.checkout_date==="2026-11-16");
  assert.equal(checked.electricity_fee,1298);
  assert.equal(checked.power_rate,null);
  assert.equal(checked.refund_amount,24702);
+ assert.equal(session.ops.rented.find(x=>x.room==="平德501").power_billing,"taipower");
+ assert.equal(session.ops.vacancies.some(x=>x.room==="平德501"),false);
+ editor.advanceClock("2026-11-16T16:01:00Z");
  assert.equal(session.ops.vacancies.find(x=>x.room==="平德501").power_billing,"taipower");
- const supervisor=fixture("guest",{newDevice:true,sharedStore:editor.store});
+ const supervisor=fixture("guest",{newDevice:true,sharedStore:editor.store,fixedNow:"2026-11-16T16:10:00Z"});
  const viewer=supervisor.state(key);
  await supervisor.live.connect(viewer);await online(supervisor.live);
  assert.equal(viewer.vault.properties.find(x=>x.code==="平德501").power_billing,"taipower");
  assert.equal(viewer.ops.vacancies.find(x=>x.room==="平德501").power_billing,"taipower");
- assert.equal(viewer.ops.checkouts.find(x=>x.room==="平德501"&&x.checkout_date==="2026-11-13").electricity_fee,1298);
+ assert.equal(viewer.ops.checkouts.find(x=>x.room==="平德501"&&x.checkout_date==="2026-11-16").electricity_fee,1298);
  await assert.rejects(()=>supervisor.live.saveRoom({room:"平德501",status:"vacant",deposit:26000,power_billing:"fixed"}),/唯讀/);
 });
 
