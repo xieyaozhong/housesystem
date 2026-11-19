@@ -23,7 +23,7 @@ const money=x=>{const n=Number(String(x??"0").replace(/,/g,"").trim()||0);if(!Nu
 const validDate=x=>{const d=String(x||"");if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return false;const t=new Date(d+"T12:00:00Z");return !Number.isNaN(t.getTime())&&t.toISOString().slice(0,10)===d};
 const safeText=(x,max=500)=>{const v=String(x??"").trim();if(v.length>max)throw Error("欄位內容過長");return v};
 function namedAdjustments(value,kind){
- const type=kind==="credit"?"其他加回款":type+"";
+ const type=kind==="credit"?"其他加回款":"其他扣款";
  if(value===undefined||value===null||value==="")return [];
  let items=value;
  if(typeof items==="string"){
@@ -36,7 +36,7 @@ function namedAdjustments(value,kind){
   const raw=String(item.amount??"").trim();
   if(!label&&!raw)return null;
   if(!label||!raw)throw Error("每一筆"+type+"都需輸入名目與金額");
-  if(/[\r\n｜＝]/.test(label))throw Error("扣款名目不能包含換行或計算分隔符號");
+  if(/[\r\n｜＝]/.test(label))throw Error(type+"名目不能包含換行或計算分隔符號");
   const amount=money(raw);
   if(!Number.isInteger(amount)||amount<=0)throw Error(type+"請輸入大於零的整數金額");
   return {label,amount};
