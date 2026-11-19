@@ -179,6 +179,49 @@ async function main(){
     assert.equal(namedDeductions.afterReset,0);
     assert.equal(namedDeductions.fit,true);
 
+    // Manager may name individual add-back credits, preview the plus signs,
+    // and reopen existing checkouts without losing those labels.
+    const namedCredits=await p.evaluate(()=>{
+      const form=document.getElementById("checkoutEditorForm");
+      document.getElementById("checkoutEditorReset").click();
+      const set=(name,value)=>{const node=form.elements.namedItem(name);node.value=value;
+        node.dispatchEvent(new Event("input",{bubbles:true}))};
+      set("room","測試A101");set("deposit","26000");
+      set("electricity_usage","100");set("other_credit","400");
+      for(const [label,amount] of [["溢收網路費返還","250"],["代墊修繕費","1500"]]){
+        document.getElementById("checkoutCreditAdd").click();
+        const row=document.querySelector("#checkoutCreditRows").lastElementChild;
+        row.querySelector("[data-credit-label]").value=label;
+        const fee=row.querySelector("[data-credit-amount]");
+        fee.value=amount;fee.dispatchEvent(new Event("input",{bubbles:true}));
+      }
+      const preview=document.getElementById("checkoutEditorPreview").textContent;
+      const rows=document.querySelectorAll("#checkoutCreditRows .checkout-deduction-row").length;
+      document.querySelector("#checkoutCreditRows [data-remove-credit]")?.click();
+      const afterRemove=document.getElementById("checkoutEditorPreview").textContent;
+      HouseOpsLive.getStatus=()=>({role:"editor",mode:"online"});
+      HouseOpsForms.setSession({ops:{checkouts:[{
+        id:"checkout-example",room:"測試A101",checkout_date:"2026-11-01",
+        deposit:26000,power_rate:5.5,electricity_usage:100,other_credit:400,
+        credit_items:[{label:"代墊修繕費",amount:1500}],refund_amount:27350
+      }],weekly_accounts:[],rented:[],vacancies:[]},vault:{properties:[]},finance:{accounts:[]}});
+      document.querySelector('[data-edit-checkout="checkout-example"]')?.click();
+      const restored=document.querySelector("#checkoutCreditRows .checkout-deduction-row");
+      const restoredLabel=restored?.querySelector("[data-credit-label]")?.value||"";
+      const restoredAmount=restored?.querySelector("[data-credit-amount]")?.value||"";
+      document.getElementById("checkoutEditorReset").click();
+      const resetRows=document.querySelectorAll("#checkoutCreditRows .checkout-deduction-row").length;
+      return {preview,rows,afterRemove,restoredLabel,restoredAmount,resetRows,
+        widthOk:document.documentElement.scrollWidth<=innerWidth+2};
+    });
+    assert.equal(namedCredits.rows,2);
+    assert.match(namedCredits.preview,/押金26000－電費550＋其他加回款400＋溢收網路費返還250＋代墊修繕費1500＝27600元/);
+    assert.match(namedCredits.afterRemove,/押金26000－電費550＋其他加回款400＋代墊修繕費1500＝27350元/);
+    assert.equal(namedCredits.restoredLabel,"代墊修繕費");
+    assert.equal(namedCredits.restoredAmount,"1500");
+    assert.equal(namedCredits.resetRows,0);
+    assert.equal(namedCredits.widthOk,true);
+
     // Paid transactions live in history (including the current period).
     // Unpaid transactions must remain on the weekly page regardless of age.
     await p.goto(origin+'/accounting-history.html');
