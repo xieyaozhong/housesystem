@@ -138,9 +138,42 @@ function loadCheckoutDeductions(items){
  for(const item of Array.isArray(items)?items:[])addCheckoutDeduction(item);
  $("checkoutDeductionAdd").disabled=root.children.length>=30;
 }
+function checkoutCredits(){
+ const root=$("checkoutCreditRows");
+ if(!root)return[];
+ return [...root.querySelectorAll(".checkout-deduction-row")].map(row=>({
+  label:row.querySelector("[data-credit-label]")?.value||"",
+  amount:row.querySelector("[data-credit-amount]")?.value||""
+ }));
+}
+function addCheckoutCredit(item={}){
+ const root=$("checkoutCreditRows");
+ if(!root)return;
+ if(root.children.length>=30){
+  note("checkoutEditorFeedback","其他加回款最多新增 30 筆",true);return
+ }
+ const row=document.createElement("div");
+ row.className="checkout-deduction-row";
+ row.innerHTML='<label>加回款名目<input type="text" data-credit-label maxlength="80" placeholder="例：代墊費用歸還" aria-label="其他加回款名目"></label>'+
+  '<label>加回款金額<input type="number" data-credit-amount min="1" step="1" placeholder="金額" inputmode="numeric" aria-label="其他加回款金額"></label>'+
+  '<button type="button" class="checkout-deduction-remove" data-remove-credit aria-label="移除這筆加回款">移除</button>';
+ row.querySelector("[data-credit-label]").value=String(item.label??"");
+ row.querySelector("[data-credit-amount]").value=String(item.amount??"");
+ root.appendChild(row);
+ $("checkoutCreditAdd").disabled=root.children.length>=30;
+}
+function loadCheckoutCredits(items){
+ const root=$("checkoutCreditRows");if(!root)return;
+ root.replaceChildren();
+ for(const item of Array.isArray(items)?items:[])addCheckoutCredit(item);
+ $("checkoutCreditAdd").disabled=root.children.length>=30;
+}
 function values(form){
  const data=Object.fromEntries(new FormData(form).entries());
- if(form===checkoutForm)data.deduction_items=checkoutDeductions();
+ if(form===checkoutForm){
+  data.deduction_items=checkoutDeductions();
+  data.credit_items=checkoutCredits();
+ }
  return data;
 }
 function paintAccounts(){
@@ -208,6 +241,7 @@ function resetCheckout(){
  if(!checkoutForm)return;
  checkoutForm.reset();
  loadCheckoutDeductions([]);
+ loadCheckoutCredits([]);
  fill(checkoutForm,{id:"",checkout_date:new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Taipei"}),
   electricity_mode:"deduct",power_billing:"fixed",power_rate:"5.5",actual_electricity_fee:""});
  updateCheckoutPowerBilling();
@@ -232,6 +266,7 @@ function editCheckout(id){
   other_charge:r.other_charge,overpaid:r.overpaid,other_credit:r.other_credit,
   bank_code:bank.bank_code,bank_name:bank.bank_name,bank_account:bank.bank_account,note:r.note});
  loadCheckoutDeductions(r.deduction_items||[]);
+ loadCheckoutCredits(r.credit_items||[]);
  field("master_id").value=r.master_id||"";linkExistingMaster();hideMasterChoices();
  field("power_billing").value=r.power_billing||"fixed";
  if(r.power_billing==="taipower")field("actual_electricity_fee").value=r.actual_electricity_fee??r.electricity_fee??"";
@@ -288,6 +323,18 @@ if(form){
  resetAccount();
 }
 if(checkoutForm){
+ $("checkoutCreditAdd").addEventListener("click",()=>{
+  addCheckoutCredit();
+  $("checkoutCreditRows").lastElementChild?.querySelector("[data-credit-label]")?.focus();
+  previewCheckout();
+ });
+ $("checkoutCreditRows").addEventListener("click",event=>{
+  const button=event.target.closest("[data-remove-credit]");
+  if(!button)return;
+  button.closest(".checkout-deduction-row")?.remove();
+  $("checkoutCreditAdd").disabled=false;
+  previewCheckout();
+ });
  $("checkoutDeductionAdd").addEventListener("click",()=>{
   addCheckoutDeduction();
   $("checkoutDeductionRows").lastElementChild?.querySelector("[data-deduction-label]")?.focus();
