@@ -565,3 +565,58 @@ test("Editing rent and address before checkout does not cancel automatic followi
  assert.equal(view.ops.vacancies.find(x=>x.room==="平德501")?.since,"2026-11-21");
  assert.equal(session.ops.checkouts.some(x=>x.id===checkout.key),true);
 });
+
+test("Named add-back items increase refunds and preserve legacy other-credit totals",()=>{
+ const live=fixture().live;
+ const inputs={deposit:24000,power_rate:5.5,electricity_usage:100,
+  other_credit:300,overpaid:500,
+  credit_items:[{label:"房客代墊水費退還",amount:480},{label:"設備維修補貼",amount:1200}],
+  deduction_items:[{label:"瓦斯費",amount:350}]};
+ const calc=live.calculateCheckout(inputs);
+ assert.equal(calc.creditTotal,1680);
+ assert.equal(calc.refundAmount,25575);
+ assert.equal(live.refundFormula(calc),
+  "退租退款｜押金24000－電費550－瓦斯費350＋多匯／溢繳500＋其他加回款300＋房客代墊水費退還480＋設備維修補貼1200＝25575元");
+ assert.equal(live.calculateCheckout({deposit:24000,other_credit:480}).refundAmount,24480);
+ assert.throws(()=>live.calculateCheckout({deposit:24000,
+  credit_items:[{label:"未填金額",amount:""}]}),/名目與金額/);
+ assert.throws(()=>live.calculateCheckout({deposit:24000,
+  credit_items:[{label:"",amount:100}]}),/名目與金額/);
+ assert.throws(()=>live.calculateCheckout({deposit:24000,
+  credit_items:[{label:"補貼",amount:-5}]}),/其他加回款/);
+ assert.throws(()=>live.calculateCheckout({deposit:24000,
+  credit_items:[{label:"補貼｜假造總額",amount:5}]}),/加回款名目/);
+});
+test("Custom credit labels and amount edits synchronize through encrypted checkout and refund records",async()=>{
+ const key=await webcrypto.subtle.generateKey({name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+ const editor=fixture(),session=editor.state(key);
+ await editor.live.connect(session);await online(editor.live);
+ const data={room:"平德501",checkout_date:"2026-11-17",deposit:26000,
+  power_rate:5.5,electricity_usage:100,other_credit:400,
+  credit_items:[{label:"溢收網路費返還",amount:250},{label:"代墊修繕費",amount:1500}]};
+ const created=await editor.live.saveCheckout(data);
+ const checkout=session.ops.checkouts.find(x=>x.id===created.key);
+ const weekly=session.ops.weekly_accounts.find(x=>x.id===created.key.replace(/^checkout-/,"refund-"));
+ assert.equal(checkout.refund_amount,27600);
+ assert.equal(weekly.amount,27600);
+ assert.equal(checkout.other_credit,400);
+ assert.equal(checkout.credit_items.length,2);
+ assert.equal(weekly.description,
+  "退租退款｜押金26000－電費550＋其他加回款400＋溢收網路費返還250＋代墊修繕費1500＝27600元");
+ assert.equal(editor.live.refundFormulaFromRecord(checkout),weekly.description);
+ const ciphertext=JSON.stringify([...editor.store.values()]);
+ assert.equal(ciphertext.includes("代墊修繕費"),false);
+ const supervisor=fixture("guest",{newDevice:true,sharedStore:editor.store});
+ const view=supervisor.state(key);await supervisor.live.connect(view);await online(supervisor.live);
+ assert.equal(view.ops.checkouts.find(x=>x.id===created.key).credit_items[0].label,"溢收網路費返還");
+ assert.equal(view.ops.weekly_accounts.find(x=>x.id===weekly.id).description,weekly.description);
+ await assert.rejects(()=>supervisor.live.saveCheckout(data),/唯讀/);
+ const updated=await editor.live.saveCheckout({...data,id:created.key,
+  credit_items:[{label:"水費補貼退還",amount:350}]});
+ assert.equal(updated.changes.checkout.refund_amount,26200);
+ assert.equal(session.ops.checkouts.filter(x=>x.id===created.key).length,1);
+ assert.deepEqual(Array.from(session.ops.checkouts.find(x=>x.id===created.key).credit_items,x=>x.label),
+  ["水費補貼退還"]);
+ assert.equal(session.ops.weekly_accounts.find(x=>x.id===weekly.id).amount,26200);
+ assert.match(session.ops.weekly_accounts.find(x=>x.id===weekly.id).description,/＋水費補貼退還350＝26200元/);
+});
