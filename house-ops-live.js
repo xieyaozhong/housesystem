@@ -37,7 +37,8 @@ function namedAdjustments(value,kind){
   if(!label&&!raw)return null;
   if(!label||!raw)throw Error("每一筆"+type+"都需輸入名目與金額");
   if(/[\r\n｜＝]/.test(label))throw Error(type+"名目不能包含換行或計算分隔符號");
-  const amount=money(raw);
+  let amount;
+  try{amount=money(raw)}catch(err){throw Error(type+"金額不正確："+(err?.message||"請輸入有效金額"))}
   if(!Number.isInteger(amount)||amount<=0)throw Error(type+"請輸入大於零的整數金額");
   return {label,amount};
  }).filter(Boolean);
