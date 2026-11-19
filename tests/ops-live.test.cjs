@@ -574,9 +574,9 @@ test("Named add-back items increase refunds and preserve legacy other-credit tot
   deduction_items:[{label:"瓦斯費",amount:350}]};
  const calc=live.calculateCheckout(inputs);
  assert.equal(calc.creditTotal,1680);
- assert.equal(calc.refundAmount,25575);
+ assert.equal(calc.refundAmount,25580);
  assert.equal(live.refundFormula(calc),
-  "退租退款｜押金24000－電費550－瓦斯費350＋多匯／溢繳500＋其他加回款300＋房客代墊水費退還480＋設備維修補貼1200＝25575元");
+  "退租退款｜押金24000－電費550－瓦斯費350＋多匯／溢繳500＋其他加回款300＋房客代墊水費退還480＋設備維修補貼1200＝25580元");
  assert.equal(live.calculateCheckout({deposit:24000,other_credit:480}).refundAmount,24480);
  assert.throws(()=>live.calculateCheckout({deposit:24000,
   credit_items:[{label:"未填金額",amount:""}]}),/名目與金額/);
